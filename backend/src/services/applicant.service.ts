@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Applicant } from 'src/entities/applicant.entity';
 import { ApplicantCreateDto } from 'src/dto/applicant.create.dto';
-import { Repository } from 'typeorm';
+import { Entity, Repository } from 'typeorm';
 
 @Injectable()
 export class ApplicantService {
@@ -15,7 +15,12 @@ export class ApplicantService {
   }
 
   create(data: ApplicantCreateDto) {
-    const applicant = this.applicantsTable.create(data);
-    return this.applicantsTable.save(applicant);
+    return this.applicantsTable.manager.transaction(async (manager) => {
+      const applicant = manager.create(Entity, data);
+      const newApplicant = (await manager.save(applicant)) as Applicant;
+
+      newApplicant.code = `V${newApplicant.id.toString().padStart(4, '0')}`;
+      return manager.save(newApplicant);
+    });
   }
 }

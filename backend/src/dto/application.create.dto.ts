@@ -1,8 +1,7 @@
 export class ApplicationCreateDto {
-  id!: string;
-  applicantId!: string;
-  vacancyId!: string;
-  cvId!: string;
+  applicantId!: number;
+  vacancyId!: number;
+  cvId!: number;
   status!: string;
   aiMatchScore!: string;
   hrNotes!: string;

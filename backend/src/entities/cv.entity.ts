@@ -12,16 +12,19 @@ import { Exclude } from 'class-transformer';
 
 @Entity('cvs')
 export class CV {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ unique: true })
+  code!: string;
 
   @Exclude()
   @ManyToOne(() => Applicant, (a) => a.id)
   @JoinColumn({ name: 'applicantId' })
   applicant!: Applicant;
 
-  @Column('uuid')
-  applicantId!: string;
+  @Column()
+  applicantId!: number;
 
   @Column('varchar', { nullable: true })
   fileUrl!: string;
