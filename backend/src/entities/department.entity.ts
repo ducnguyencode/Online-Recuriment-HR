@@ -5,7 +5,7 @@ export class Department {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   code!: string;
 
   @Column('varchar', { unique: true, nullable: false })

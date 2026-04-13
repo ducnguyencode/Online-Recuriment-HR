@@ -2,10 +2,14 @@
 
 export type UserRole = 'HR' | 'Interviewer' | 'Applicant';
 
-export type VacancyStatus = 'Open' | 'Suspended' | 'Closed';
+export type VacancyStatus = 'Opened' | 'Suspended' | 'Closed';
 
 /** Per spec: Not in Process → In Process (on first attach) → Hired (on Selected) | Banned (manual) */
-export type ApplicantStatus = 'Not in Process' | 'In Process' | 'Hired' | 'Banned';
+export type ApplicantStatus =
+  | 'Not in Process'
+  | 'In Process'
+  | 'Hired'
+  | 'Banned';
 
 /** Per spec application statuses */
 export type ApplicationStatus =
@@ -18,19 +22,24 @@ export type ApplicationStatus =
 
 export type InterviewResult = 'Pass' | 'Fail' | 'Pending';
 
-export type InterviewStatus = 'Scheduled' | 'Completed' | 'Cancelled' | 'Postponed';
+export type InterviewStatus =
+  | 'Scheduled'
+  | 'Completed'
+  | 'Cancelled'
+  | 'Postponed';
 
 // ==================== MODELS ====================
 
 export interface Department {
-  id: string;         // UUID
+  id: string; // UUID
+  code?: string;
   name: string;
   description?: string;
   isActive?: boolean;
 }
 
 export interface Employee {
-  id: string;         // UUID
+  id: string; // UUID
   departmentId: string;
   department?: Department;
   fullName: string;
@@ -42,7 +51,7 @@ export interface Employee {
 }
 
 export interface UserAccount {
-  id: string;         // UUID
+  id: string; // UUID
   email: string;
   fullName: string;
   role: UserRole;
@@ -53,38 +62,40 @@ export interface UserAccount {
 }
 
 export interface Vacancy {
-  id: string;                 // UUID — auto-generated, immutable
+  id: string; // UUID — auto-generated, immutable
+  code: string;
   title: string;
   description: string;
   departmentId: string;
   department?: Department;
-  numberOfOpenings: number;   // per spec field name
+  numberOfOpenings: number; // per spec field name
   filledCount: number;
-  ownedByEmployeeId: string;  // HR who created — only they can edit/close
+  ownedByEmployeeId: string; // HR who created — only they can edit/close
   owner?: Employee;
-  closingDate: string;        // per spec: closingDate (not deadline)
+  closingDate: string; // per spec: closingDate (not deadline)
   status: VacancyStatus;
-  createdAt: string;          // auto, immutable
+  createdAt: string; // auto, immutable
   updatedAt: string;
 }
 
 export interface Applicant {
-  id: string;         // UUID
+  id: string; // UUID
   fullName: string;
   email: string;
   phone: string;
   status: ApplicantStatus;
   isActive?: boolean;
-  createdAt: string;  // auto, immutable
+  createdAt: string; // auto, immutable
   updatedAt: string;
 }
 
 export interface CV {
-  id: string;         // UUID
+  id: string; // UUID
   applicantId: string;
   fileName?: string;
   fileUrl?: string;
-  parsedDataAi?: {   // camelCase matches backend (parsedDataAi)
+  parsedDataAi?: {
+    // camelCase matches backend (parsedDataAi)
     fullName?: string;
     email?: string;
     phone?: string;
@@ -98,7 +109,7 @@ export interface CV {
 }
 
 export interface Application {
-  id: string;         // UUID
+  id: string; // UUID
   applicantId: string;
   applicant?: Applicant;
   vacancyId: string;
@@ -122,7 +133,7 @@ export interface InterviewerPanel {
 }
 
 export interface Interview {
-  id: string;         // UUID
+  id: string; // UUID
   applicationId: string;
   application?: Application;
   interviewDate: string;
@@ -214,16 +225,21 @@ export function canChangeVacancyStatus(current: VacancyStatus): boolean {
 
 /** Per spec: cannot attach applicant to Closed or Suspended vacancy */
 export function canAttachToVacancy(vacancyStatus: VacancyStatus): boolean {
-  return vacancyStatus === 'Open';
+  return vacancyStatus === 'Opened';
 }
 
 /** Per spec: cannot attach more vacancies if applicant is Hired or Banned */
-export function canAttachVacancyToApplicant(applicantStatus: ApplicantStatus): boolean {
+export function canAttachVacancyToApplicant(
+  applicantStatus: ApplicantStatus,
+): boolean {
   return applicantStatus !== 'Hired' && applicantStatus !== 'Banned';
 }
 
 /** Per spec: HR can only edit/close vacancies they own */
-export function isVacancyOwner(vacancy: Vacancy, currentUserId: string): boolean {
+export function isVacancyOwner(
+  vacancy: Vacancy,
+  currentUserId: string,
+): boolean {
   return vacancy.ownedByEmployeeId === currentUserId;
 }
 

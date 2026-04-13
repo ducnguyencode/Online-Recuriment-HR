@@ -1,27 +1,53 @@
 <div class="page-container">
-
   <!-- Page Header -->
   <div class="page-header">
     <div>
       <h1 class="page-title">Vacancy Management</h1>
       <p class="page-subtitle">Create, edit, and manage hiring positions</p>
     </div>
-    <button class="btn-accent" (click)="openCreateDialog()">Create Vacancy</button>
+    <button class="btn-accent" (click)="openCreateDialog()">
+      Create Vacancy
+    </button>
   </div>
 
   <!-- Filters Bar -->
   <div class="filters-bar">
     <div class="search-box">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="text" class="form-input search-input" placeholder="Search vacancies..." [(ngModel)]="searchQuery" (input)="onSearch()" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <input
+        type="text"
+        class="form-input search-input"
+        placeholder="Search vacancies..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearch()"
+      />
     </div>
-    <select class="form-select filter-select" [(ngModel)]="filterStatus" (change)="onSearch()">
+    <select
+      class="form-select filter-select"
+      [(ngModel)]="filterStatus"
+      (change)="onSearch()"
+    >
       <option value="">All Statuses</option>
-      <option value="Open">Open</option>
+      <option value="Opened">Opened</option>
       <option value="Suspended">Suspended</option>
       <option value="Closed">Closed</option>
     </select>
-    <select class="form-select filter-select" [(ngModel)]="filterDepartment" (change)="onSearch()">
+    <select
+      class="form-select filter-select"
+      [(ngModel)]="filterDepartment"
+      (change)="onSearch()"
+    >
       <option value="">All Departments</option>
       @for (d of departments(); track d.id) {
         <option [ngValue]="d.id">{{ d.name }}</option>
@@ -29,7 +55,18 @@
     </select>
     @if (searchQuery || filterStatus || filterDepartment) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
         Clear
       </button>
     }
@@ -37,11 +74,45 @@
 
     <!-- View Toggle -->
     <div class="view-toggle">
-      <button class="btn-icon-toggle" [class.active]="viewMode === 'table'" (click)="viewMode = 'table'" title="Table view">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+      <button
+        class="btn-icon-toggle"
+        [class.active]="viewMode === 'table'"
+        (click)="viewMode = 'table'"
+        title="Table view"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M3 9h18M3 15h18M9 3v18" />
+        </svg>
       </button>
-      <button class="btn-icon-toggle" [class.active]="viewMode === 'card'" (click)="viewMode = 'card'" title="Card view">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      <button
+        class="btn-icon-toggle"
+        [class.active]="viewMode === 'card'"
+        (click)="viewMode = 'card'"
+        title="Card view"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect width="7" height="7" x="3" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="14" rx="1" />
+          <rect width="7" height="7" x="3" y="14" rx="1" />
+        </svg>
       </button>
     </div>
   </div>
@@ -51,17 +122,17 @@
   }
 
   <!-- ── TABLE VIEW ── -->
-  @if (viewMode === 'table' && !loading()) {
+  @if (viewMode === "table" && !loading()) {
     <div class="card table-card">
       <table class="data-table">
         <thead>
           <tr>
             <th>Position</th>
             <th>Department</th>
-            <th style="width:120px">Openings</th>
-            <th style="width:130px">Closing Date</th>
-            <th style="width:110px">Status</th>
-            <th style="width:160px">Actions</th>
+            <th style="width: 120px">Openings</th>
+            <th style="width: 130px">Closing Date</th>
+            <th style="width: 110px">Status</th>
+            <th style="width: 160px">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -69,48 +140,120 @@
             <tr class="table-row" (click)="openDetail(v)">
               <td>
                 <div class="vacancy-title">{{ v.title }}</div>
-                <div class="vacancy-desc">{{ vacancyDisplayId(v.id) }} · {{ v.description | slice:0:70 }}...</div>
-                @if (isNearDeadline(v) && v.status === 'Open') {
-                  <span class="badge badge-danger" style="font-size:10px;margin-top:4px">Closing soon</span>
+                <div class="vacancy-desc">
+                  {{ v.code }} · {{ v.description | slice: 0 : 70 }}...
+                </div>
+                @if (isNearDeadline(v) && v.status === "Opened") {
+                  <span
+                    class="badge badge-danger"
+                    style="font-size: 10px; margin-top: 4px"
+                    >Closing soon</span
+                  >
                 }
               </td>
-              <td><span class="dept-tag">{{ v.department?.name ?? '—' }}</span></td>
+              <td>
+                <span class="dept-tag">{{ v.department?.name ?? "—" }}</span>
+              </td>
               <td>
                 <div class="openings-cell">
-                  <span class="openings-text">{{ v.filledCount }}/{{ v.numberOfOpenings }}</span>
+                  <span class="openings-text"
+                    >{{ v.filledCount }}/{{ v.numberOfOpenings }}</span
+                  >
                   <div class="progress-bar">
-                    <div class="progress-fill" [style.width.%]="getProgressPercent(v)"></div>
+                    <div
+                      class="progress-fill"
+                      [style.width.%]="getProgressPercent(v)"
+                    ></div>
                   </div>
                 </div>
               </td>
-              <td class="cell-date">{{ v.closingDate | date:'MM/dd/yyyy' }}</td>
-              <td><span class="badge" [ngClass]="getStatusClass(v.status)">{{ v.status }}</span></td>
+              <td class="cell-date">
+                {{ v.closingDate | date: "MM/dd/yyyy" }}
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getStatusClass(v.status)">{{
+                  v.status
+                }}</span>
+              </td>
               <td class="cell-actions" (click)="$event.stopPropagation()">
                 <!-- Edit: only if owner & not Closed -->
-                <button class="btn-ghost btn-icon"
+                <button
+                  class="btn-ghost btn-icon"
                   [title]="editTitle(v)"
                   [disabled]="!canEdit(v)"
-                  (click)="openEditDialog(v, $event)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  (click)="openEditDialog(v, $event)"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
+                    />
+                  </svg>
                 </button>
 
                 <!-- Status changes: only if owner & not Closed -->
                 @if (canChangeStatus(v)) {
                   @for (s of allowedStatuses(v); track s) {
-                    <button class="btn-ghost btn-icon"
+                    <button
+                      class="btn-ghost btn-icon"
                       [title]="'Set ' + s"
-                      (click)="changeStatus(v, s, $event)">
-                      @if (s === 'Suspended') {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EAB308" stroke-width="2"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
-                      } @else if (s === 'Open') {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-                      } @else if (s === 'Closed') {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                      (click)="changeStatus(v, s, $event)"
+                    >
+                      @if (s === "Suspended") {
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#EAB308"
+                          stroke-width="2"
+                        >
+                          <rect x="14" y="4" width="4" height="16" rx="1" />
+                          <rect x="6" y="4" width="4" height="16" rx="1" />
+                        </svg>
+                      } @else if (s === "Opened") {
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#22C55E"
+                          stroke-width="2"
+                        >
+                          <polygon points="6 3 20 12 6 21 6 3" />
+                        </svg>
+                      } @else if (s === "Closed") {
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#EF4444"
+                          stroke-width="2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="m15 9-6 6" />
+                          <path d="m9 9 6 6" />
+                        </svg>
                       }
                     </button>
                   }
-                } @else if (v.status === 'Closed') {
-                  <span class="locked-badge" title="Closed vacancies cannot be reopened">🔒</span>
+                } @else if (v.status === "Closed") {
+                  <span
+                    class="locked-badge"
+                    title="Closed vacancies cannot be reopened"
+                    >🔒</span
+                  >
                 }
               </td>
             </tr>
@@ -128,36 +271,78 @@
   }
 
   <!-- ── CARD VIEW ── -->
-  @if (viewMode === 'card' && !loading()) {
+  @if (viewMode === "card" && !loading()) {
     <div class="vacancy-grid">
       @for (v of vacancies(); track v.id) {
         <div class="vacancy-card" (click)="openDetail(v)">
           <div class="vc-header">
-            <div class="vc-dept-tag">{{ v.department?.name ?? 'No Dept' }}</div>
-            <span class="badge" [ngClass]="getStatusClass(v.status)">{{ v.status }}</span>
+            <div class="vc-dept-tag">{{ v.department?.name ?? "No Dept" }}</div>
+            <span class="badge" [ngClass]="getStatusClass(v.status)">{{
+              v.status
+            }}</span>
           </div>
           <h3 class="vc-title">{{ v.title }}</h3>
-          <p class="vc-desc">{{ v.description | slice:0:100 }}...</p>
+          <p class="vc-desc">{{ v.description | slice: 0 : 100 }}...</p>
           <div class="vc-stats">
             <div class="vc-stat">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
               {{ v.filledCount }}/{{ v.numberOfOpenings }} filled
             </div>
             <div class="vc-stat" [class.near-deadline]="isNearDeadline(v)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-              {{ v.closingDate | date:'MMM d, y' }}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" x2="16" y1="2" y2="6" />
+                <line x1="8" x2="8" y1="2" y2="6" />
+                <line x1="3" x2="21" y1="10" y2="10" />
+              </svg>
+              {{ v.closingDate | date: "MMM d, y" }}
             </div>
           </div>
-          <div class="progress-bar" style="margin-top:12px">
-            <div class="progress-fill" [style.width.%]="getProgressPercent(v)"></div>
+          <div class="progress-bar" style="margin-top: 12px">
+            <div
+              class="progress-fill"
+              [style.width.%]="getProgressPercent(v)"
+            ></div>
           </div>
           <div class="vc-actions" (click)="$event.stopPropagation()">
-            <button class="btn-ghost btn-sm" [disabled]="!canEdit(v)" (click)="openEditDialog(v, $event)">Edit</button>
+            <button
+              class="btn-ghost btn-sm"
+              [disabled]="!canEdit(v)"
+              (click)="openEditDialog(v, $event)"
+            >
+              Edit
+            </button>
             @if (canChangeStatus(v)) {
               @for (s of allowedStatuses(v); track s) {
-                <button class="btn-ghost btn-sm" (click)="changeStatus(v, s, $event)">→ {{ s }}</button>
+                <button
+                  class="btn-ghost btn-sm"
+                  (click)="changeStatus(v, s, $event)"
+                >
+                  → {{ s }}
+                </button>
               }
-            } @else if (v.status === 'Closed') {
+            } @else if (v.status === "Closed") {
               <span class="locked-badge">🔒 Closed</span>
             }
           </div>
@@ -177,9 +362,22 @@
   <div class="modal-backdrop" (click)="closeDialogs()">
     <div class="modal-content modal-md" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3 class="modal-title">{{ isEditing() ? 'Edit Vacancy' : 'Create New Vacancy' }}</h3>
+        <h3 class="modal-title">
+          {{ isEditing() ? "Edit Vacancy" : "Create New Vacancy" }}
+        </h3>
         <button class="btn-ghost btn-icon" (click)="closeDialogs()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
@@ -187,14 +385,31 @@
           <div class="form-error-banner">{{ formError }}</div>
         }
         <div class="form-group">
-          <label class="form-label">Position Title <span class="required">*</span></label>
-          <input type="text" class="form-input" placeholder="e.g. Senior Frontend Developer" [(ngModel)]="formData.title" />
+          <label class="form-label"
+            >Position Title <span class="required">*</span></label
+          >
+          <input
+            type="text"
+            class="form-input"
+            placeholder="e.g. Senior Frontend Developer"
+            [(ngModel)]="formData.title"
+          />
         </div>
         <div class="form-row">
-          <div class="form-group" style="flex:1">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <label class="form-label">Department <span class="required">*</span></label>
-              <button class="btn-link btn-sm" (click)="openDeptDialog()">+ New Dept</button>
+          <div class="form-group" style="flex: 1">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <label class="form-label"
+                >Department <span class="required">*</span></label
+              >
+              <button class="btn-link btn-sm" (click)="openDeptDialog()">
+                + New Dept
+              </button>
             </div>
             <select class="form-select" [(ngModel)]="formData.departmentId">
               <option value="">Select department...</option>
@@ -203,24 +418,40 @@
               }
             </select>
           </div>
-          <div class="form-group" style="width:130px">
+          <div class="form-group" style="width: 130px">
             <label class="form-label">Openings</label>
-            <input type="number" class="form-input" min="1" [(ngModel)]="formData.numberOfOpenings" />
+            <input
+              type="number"
+              class="form-input"
+              min="1"
+              [(ngModel)]="formData.numberOfOpenings"
+            />
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">Closing Date</label>
-          <input type="date" class="form-input" [(ngModel)]="formData.closingDate" />
+          <input
+            type="date"
+            class="form-input"
+            [(ngModel)]="formData.closingDate"
+          />
         </div>
         <div class="form-group">
-          <label class="form-label">Job Description <span class="required">*</span></label>
-          <textarea class="form-textarea" rows="5" placeholder="Describe requirements, skills needed..." [(ngModel)]="formData.description"></textarea>
+          <label class="form-label"
+            >Job Description <span class="required">*</span></label
+          >
+          <textarea
+            class="form-textarea"
+            rows="5"
+            placeholder="Describe requirements, skills needed..."
+            [(ngModel)]="formData.description"
+          ></textarea>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeDialogs()">Cancel</button>
         <button class="btn-primary" (click)="saveVacancy()">
-          {{ isEditing() ? 'Update Vacancy' : 'Create Vacancy' }}
+          {{ isEditing() ? "Update Vacancy" : "Create Vacancy" }}
         </button>
       </div>
     </div>
@@ -234,37 +465,65 @@
       <div class="modal-header">
         <div>
           <h3 class="modal-title">{{ selectedVacancy()!.title }}</h3>
-          <span class="badge" [ngClass]="getStatusClass(selectedVacancy()!.status)">{{ selectedVacancy()!.status }}</span>
+          <span
+            class="badge"
+            [ngClass]="getStatusClass(selectedVacancy()!.status)"
+            >{{ selectedVacancy()!.status }}</span
+          >
         </div>
         <button class="btn-ghost btn-icon" (click)="closeDialogs()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Vacancy ID</span>
-            <span class="detail-value">{{ vacancyDisplayId(selectedVacancy()!.id) }}</span>
+            <span class="detail-value">{{ selectedVacancy()!.code }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Department</span>
-            <span class="detail-value">{{ selectedVacancy()!.department?.name ?? '—' }} ({{ departmentDisplayId(selectedVacancy()!.departmentId) }})</span>
+            <span class="detail-value"
+              >{{ selectedVacancy()!.department?.name ?? "—" }} ({{
+                selectedVacancy()!.department?.code
+              }})</span
+            >
           </div>
           <div class="detail-item">
             <span class="detail-label">Openings</span>
-            <span class="detail-value">{{ selectedVacancy()!.filledCount }} / {{ selectedVacancy()!.numberOfOpenings }}</span>
+            <span class="detail-value"
+              >{{ selectedVacancy()!.filledCount }} /
+              {{ selectedVacancy()!.numberOfOpenings }}</span
+            >
           </div>
           <div class="detail-item">
             <span class="detail-label">Closing Date</span>
-            <span class="detail-value">{{ selectedVacancy()!.closingDate | date:'MMMM d, y' }}</span>
+            <span class="detail-value">{{
+              selectedVacancy()!.closingDate | date: "MMMM d, y"
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Owner</span>
-            <span class="detail-value">{{ selectedVacancy()!.owner?.fullName ?? '—' }}</span>
+            <span class="detail-value">{{
+              selectedVacancy()!.owner?.fullName ?? "—"
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Created</span>
-            <span class="detail-value">{{ selectedVacancy()!.createdAt | date:'MMMM d, y' }}</span>
+            <span class="detail-value">{{
+              selectedVacancy()!.createdAt | date: "MMMM d, y"
+            }}</span>
           </div>
         </div>
         <div class="detail-description">
@@ -273,23 +532,31 @@
         </div>
 
         <!-- Closed vacancy lock notice -->
-        @if (selectedVacancy()!.status === 'Closed') {
+        @if (selectedVacancy()!.status === "Closed") {
           <div class="info-banner info-banner-warning">
-            🔒 This vacancy is <strong>Closed</strong> and cannot be reopened or modified.
+            🔒 This vacancy is <strong>Closed</strong> and cannot be reopened or
+            modified.
           </div>
         }
 
         <!-- Not owner notice -->
         @if (!isOwner(selectedVacancy()!)) {
           <div class="info-banner info-banner-info">
-            ℹ️ You are not the owner of this vacancy. Contact <strong>{{ selectedVacancy()!.owner?.fullName }}</strong> to make changes.
+            ℹ️ You are not the owner of this vacancy. Contact
+            <strong>{{ selectedVacancy()!.owner?.fullName }}</strong> to make
+            changes.
           </div>
         }
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeDialogs()">Close</button>
         @if (canEdit(selectedVacancy()!)) {
-          <button class="btn-primary" (click)="openEditDialog(selectedVacancy()!, $event); closeDialogs()">Edit Vacancy</button>
+          <button
+            class="btn-primary"
+            (click)="openEditDialog(selectedVacancy()!, $event); closeDialogs()"
+          >
+            Edit Vacancy
+          </button>
         }
       </div>
     </div>
@@ -303,18 +570,44 @@
       <div class="modal-header">
         <h3 class="modal-title">Add New Department</h3>
         <button class="btn-ghost btn-icon" (click)="closeDeptDialog()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">Department Name <span class="required">*</span></label>
-          <input type="text" class="form-input" placeholder="e.g. Engineering" [(ngModel)]="newDeptName" />
+          <label class="form-label"
+            >Department Name <span class="required">*</span></label
+          >
+          <input
+            type="text"
+            class="form-input"
+            placeholder="e.g. Engineering"
+            [(ngModel)]="newDeptName"
+          />
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeDeptDialog()">Cancel</button>
-        <button class="btn-primary" (click)="saveDepartment()" [disabled]="!newDeptName.trim()">Add</button>
+        <button class="btn-secondary" (click)="closeDeptDialog()">
+          Cancel
+        </button>
+        <button
+          class="btn-primary"
+          (click)="saveDepartment()"
+          [disabled]="!newDeptName.trim()"
+        >
+          Add
+        </button>
       </div>
     </div>
   </div>

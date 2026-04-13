@@ -11,12 +11,17 @@ export class DepartmentService {
     private deparmentsTable: Repository<Department>,
   ) {}
 
-  create(data: DepartmentCreateDto) {
-    const department = this.deparmentsTable.create(data);
-    return this.deparmentsTable.save(department);
-  }
-
   findAll(): Promise<Department[]> {
     return this.deparmentsTable.find();
+  }
+
+  create(data: DepartmentCreateDto) {
+    return this.deparmentsTable.manager.transaction(async (manager) => {
+      const department = manager.create(Department, data);
+      const newDepartment = await manager.save(department);
+
+      newDepartment.code = `D${newDepartment.id.toString().padStart(4, '0')}`;
+      return manager.save(newDepartment);
+    });
   }
 }
