@@ -1,5 +1,5 @@
 export class VacancyCreateDto {
-  departmentId!: string;
+  departmentId!: number;
   title!: string;
   description!: string;
   numberOfOpenings!: number;

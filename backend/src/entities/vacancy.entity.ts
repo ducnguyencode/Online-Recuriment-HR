@@ -13,8 +13,11 @@ import {
 @Entity('vacancies')
 @Unique(['title', 'department'])
 export class Vacancy {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ unique: true })
+  code!: string;
 
   @Exclude()
   @ManyToOne(() => Department, (d) => d.id, {
@@ -24,8 +27,8 @@ export class Vacancy {
   @JoinColumn({ name: 'departmentId' })
   department!: Department | null;
 
-  @Column('uuid', { nullable: true })
-  departmentId!: string;
+  @Column({ nullable: true })
+  departmentId!: number;
 
   @Column('varchar', { nullable: false })
   title!: string;

@@ -20,7 +20,7 @@ export class ApplicationService {
     });
   }
 
-  async findById(id: string): Promise<Application> {
+  async findById(id: number): Promise<Application> {
     return await this.applicationsTable.findOneOrFail({
       where: { id },
       relations: { applicant: true, vacancy: true, cv: true },
@@ -55,7 +55,7 @@ export class ApplicationService {
     return application;
   }
 
-  async changeStatus(id: string, status: ApplicationStatus) {
+  async changeStatus(id: number, status: ApplicationStatus) {
     const application = await this.findById(id);
     application.status = status;
     return this.applicationsTable.save(application);
