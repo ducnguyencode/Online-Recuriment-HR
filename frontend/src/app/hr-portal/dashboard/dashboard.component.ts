@@ -46,7 +46,7 @@ export class DashboardComponent implements OnInit {
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
-      'Open': 'badge-success',
+      'Opened': 'badge-success',
       'Suspended': 'badge-warning',
       'Closed': 'badge-danger',
       'Pending': 'badge-neutral',

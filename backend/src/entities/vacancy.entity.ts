@@ -16,10 +16,9 @@ export class Vacancy {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   code!: string;
 
-  @Exclude()
   @ManyToOne(() => Department, (d) => d.id, {
     nullable: true,
     onDelete: 'SET NULL',
@@ -33,14 +32,14 @@ export class Vacancy {
   @Column('varchar', { nullable: false })
   title!: string;
 
-  @Column('text', { nullable: true })
+  @Column('text', { nullable: false })
   description!: string;
 
-  @Column('int')
+  @Column('int', { default: 1 })
   numberOfOpenings!: number;
 
   @Column('int', { default: 0 })
-  currentHiredCount!: number;
+  filledCount!: number;
 
   @Column('varchar', { default: 'Opened' })
   status!: string;

@@ -2,7 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, PaginatedResponse, Vacancy, VacancyStatus } from '../models';
+import {
+  ApiResponse,
+  PaginatedResponse,
+  Vacancy,
+  VacancyStatus,
+} from '../models';
 
 export interface VacancyFilters {
   status?: string;
@@ -33,14 +38,19 @@ export class VacancyService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(filters: VacancyFilters = {}): Observable<ApiResponse<PaginatedResponse<Vacancy>>> {
+  getAll(
+    filters: VacancyFilters = {},
+  ): Observable<ApiResponse<PaginatedResponse<Vacancy>>> {
     let params = new HttpParams();
-    if (filters.status)       params = params.set('status', filters.status);
-    if (filters.departmentId) params = params.set('departmentId', filters.departmentId);
-    if (filters.search)       params = params.set('search', filters.search);
-    if (filters.page)         params = params.set('page', filters.page.toString());
-    if (filters.limit)        params = params.set('limit', filters.limit.toString());
-    return this.http.get<ApiResponse<PaginatedResponse<Vacancy>>>(this.base, { params });
+    if (filters.page) params = params.set('page', filters.page.toString());
+    if (filters.limit) params = params.set('limit', filters.limit.toString());
+    if (filters.search) params = params.set('title', filters.search);
+    if (filters.status) params = params.set('status', filters.status);
+    if (filters.departmentId)
+      params = params.set('departmentId', filters.departmentId);
+    return this.http.get<ApiResponse<PaginatedResponse<Vacancy>>>(this.base, {
+      params,
+    });
   }
 
   getById(id: string): Observable<ApiResponse<Vacancy>> {
@@ -55,7 +65,12 @@ export class VacancyService {
     return this.http.put<ApiResponse<Vacancy>>(`${this.base}/${id}`, dto);
   }
 
-  changeStatus(id: string, status: VacancyStatus): Observable<ApiResponse<Vacancy>> {
-    return this.http.patch<ApiResponse<Vacancy>>(`${this.base}/${id}/status`, { status });
+  changeStatus(
+    id: string,
+    status: VacancyStatus,
+  ): Observable<ApiResponse<Vacancy>> {
+    return this.http.patch<ApiResponse<Vacancy>>(`${this.base}/${id}/status`, {
+      status,
+    });
   }
 }

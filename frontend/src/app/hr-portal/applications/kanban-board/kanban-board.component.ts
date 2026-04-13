@@ -61,7 +61,7 @@ export class KanbanBoardComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    const raw = this.mockData.getVacancies({ status: 'Open' });
+    const raw = this.mockData.getVacancies({ status: 'Opened' });
     const vacs = raw.map(v => ({
       ...v, id: String(v.id), departmentId: String(v.departmentId),
       ownedByEmployeeId: String(v.ownedByEmployeeId),
