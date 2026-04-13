@@ -1,0 +1,218 @@
+<div class="dashboard">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">Recruitment Activity Overview</p>
+    </div>
+  </div>
+
+  @if (isHR) {
+    <!-- Stat Cards Row -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Open Vacancies</span>
+          <div class="stat-icon icon-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+          </div>
+        </div>
+        <div class="stat-value">{{ stats().openVacancies }}</div>
+        <div class="stat-trend trend-up">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+          +12% vs last month
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Applicants In Process</span>
+          <div class="stat-icon icon-info">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+        </div>
+        <div class="stat-value">{{ stats().applicantsInProcess }}</div>
+        <div class="stat-trend trend-up">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+          +8% vs last month
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Interviews Today</span>
+          <div class="stat-icon icon-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+          </div>
+        </div>
+        <div class="stat-value">{{ stats().todayInterviews }}</div>
+        <div class="stat-trend trend-neutral">Total {{ stats().totalApplications }} applications</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Hiring Rate</span>
+          <div class="stat-icon icon-success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          </div>
+        </div>
+        <div class="stat-value">{{ stats().hiringRate }}%</div>
+        <div class="stat-trend trend-up">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+          +3% vs last month
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Grid: 2 Columns -->
+    <div class="content-grid">
+      <!-- Left: Upcoming Interviews -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+            Upcoming Interviews
+          </h3>
+          <a class="view-all-link" routerLink="/hr-portal/interviews">View All →</a>
+        </div>
+        <div class="interview-list">
+          @for (item of upcomingInterviews(); track item.applicant) {
+            <div class="interview-item">
+              <div class="interview-left-bar"></div>
+              <div class="interview-info">
+                <p class="interview-applicant">{{ item.applicant }}</p>
+                <p class="interview-vacancy">{{ item.vacancy }}</p>
+                <div class="interview-meta">
+                  <span class="meta-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+                    {{ item.date }}
+                  </span>
+                  <span class="meta-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    {{ item.time }}
+                  </span>
+                </div>
+              </div>
+              <div class="interview-action">
+                <span class="platform-tag">{{ item.platform }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Right: Recent Applications -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+            Recent Applications
+          </h3>
+          <a class="view-all-link" routerLink="/hr-portal/applications">View All →</a>
+        </div>
+        <div class="application-list">
+          @for (app of recentApplications(); track app.applicant) {
+            <div class="application-item">
+              <div class="application-avatar">{{ app.applicant.charAt(0) }}</div>
+              <div class="application-info">
+                <p class="application-name">{{ app.applicant }}</p>
+                <p class="application-vacancy">{{ app.vacancy }}</p>
+              </div>
+              <div class="application-right">
+                <span class="badge" [ngClass]="getStatusClass(app.status)">{{ app.status }}</span>
+                <span class="application-time">{{ app.time }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Vacancies Table -->
+    <div class="card mt-6">
+      <div class="card-header">
+        <h3 class="card-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+          Recent Vacancies
+        </h3>
+        <a class="view-all-link" routerLink="/hr-portal/vacancies">View All →</a>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Position</th>
+            <th>Department</th>
+            <th>Openings</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (v of recentVacancies(); track v.id) {
+            <tr>
+              <td class="font-mono text-xs">{{ v.id }}</td>
+              <td class="font-medium">{{ v.title }}</td>
+              <td>{{ v.department }}</td>
+              <td>{{ v.filledCount }}/{{ v.openings }}</td>
+              <td><span class="badge" [ngClass]="getStatusClass(v.status)">{{ v.status }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <!-- Interviewer Dashboard -->
+    <div class="stats-grid stats-3">
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Upcoming Interviews</span>
+          <div class="stat-icon icon-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+          </div>
+        </div>
+        <div class="stat-value">3</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Passed</span>
+          <div class="stat-icon icon-success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+          </div>
+        </div>
+        <div class="stat-value">8</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Rejected</span>
+          <div class="stat-icon icon-danger">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+          </div>
+        </div>
+        <div class="stat-value">2</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">My Interview Schedule</h3>
+      </div>
+      <div class="interview-list">
+        @for (item of upcomingInterviews(); track item.applicant) {
+          <div class="interview-item">
+            <div class="interview-left-bar"></div>
+            <div class="interview-info">
+              <p class="interview-applicant">{{ item.applicant }}</p>
+              <p class="interview-vacancy">{{ item.vacancy }}</p>
+              <div class="interview-meta">
+                <span class="meta-item">📅 {{ item.date }}</span>
+                <span class="meta-item">🕐 {{ item.time }}</span>
+                <span class="meta-item">📹 {{ item.platform }}</span>
+              </div>
+            </div>
+            <button class="btn-primary btn-sm">Join</button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
