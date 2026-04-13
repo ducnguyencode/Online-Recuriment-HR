@@ -1,0 +1,28 @@
+# === Tài liệu nội bộ - KHÔNG đẩy lên GitHub ===
+design.md
+api-contract.md
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+
+# === IDE ===
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# === Node ===
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# === Build output ===
+dist/
+build/
+tmp/
+
+# === Environment files ===
+.env
+.env.local
+.env.*.local

@@ -1,0 +1,74 @@
+.page-container {
+  animation: slideInUp 0.28s ease;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.favorites-table-wrap {
+  overflow: hidden;
+}
+
+.applicant-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.applicant-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  background: var(--shell-brand-soft);
+  color: var(--shell-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.applicant-name {
+  color: var(--shell-text-strong);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.vacancy-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--shell-brand-soft);
+  color: var(--shell-brand);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.loading-state {
+  color: var(--shell-text-soft);
+}
+
+.empty-row {
+  padding: 0 !important;
+}
+
+.empty-state {
+  padding: 48px 24px;
+}
+
+.empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
