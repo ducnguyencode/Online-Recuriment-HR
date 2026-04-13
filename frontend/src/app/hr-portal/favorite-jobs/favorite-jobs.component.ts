@@ -33,13 +33,13 @@ export class FavoriteJobsComponent implements OnInit {
   }
 
   loadVacancies() {
-    this.vacancyService.getAll({ status: 'Open' }).subscribe({
+    this.vacancyService.getAll({ status: 'Opened' }).subscribe({
       next: res => {
         const items = (res.data as any)?.items ?? res.data ?? [];
         this.vacancies.set(items);
       },
       error: () => {
-        const raw = this.mockData.getVacancies({ status: 'Open' });
+        const raw = this.mockData.getVacancies({ status: 'Opened' });
         this.vacancies.set(raw.map(v => ({ ...v, id: String(v.id), departmentId: String(v.departmentId), ownedByEmployeeId: String(v.ownedByEmployeeId), numberOfOpenings: (v as any).openings ?? 1, closingDate: (v as any).deadline ?? '' })) as unknown as Vacancy[]);
       }
     });

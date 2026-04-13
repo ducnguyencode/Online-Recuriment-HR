@@ -31,7 +31,7 @@ export class ApplicationController {
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
+  async findById(@Param('id') id: number) {
     try {
       return await this.applicationService.findById(id);
     } catch (err) {
@@ -41,7 +41,7 @@ export class ApplicationController {
 
   @Post('change-status')
   async changeStatus(
-    @Query('id') id: string,
+    @Query('id') id: number,
     @Query('status') status: ApplicationStatus,
   ) {
     try {

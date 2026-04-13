@@ -2,12 +2,19 @@ import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
-import { VacancyService, CreateVacancyDto } from '../../../core/services/vacancy.service';
+import {
+  VacancyService,
+  CreateVacancyDto,
+} from '../../../core/services/vacancy.service';
 import { DepartmentService } from '../../../core/services/department.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import {
-  Vacancy, Department, VacancyStatus,
-  canChangeVacancyStatus, isVacancyOwner, formatDisplayId
+  Vacancy,
+  Department,
+  VacancyStatus,
+  canChangeVacancyStatus,
+  isVacancyOwner,
+  formatDisplayId,
 } from '../../../core/models';
 
 @Component({
@@ -15,7 +22,7 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule, DatePipe],
   templateUrl: './vacancy-list.component.html',
-  styleUrl: './vacancy-list.component.scss'
+  styleUrl: './vacancy-list.component.scss',
 })
 export class VacancyListComponent implements OnInit {
   vacancies = signal<Vacancy[]>([]);
@@ -38,7 +45,11 @@ export class VacancyListComponent implements OnInit {
   selectedVacancy = signal<Vacancy | null>(null);
 
   formData: CreateVacancyDto = {
-    title: '', description: '', departmentId: '', numberOfOpenings: 1, closingDate: ''
+    title: '',
+    description: '',
+    departmentId: '',
+    numberOfOpenings: 1,
+    closingDate: '',
   };
 
   formError = '';
@@ -51,7 +62,7 @@ export class VacancyListComponent implements OnInit {
     private auth: AuthService,
     private vacancyService: VacancyService,
     private departmentService: DepartmentService,
-    private mockData: MockDataService   // fallback when backend not ready
+    private mockData: MockDataService, // fallback when backend not ready
   ) {}
 
   ngOnInit() {
@@ -74,7 +85,9 @@ export class VacancyListComponent implements OnInit {
   }
 
   canChangeStatus(v: Vacancy): boolean {
-    return isVacancyOwner(v, this.currentUserId) && canChangeVacancyStatus(v.status);
+    return (
+      isVacancyOwner(v, this.currentUserId) && canChangeVacancyStatus(v.status)
+    );
   }
 
   editTitle(v: Vacancy): string {
@@ -83,10 +96,10 @@ export class VacancyListComponent implements OnInit {
     return 'Edit vacancy';
   }
 
-  /** Per spec: Open → Closed | Suspended. Suspended → Open | Closed. Closed → nothing */
+  /** Per spec: Opened → Closed | Suspended. Suspended → Opened | Closed. Closed → nothing */
   allowedStatuses(v: Vacancy): VacancyStatus[] {
-    if (v.status === 'Open')      return ['Suspended', 'Closed'];
-    if (v.status === 'Suspended') return ['Open', 'Closed'];
+    if (v.status === 'Opened') return ['Suspended', 'Closed'];
+    if (v.status === 'Suspended') return ['Opened', 'Closed'];
     return [];
   }
 
@@ -106,8 +119,14 @@ export class VacancyListComponent implements OnInit {
   loadDepartments() {
     // Try real API first, fall back to mock
     this.departmentService.getAll().subscribe({
-      next: res => this.departments.set(Array.isArray(res.data) ? res.data : []),
-      error: () => this.departments.set(this.mockData.getDepartments().map(d => ({ ...d, id: String(d.id) })))
+      next: (res) =>
+        this.departments.set(Array.isArray(res.data) ? res.data : []),
+      error: () =>
+        this.departments.set(
+          this.mockData
+            .getDepartments()
+            .map((d) => ({ ...d, id: String(d.id) })),
+        ),
     });
   }
 
@@ -115,30 +134,43 @@ export class VacancyListComponent implements OnInit {
     this.loading.set(true);
     this.errorMsg.set('');
 
-    this.vacancyService.getAll({
-      status: this.filterStatus || undefined,
-      departmentId: this.filterDepartment || undefined,
-      search: this.searchQuery || undefined,
-    }).subscribe({
-      next: res => {
-        const items = (res.data as any)?.items ?? res.data ?? [];
-        this.vacancies.set(items);
-        this.loading.set(false);
-      },
-      error: () => {
-        // Fallback to mock while backend is being built
-        const raw = this.mockData.getVacancies({
-          status: this.filterStatus || undefined,
-          search: this.searchQuery || undefined,
-          departmentId: this.filterDepartment || undefined,
-        });
-        this.vacancies.set(raw.map(v => ({ ...v, id: String(v.id), departmentId: String(v.departmentId), ownedByEmployeeId: String(v.ownedByEmployeeId), numberOfOpenings: (v as any).openings ?? v.numberOfOpenings ?? 1, closingDate: (v as any).deadline ?? v.closingDate ?? '' })) as any);
-        this.loading.set(false);
-      }
-    });
+    this.vacancyService
+      .getAll({
+        status: this.filterStatus || undefined,
+        departmentId: this.filterDepartment || undefined,
+        search: this.searchQuery || undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          const items = (res.data as any)?.vacancies ?? res.data ?? [];
+          this.vacancies.set(items);
+          this.loading.set(false);
+        },
+        error: () => {
+          // Fallback to mock while backend is being built
+          const raw = this.mockData.getVacancies({
+            status: this.filterStatus || undefined,
+            search: this.searchQuery || undefined,
+            departmentId: this.filterDepartment || undefined,
+          });
+          this.vacancies.set(
+            raw.map((v) => ({
+              ...v,
+              id: String(v.id),
+              departmentId: String(v.departmentId),
+              ownedByEmployeeId: String(v.ownedByEmployeeId),
+              numberOfOpenings: (v as any).openings ?? v.numberOfOpenings ?? 1,
+              closingDate: (v as any).deadline ?? v.closingDate ?? '',
+            })) as any,
+          );
+          this.loading.set(false);
+        },
+      });
   }
 
-  onSearch() { this.loadVacancies(); }
+  onSearch() {
+    this.loadVacancies();
+  }
 
   clearFilters() {
     this.searchQuery = '';
@@ -151,7 +183,13 @@ export class VacancyListComponent implements OnInit {
 
   openCreateDialog() {
     this.isEditing.set(false);
-    this.formData = { title: '', description: '', departmentId: '', numberOfOpenings: 1, closingDate: '' };
+    this.formData = {
+      title: '',
+      description: '',
+      departmentId: '',
+      numberOfOpenings: 1,
+      closingDate: '',
+    };
     this.formError = '';
     this.showFormDialog.set(true);
   }
@@ -185,7 +223,11 @@ export class VacancyListComponent implements OnInit {
   }
 
   saveVacancy() {
-    if (!this.formData.title.trim() || !this.formData.description.trim() || !this.formData.departmentId) {
+    if (
+      !this.formData.title.trim() ||
+      !this.formData.description.trim() ||
+      !this.formData.departmentId
+    ) {
       this.formError = 'Title, description and department are required.';
       return;
     }
@@ -203,20 +245,39 @@ export class VacancyListComponent implements OnInit {
 
     if (this.isEditing() && this.selectedVacancy()) {
       this.vacancyService.update(this.selectedVacancy()!.id, dto).subscribe({
-        next: () => { this.closeDialogs(); this.loadVacancies(); },
+        next: () => {
+          this.closeDialogs();
+          this.loadVacancies();
+        },
         error: () => {
           // Mock fallback
-          this.mockData.updateVacancy(this.selectedVacancy()!.id, { title: dto.title, description: dto.description, numberOfOpenings: dto.numberOfOpenings, closingDate: dto.closingDate });
-          this.closeDialogs(); this.loadVacancies();
-        }
+          this.mockData.updateVacancy(this.selectedVacancy()!.id, {
+            title: dto.title,
+            description: dto.description,
+            numberOfOpenings: dto.numberOfOpenings,
+            closingDate: dto.closingDate,
+          });
+          this.closeDialogs();
+          this.loadVacancies();
+        },
       });
     } else {
       this.vacancyService.create(dto).subscribe({
-        next: () => { this.closeDialogs(); this.loadVacancies(); },
+        next: () => {
+          this.closeDialogs();
+          this.loadVacancies();
+        },
         error: () => {
-          this.mockData.addVacancy({ title: dto.title, description: dto.description, departmentId: dto.departmentId, numberOfOpenings: dto.numberOfOpenings, closingDate: dto.closingDate });
-          this.closeDialogs(); this.loadVacancies();
-        }
+          this.mockData.addVacancy({
+            title: dto.title,
+            description: dto.description,
+            departmentId: dto.departmentId,
+            numberOfOpenings: dto.numberOfOpenings,
+            closingDate: dto.closingDate,
+          });
+          this.closeDialogs();
+          this.loadVacancies();
+        },
       });
     }
   }
@@ -230,38 +291,46 @@ export class VacancyListComponent implements OnInit {
       error: () => {
         this.mockData.updateVacancyStatus(v.id, status);
         this.loadVacancies();
-      }
+      },
     });
   }
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
-      'Open': 'badge-success',
-      'Suspended': 'badge-warning',
-      'Closed': 'badge-danger',
+      Opened: 'badge-success',
+      Suspended: 'badge-warning',
+      Closed: 'badge-danger',
     };
     return map[status] ?? 'badge-neutral';
   }
 
   // ── Department quick-add ──────────────────────────────────────────────────
 
-  openDeptDialog() { this.newDeptName = ''; this.showDeptDialog.set(true); }
-  closeDeptDialog() { this.showDeptDialog.set(false); }
+  openDeptDialog() {
+    this.newDeptName = '';
+    this.showDeptDialog.set(true);
+  }
+  closeDeptDialog() {
+    this.showDeptDialog.set(false);
+  }
 
   saveDepartment() {
     if (!this.newDeptName.trim()) return;
     this.departmentService.create(this.newDeptName.trim()).subscribe({
-      next: res => {
-        this.departments.update(d => [...d, res.data]);
+      next: (res) => {
+        this.departments.update((d) => [...d, res.data]);
         this.formData.departmentId = res.data.id;
         this.closeDeptDialog();
       },
       error: () => {
         const d = this.mockData.addDepartment(this.newDeptName.trim());
-        this.departments.update(list => [...list, { ...d, id: String(d.id) }]);
+        this.departments.update((list) => [
+          ...list,
+          { ...d, id: String(d.id) },
+        ]);
         this.formData.departmentId = String(d.id);
         this.closeDeptDialog();
-      }
+      },
     });
   }
 
