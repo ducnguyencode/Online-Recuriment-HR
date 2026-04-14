@@ -72,7 +72,7 @@ export interface Vacancy {
   filledCount: number;
   ownedByEmployeeId: string; // HR who created — only they can edit/close
   owner?: Employee;
-  closingDate: string; // per spec: closingDate (not deadline)
+  closingDate: string | null; // per spec: closingDate (not deadline)
   status: VacancyStatus;
   createdAt: string; // auto, immutable
   updatedAt: string;
@@ -80,6 +80,7 @@ export interface Vacancy {
 
 export interface Applicant {
   id: string; // UUID
+  code: string;
   fullName: string;
   email: string;
   phone: string;

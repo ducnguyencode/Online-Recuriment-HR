@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { VacancyCreateDto } from 'src/dto/vacancy/vacancy.create.dto';
 import { VacancyFindDto } from 'src/dto/vacancy/vacancy.find.dto';
-import { VacancyFindResponseDto } from 'src/dto/vacancy/vacancy.find.response.dto';
 import { Vacancy } from 'src/entities/vacancy.entity';
+import { FindResponseDto } from 'src/helper/find.response.dto';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class VacanciesService {
   ) {}
 
   //Find All
-  async findAll(request: VacancyFindDto): Promise<VacancyFindResponseDto> {
+  async findAll(request: VacancyFindDto): Promise<FindResponseDto<Vacancy>> {
     const { page, limit, status, title, departmentId } = request;
 
     const qb = this.vacanciesTable.createQueryBuilder('vacancy');
@@ -48,8 +48,8 @@ export class VacanciesService {
     const [vacancies, totalVacancy] = await qb.getManyAndCount();
 
     return {
-      vacancies,
-      totalVacancy,
+      items: vacancies,
+      totalItems: totalVacancy,
       totalPage: Math.ceil(totalVacancy / limit),
     };
   }

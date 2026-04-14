@@ -4,10 +4,10 @@ export class ApplicantCreateDto {
   @IsString()
   fullName!: string;
 
-  @IsEmail()
-  @IsOptional()
+  @IsEmail({}, { message: 'Email must be a valid email address' })
   email!: string;
 
   @IsString()
+  @IsOptional()
   phone!: string;
 }
