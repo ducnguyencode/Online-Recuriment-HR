@@ -125,12 +125,23 @@
 .vacancy-card {
   padding: 16px;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .vacancy-card:hover {
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-1px);
+}
+
+.form-error-banner {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--shell-danger-soft);
+  color: var(--shell-danger);
+  font-size: 12px;
 }
 
 .vc-header,
@@ -245,8 +256,14 @@
 }
 
 @keyframes slideInUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 900px) {

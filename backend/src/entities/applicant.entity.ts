@@ -1,4 +1,7 @@
+import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -10,7 +13,7 @@ export class Applicant {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   code!: string;
 
   @Column('varchar', { nullable: false })
@@ -24,8 +27,8 @@ export class Applicant {
 
   @Column({
     type: 'enum',
-    enum: ['OpenToWork', 'Hired', 'Banned'],
-    default: 'OpenToWork',
+    enum: ApplicantStatus,
+    default: ApplicantStatus.NOT_IN_PROCESS,
   })
   status!: string;
 
@@ -34,4 +37,12 @@ export class Applicant {
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  normalize() {
+    if (this.email) {
+      this.email = this.email.trim();
+    }
+  }
 }

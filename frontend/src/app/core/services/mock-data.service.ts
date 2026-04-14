@@ -169,7 +169,8 @@ export class MockDataService {
 
   private applicants: Applicant[] = [
     {
-      id: 'appl-1',
+      id: '1',
+      code: 'A0001',
       fullName: 'Hoang Minh Tuan',
       email: 'tuan.hoang@gmail.com',
       phone: '0901234567',
@@ -178,7 +179,8 @@ export class MockDataService {
       updatedAt: this.pastDate(9),
     },
     {
-      id: 'appl-2',
+      id: '2',
+      code: 'A0002',
       fullName: 'Vo Thi Lan',
       email: 'lan.vo@gmail.com',
       phone: '0912345678',
@@ -187,7 +189,8 @@ export class MockDataService {
       updatedAt: this.pastDate(8),
     },
     {
-      id: 'appl-3',
+      id: '3',
+      code: 'A0003',
       fullName: 'Bui Duc Manh',
       email: 'manh.bui@gmail.com',
       phone: '0923456789',
@@ -196,7 +199,8 @@ export class MockDataService {
       updatedAt: this.pastDate(2),
     },
     {
-      id: 'appl-4',
+      id: '4',
+      code: 'A0004',
       fullName: 'Nguyen Thi Hoa',
       email: 'hoa.nguyen@gmail.com',
       phone: '0934567890',
@@ -205,7 +209,8 @@ export class MockDataService {
       updatedAt: this.pastDate(5),
     },
     {
-      id: 'appl-5',
+      id: '5',
+      code: 'A0005',
       fullName: 'Dang Van Khoa',
       email: 'khoa.dang@gmail.com',
       phone: '0945678901',
@@ -214,7 +219,8 @@ export class MockDataService {
       updatedAt: this.pastDate(7),
     },
     {
-      id: 'appl-6',
+      id: '6',
+      code: 'A0006',
       fullName: 'Ly Thi Mai',
       email: 'mai.ly@gmail.com',
       phone: '0956789012',
@@ -223,7 +229,8 @@ export class MockDataService {
       updatedAt: this.pastDate(10),
     },
     {
-      id: 'appl-7',
+      id: '7',
+      code: 'A0007',
       fullName: 'Tran Van Nam',
       email: 'nam.tran@gmail.com',
       phone: '0967890123',
@@ -232,7 +239,8 @@ export class MockDataService {
       updatedAt: this.pastDate(6),
     },
     {
-      id: 'appl-8',
+      id: '8',
+      code: 'A0008',
       fullName: 'Phan Thi Oanh',
       email: 'oanh.phan@gmail.com',
       phone: '0978901234',
@@ -679,8 +687,11 @@ export class MockDataService {
     email: string;
     phone: string;
   }): Applicant {
+    let id = `${this.applicants.length + 1}`;
+    let code = `A${id.padStart(4, '0')}`;
     const applicant: Applicant = {
-      id: `appl-${this.applicants.length + 1}`,
+      id: id,
+      code: code,
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,
@@ -767,11 +778,13 @@ export class MockDataService {
     cvSummary: string;
   }): Application {
     const newApplId = `appl-${this.applicants.length + 1}`;
+    const newApplCode = `A${newApplId.padStart(4, '0')}`;
     const newCvId = `cv-${this.cvs.length + 1}`;
     const newAppId = `appl-id-${this.applications.length + 1}`;
 
     const applicant: Applicant = {
       id: newApplId,
+      code: newApplCode,
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,

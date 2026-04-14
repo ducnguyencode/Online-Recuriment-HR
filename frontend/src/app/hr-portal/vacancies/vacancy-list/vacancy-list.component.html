@@ -168,7 +168,11 @@
                 </div>
               </td>
               <td class="cell-date">
-                {{ v.closingDate | date: "MM/dd/yyyy" }}
+                @if (v.closingDate) {
+                  {{ v.closingDate | date: "MM/dd/yyyy" }}
+                } @else {
+                  {{ "TBD" }}
+                }
               </td>
               <td>
                 <span class="badge" [ngClass]="getStatusClass(v.status)">{{
@@ -585,6 +589,9 @@
         </button>
       </div>
       <div class="modal-body">
+        @if (departmentFormError) {
+          <div class="form-error-banner">{{ departmentFormError }}</div>
+        }
         <div class="form-group">
           <label class="form-label"
             >Department Name <span class="required">*</span></label

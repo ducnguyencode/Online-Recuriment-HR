@@ -22,14 +22,14 @@ export interface CreateVacancyDto {
   description: string;
   numberOfOpenings: number;
   departmentId: string;
-  closingDate: string;
+  closingDate: string | null;
 }
 
 export interface UpdateVacancyDto {
   title?: string;
   description?: string;
   numberOfOpenings?: number;
-  closingDate?: string;
+  closingDate?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
