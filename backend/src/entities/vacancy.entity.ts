@@ -1,6 +1,5 @@
 import { Exclude } from 'class-transformer';
 import { Department } from 'src/entities/department.entity';
-import { VacancyStatus } from 'src/enum/vacancy-status.enum';
 import {
   Column,
   CreateDateColumn,
@@ -42,10 +41,10 @@ export class Vacancy {
   @Column('int', { default: 0 })
   filledCount!: number;
 
-  @Column({ type: 'enum', enum: VacancyStatus, default: VacancyStatus.OPENED })
+  @Column('varchar', { default: 'Opened' })
   status!: string;
 
-  @Column('date', { nullable: true })
+  @Column('date')
   closingDate!: Date;
 
   @CreateDateColumn({ type: 'timestamptz' })

@@ -3,8 +3,6 @@ import { AppModule } from './app.module';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import { TypeOrmExceptionFilter } from './common/typeorm-exception.filter';
-import { HttpExceptionFilter } from './common/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -18,7 +16,6 @@ async function bootstrap() {
     origin: 'http://localhost:4200', // Angular
     credentials: true,
   });
-  app.useGlobalFilters(new TypeOrmExceptionFilter(), new HttpExceptionFilter());
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   app.setGlobalPrefix('api');
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {

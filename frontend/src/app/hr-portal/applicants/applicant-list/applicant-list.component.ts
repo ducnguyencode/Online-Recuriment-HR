@@ -1,35 +1,19 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  ApplicantService,
-  CreateApplicantDto,
-} from '../../../core/services/applicant.service';
+import { ApplicantService, CreateApplicantDto } from '../../../core/services/applicant.service';
 import { ApplicationService } from '../../../core/services/application.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
-import {
-  Applicant,
-  Application,
-  CV,
-  formatDisplayId,
-} from '../../../core/models';
-
-enum ApplicantStatus {
-  NOT_IN_PROCESS = 'Not In Process',
-  IN_PROCESS = 'In Process',
-  HIRED = 'Hired',
-  BANNED = 'Banned',
-}
+import { Applicant, Application, CV, formatDisplayId } from '../../../core/models';
 
 @Component({
   selector: 'app-applicant-list',
   standalone: true,
   imports: [CommonModule, FormsModule, DatePipe],
   templateUrl: './applicant-list.component.html',
-  styleUrl: './applicant-list.component.scss',
+  styleUrl: './applicant-list.component.scss'
 })
 export class ApplicantListComponent implements OnInit {
-  applicantStatus = Object.values(ApplicantStatus);
   applicants = signal<Applicant[]>([]);
   loading = signal(false);
 
@@ -61,27 +45,23 @@ export class ApplicantListComponent implements OnInit {
 
   loadApplicants() {
     this.loading.set(true);
-    this.applicantService
-      .getAll({
-        status: this.filterStatus || undefined,
-        search: this.searchQuery || undefined,
-      })
-      .subscribe({
-        next: (res) => {
-          const items: Applicant[] = (res.data as any)?.items ?? [];
-          this.applicants.set(items);
-          this.loading.set(false);
-        },
-        error: () => {
-          this.applicants.set(
-            this.mockData.getApplicants({
-              status: this.filterStatus || undefined,
-              search: this.searchQuery || undefined,
-            }),
-          );
-          this.loading.set(false);
-        },
-      });
+    this.applicantService.getAll({
+      status: this.filterStatus || undefined,
+      search: this.searchQuery || undefined,
+    }).subscribe({
+      next: res => {
+        const items: Applicant[] = (res.data as any)?.items ?? [];
+        this.applicants.set(items);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.applicants.set(this.mockData.getApplicants({
+          status: this.filterStatus || undefined,
+          search: this.searchQuery || undefined,
+        }));
+        this.loading.set(false);
+      }
+    });
   }
 
   filteredApplicants(): Applicant[] {
@@ -89,10 +69,7 @@ export class ApplicantListComponent implements OnInit {
   }
 
   get totalPages(): number {
-    return Math.max(
-      1,
-      Math.ceil(this.filteredApplicants().length / this.pageSize),
-    );
+    return Math.max(1, Math.ceil(this.filteredApplicants().length / this.pageSize));
   }
 
   pagedApplicants(): Applicant[] {
@@ -144,22 +121,17 @@ export class ApplicantListComponent implements OnInit {
     }
 
     if (this.isEditing() && this.selectedApplicant()) {
-      this.applicantService
-        .update(this.selectedApplicant()!.id, this.formData)
-        .subscribe({
-          next: () => {
-            this.closeFormDialog();
-            this.loadApplicants();
-          },
-          error: () => {
-            this.mockData.updateApplicant(
-              this.selectedApplicant()!.id,
-              this.formData as Partial<Applicant>,
-            );
-            this.closeFormDialog();
-            this.loadApplicants();
-          },
-        });
+      this.applicantService.update(this.selectedApplicant()!.id, this.formData).subscribe({
+        next: () => {
+          this.closeFormDialog();
+          this.loadApplicants();
+        },
+        error: () => {
+          this.mockData.updateApplicant(this.selectedApplicant()!.id, this.formData as Partial<Applicant>);
+          this.closeFormDialog();
+          this.loadApplicants();
+        }
+      });
       return;
     }
 
@@ -168,28 +140,22 @@ export class ApplicantListComponent implements OnInit {
         this.closeFormDialog();
         this.loadApplicants();
       },
-      error: (err) => {
-        console.log(err);
-        this.formError = err.error.message;
-        // this.mockData.addApplicant(this.formData);
-        // this.closeFormDialog();
-        // this.loadApplicants();
-      },
+      error: () => {
+        this.mockData.addApplicant(this.formData);
+        this.closeFormDialog();
+        this.loadApplicants();
+      }
     });
   }
 
-  changeStatus(
-    applicant: Applicant,
-    status: Applicant['status'],
-    event: Event,
-  ) {
+  changeStatus(applicant: Applicant, status: Applicant['status'], event: Event) {
     event.stopPropagation();
     this.applicantService.changeStatus(applicant.id, status).subscribe({
       next: () => this.loadApplicants(),
       error: () => {
         this.mockData.updateApplicantStatus(applicant.id, status);
         this.loadApplicants();
-      },
+      }
     });
   }
 
@@ -199,24 +165,18 @@ export class ApplicantListComponent implements OnInit {
     this.selectedHistory.set([]);
     this.showDetail.set(true);
 
-    this.applicationService
-      .getAll({ applicantId: applicant.id, limit: 50 })
-      .subscribe({
-        next: (res) => {
-          const items: Application[] = (res.data as any)?.items ?? [];
-          this.selectedHistory.set(items);
-          this.selectedCv.set(items.find((item) => item.cv)?.cv ?? null);
-        },
-        error: () => {
-          const items = this.mockData
-            .getApplications()
-            .filter((item) => item.applicantId === applicant.id);
-          this.selectedHistory.set(items);
-          this.selectedCv.set(
-            this.mockData.getCvByApplicantId(applicant.id) ?? null,
-          );
-        },
-      });
+    this.applicationService.getAll({ applicantId: applicant.id, limit: 50 }).subscribe({
+      next: res => {
+        const items: Application[] = (res.data as any)?.items ?? [];
+        this.selectedHistory.set(items);
+        this.selectedCv.set(items.find(item => item.cv)?.cv ?? null);
+      },
+      error: () => {
+        const items = this.mockData.getApplications().filter(item => item.applicantId === applicant.id);
+        this.selectedHistory.set(items);
+        this.selectedCv.set(this.mockData.getCvByApplicantId(applicant.id) ?? null);
+      }
+    });
   }
 
   closeDetail() {
@@ -227,15 +187,11 @@ export class ApplicantListComponent implements OnInit {
   }
 
   getApplicantApplicationsCount(applicantId: string): number {
-    return this.mockData
-      .getApplications()
-      .filter((item) => item.applicantId === applicantId).length;
+    return this.mockData.getApplications().filter(item => item.applicantId === applicantId).length;
   }
 
   getLatestVacancyTitle(applicantId: string): string {
-    const latest = this.mockData
-      .getApplications()
-      .find((item) => item.applicantId === applicantId);
+    const latest = this.mockData.getApplications().find(item => item.applicantId === applicantId);
     return latest?.vacancy?.title ?? 'No vacancy attached';
   }
 
@@ -243,31 +199,26 @@ export class ApplicantListComponent implements OnInit {
     const map: Record<string, string> = {
       'Not in Process': 'badge-neutral',
       'In Process': 'badge-info',
-      Hired: 'badge-success',
-      Banned: 'badge-danger',
+      'Hired': 'badge-success',
+      'Banned': 'badge-danger',
     };
     return map[status] ?? 'badge-neutral';
   }
 
   getApplicationStatusClass(status: string): string {
     const map: Record<string, string> = {
-      Pending: 'badge-neutral',
-      Screening: 'badge-warning',
+      'Pending': 'badge-neutral',
+      'Screening': 'badge-warning',
       'Interview Scheduled': 'badge-info',
-      Selected: 'badge-success',
-      Rejected: 'badge-danger',
+      'Selected': 'badge-success',
+      'Rejected': 'badge-danger',
       'Not Required': 'badge-neutral',
     };
     return map[status] ?? 'badge-neutral';
   }
 
   getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((part) => part.charAt(0))
-      .slice(-2)
-      .join('')
-      .toUpperCase();
+    return name.split(' ').map(part => part.charAt(0)).slice(-2).join('').toUpperCase();
   }
 
   applicantDisplayId(id: string) {
