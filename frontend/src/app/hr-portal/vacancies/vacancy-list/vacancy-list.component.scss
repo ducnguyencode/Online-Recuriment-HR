@@ -1,0 +1,260 @@
+.page-container {
+  animation: slideInUp 0.28s ease;
+}
+
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--shell-text-soft);
+  }
+}
+
+.search-input {
+  padding-left: 38px !important;
+}
+
+.filter-select {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.result-count {
+  margin-left: auto;
+  color: var(--shell-text-soft);
+  font-size: 12px;
+}
+
+.view-toggle {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.table-card {
+  overflow: hidden;
+}
+
+.table-row {
+  cursor: pointer;
+}
+
+.vacancy-title {
+  margin-bottom: 2px;
+  color: var(--shell-text-strong);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.modal-body .form-row {
+  align-items: end;
+}
+
+.vacancy-desc {
+  color: var(--shell-text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dept-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--shell-brand-soft);
+  color: var(--shell-brand);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.openings-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.openings-text {
+  color: var(--shell-text-strong);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--shell-brand);
+}
+
+.cell-date {
+  color: var(--shell-text-soft);
+  font-size: 12px;
+}
+
+.cell-actions {
+  white-space: nowrap;
+}
+
+.vacancy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.vacancy-card {
+  padding: 16px;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.vacancy-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.vc-header,
+.vc-actions,
+.vc-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.vc-header {
+  margin-bottom: 12px;
+}
+
+.vc-dept-tag {
+  color: var(--shell-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vc-title {
+  margin: 0 0 8px;
+  color: var(--shell-text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.vc-desc {
+  margin: 0 0 12px;
+  color: var(--shell-text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.vc-stats {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.vc-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--shell-text);
+  font-size: 12px;
+}
+
+.vc-stat.near-deadline {
+  color: var(--shell-warning);
+}
+
+.vc-actions {
+  margin-top: 14px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.empty-state,
+.empty-card-state {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.detail-item,
+.detail-description {
+  padding: 16px;
+  border-radius: 18px;
+  background: #fbfcfe;
+  border: 1px solid var(--shell-border);
+}
+
+.detail-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--shell-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.detail-value {
+  color: var(--shell-text-strong);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.detail-section-title {
+  margin: 0 0 8px;
+  color: var(--shell-text-strong);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.detail-description p {
+  margin: 0;
+  color: var(--shell-text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .result-count {
+    margin-left: 0;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

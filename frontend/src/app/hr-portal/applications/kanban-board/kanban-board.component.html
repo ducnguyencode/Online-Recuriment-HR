@@ -1,0 +1,249 @@
+<div class="kanban-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Kanban Board</h1>
+      <p class="page-subtitle">Drag and drop applicants across recruitment stages</p>
+    </div>
+    <div class="vacancy-filter" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <a class="btn-secondary" routerLink="/hr-portal/applications">Application List</a>
+      <label class="filter-label">Filter by Position:</label>
+      <select class="form-select" [(ngModel)]="selectedVacancyId" (change)="onVacancyChange()" style="width: 260px">
+        <option [ngValue]="0">All Positions</option>
+        @for (v of vacancies(); track v.id) {
+          <option [ngValue]="v.id">{{ v.title }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Kanban Board -->
+  <div class="kanban-board">
+    @for (col of columns(); track col.id) {
+      <div class="kanban-column">
+        <div class="column-header">
+          <div class="column-dot" [style.background]="col.color"></div>
+          <h3 class="column-title">{{ col.title }}</h3>
+          <span class="column-count">{{ col.items.length }}</span>
+        </div>
+
+        <div class="column-body" cdkDropList [id]="col.id" [cdkDropListData]="col.items"
+             [cdkDropListConnectedTo]="connectedLists" (cdkDropListDropped)="onDrop($event, col)">
+
+          @for (app of col.items; track app.id) {
+            <div class="kanban-card" cdkDrag (click)="openCVDetail(app)">
+              <!-- Drag placeholder -->
+              <div class="card-placeholder" *cdkDragPlaceholder></div>
+
+              <div class="card-top">
+                <div class="card-avatar">{{ getInitials(app.applicant?.fullName || '?') }}</div>
+                <div class="card-info">
+                  <p class="card-name">{{ app.applicant?.fullName }}</p>
+                  <p class="card-email" style="font-size: 12px; color: var(--text-secondary)">{{ app.applicant?.email }}</p>
+                </div>
+              </div>
+
+              <div class="card-vacancy-info" style="margin: 12px 0; font-size: 13px; color: var(--text-primary)">
+                <strong>Position: </strong> {{ app.vacancy?.title }}
+              </div>
+
+              <div class="card-footer">
+                <span class="card-time">Date: {{ app.createdAt | date:'MM/dd' }}</span>
+                @if (app.aiMatchScore) {
+                  <span class="ai-score" [ngClass]="getScoreClass(app.aiMatchScore)">
+                    AI {{ app.aiMatchScore }}%
+                  </span>
+                }
+              </div>
+
+              @if (app.status === 'Screening' || app.status === 'Interview Scheduled' || col.id === 'interview') {
+                <div class="card-actions" style="margin-top: 12px; border-top: 1px solid var(--shell-border); padding-top: 8px;">
+                  <button class="btn-primary btn-sm" style="width: 100%" (click)="openInterviewDialog(app, $event)">
+                    {{ app.status === 'Interview Scheduled' ? 'Reschedule' : 'Schedule Interview' }}
+                  </button>
+                </div>
+              }
+            </div>
+          } @empty {
+            <div class="column-empty">
+              <p>No applicants</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ====== CV DETAIL DIALOG ====== -->
+@if (showCVDetail() && selectedApp()) {
+  <div class="modal-backdrop" (click)="closeCVDetail()">
+    <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="detail-avatar-lg">{{ getInitials(selectedApp()!.applicant?.fullName || '?') }}</div>
+          <div>
+            <h3 class="modal-title">{{ selectedApp()!.applicant?.fullName }}</h3>
+            <p style="font-size:13px;color:#64748B;margin:4px 0 0">{{ selectedApp()!.applicant?.email }} · {{ selectedApp()!.applicant?.phone }}</p>
+          </div>
+        </div>
+        <button class="btn-ghost btn-icon" (click)="closeCVDetail()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- AI Match Score -->
+        <div class="score-banner" [ngClass]="getScoreClass(selectedApp()!.aiMatchScore)">
+          <div class="score-number">{{ selectedApp()!.aiMatchScore || 0 }}%</div>
+          <div class="score-label">AI Match Score</div>
+          <div class="score-desc">Relevance dynamically matched with JD capabilities</div>
+        </div>
+
+        <!-- CV Parsed Info -->
+        @if (selectedApp()!.cv?.parsedDataAi; as ai) {
+          <div class="cv-sections">
+            <div class="cv-section">
+              <h4 class="section-title">Summary</h4>
+              <p class="section-text">{{ ai.summary }}</p>
+            </div>
+
+            <div class="cv-grid">
+              <div class="cv-section">
+                <h4 class="section-title">Education</h4>
+                <p class="section-text">{{ ai.education }}</p>
+              </div>
+              <div class="cv-section">
+                <h4 class="section-title">Experience</h4>
+                <p class="section-text">{{ ai.experience }}</p>
+              </div>
+            </div>
+
+            <div class="cv-section">
+              <h4 class="section-title">Skills</h4>
+              <div class="skills-list">
+                @for (skill of ai.skills || []; track skill) {
+                  <span class="skill-tag-lg">{{ skill }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="no-cv-data">
+            <p>No CV data or AI analysis missing</p>
+          </div>
+        }
+
+        <!-- Application Info -->
+        <div class="detail-grid" style="margin-top:20px">
+          <div class="detail-item">
+            <span class="detail-label">Applied Position</span>
+            <span class="detail-value">{{ selectedApp()!.vacancy?.title }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status</span>
+            <span class="detail-value">{{ selectedApp()!.status }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Submission Date</span>
+            <span class="detail-value">{{ selectedApp()!.createdAt | date:'MM/dd/yyyy HH:mm' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">CV Document</span>
+            <span class="detail-value cv-link">{{ selectedApp()!.cv?.fileName || 'None' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeCVDetail()">Close</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ====== SCHEDULE INTERVIEW DIALOG ====== -->
+@if (showInterviewDialog()) {
+  <div class="modal-backdrop" (click)="closeInterviewDialog()">
+    <div class="modal-content modal-md" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Schedule Interview</h3>
+        <button class="btn-ghost btn-icon" (click)="closeInterviewDialog()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        @if (interviewError) {
+          <div class="form-error-banner">{{ interviewError }}</div>
+        }
+        <div class="form-row">
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Interview Date <span class="required">*</span></label>
+            <input type="date" class="form-input" [(ngModel)]="interviewData.date" (change)="onInterviewDateChange()" />
+          </div>
+          <div class="form-group" style="width:130px">
+            <label class="form-label">Start Time <span class="required">*</span></label>
+            <input type="time" class="form-input" [(ngModel)]="interviewData.startTime" />
+          </div>
+          <div class="form-group" style="width:130px">
+            <label class="form-label">End Time <span class="required">*</span></label>
+            <input type="time" class="form-input" [(ngModel)]="interviewData.endTime" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Platform</label>
+          <select class="form-select" [(ngModel)]="interviewData.platform">
+            <option value="Google Meet">Google Meet</option>
+            <option value="Zoom">Zoom</option>
+            <option value="On-site">On-site</option>
+          </select>
+        </div>
+
+        <!-- Interviewer panel — filtered by vacancy's department (per spec) -->
+        <div class="form-group">
+          <label class="form-label">
+            Interview Panel <span class="required">*</span>
+            <span class="form-hint">— Interviewers from the same department as this vacancy</span>
+          </label>
+          @if (availableInterviewers().length === 0) {
+            <p class="form-hint" style="color:var(--warning-color)">No interviewers available in this department.</p>
+          } @else {
+            <div class="panel-list">
+              @for (emp of availableInterviewers(); track emp.id) {
+                <label class="panel-item" [class.selected]="isPanelSelected(emp.id)">
+                  <input type="checkbox" [checked]="isPanelSelected(emp.id)" (change)="togglePanelMember(emp.id)" />
+                  <div class="panel-avatar">{{ emp.fullName | slice:0:2 }}</div>
+                  <div class="panel-info">
+                    <span class="panel-name">{{ emp.fullName }}</span>
+                    <span class="panel-role">{{ emp.position ?? 'Interviewer' }}</span>
+                  </div>
+                </label>
+              }
+            </div>
+          }
+          <p class="form-hint">Selected: {{ selectedPanelIds.length }} interviewer(s)</p>
+        </div>
+
+        @if (selectedPanelIds.length > 0) {
+          <div class="form-group">
+            <label class="form-label">Availability Preview</label>
+            <div class="availability-list">
+              @for (employeeId of selectedPanelIds; track employeeId) {
+                <div class="availability-card">
+                  <div class="availability-name">{{ getEmployeeName(employeeId) }}</div>
+                  @for (slot of availabilityPreview()[employeeId] || []; track slot.startTime + slot.endTime) {
+                    <span class="availability-slot">{{ slot.availableDate }} · {{ slot.startTime }} - {{ slot.endTime }}</span>
+                  } @empty {
+                    <span class="availability-empty">No free slot found for the selected date.</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeInterviewDialog()">Cancel</button>
+        <button class="btn-primary" (click)="saveInterview()">Schedule &amp; Send Invites</button>
+      </div>
+    </div>
+  </div>
+}

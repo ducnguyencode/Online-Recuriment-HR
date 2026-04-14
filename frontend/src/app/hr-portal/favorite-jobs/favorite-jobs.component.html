@@ -1,0 +1,77 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Favorite Jobs</h1>
+      <p class="page-subtitle">Applicants who saved a vacancy but haven't applied yet — potential candidates</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <input type="text" class="form-input search-input" placeholder="Search by name or email..."
+           [(ngModel)]="searchQuery" style="flex:1;max-width:320px" />
+    <select class="form-select" [(ngModel)]="selectedVacancyId" (change)="onVacancyChange()" style="width:260px">
+      <option value="">All Vacancies</option>
+      @for (v of vacancies(); track v.id) {
+        <option [value]="v.id">{{ v.title }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Table -->
+  @if (loading()) {
+    <div class="loading-state">Loading...</div>
+  } @else {
+    <div class="favorites-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Applicant</th>
+            <th>Contact</th>
+            <th>Position of Interest</th>
+            <th>Saved At</th>
+            <th>Applied?</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (fav of filteredFavorites(); track fav.id) {
+            <tr>
+              <td>
+                <div class="applicant-cell">
+                  <div class="applicant-avatar">{{ getInitials(fav.applicant.fullName) }}</div>
+                  <span class="applicant-name">{{ fav.applicant.fullName }}</span>
+                </div>
+              </td>
+              <td>
+                <div style="font-size:13px;color:rgba(0,0,0,0.95)">{{ fav.applicant.email }}</div>
+                <div style="font-size:12px;color:#a39e98">{{ fav.applicant.phone }}</div>
+              </td>
+              <td>
+                <span class="vacancy-tag">{{ fav.vacancy.title }}</span>
+              </td>
+              <td style="font-size:13px;color:#615d59">
+                {{ fav.savedAt | date:'MM/dd/yyyy HH:mm' }}
+              </td>
+              <td>
+                @if (fav.hasApplied) {
+                  <span class="badge badge-success">Applied</span>
+                } @else {
+                  <span class="badge badge-neutral">Not Applied</span>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="empty-row">
+                <div class="empty-state">
+                  <div class="empty-icon">⭐</div>
+                  <p>No candidates have saved vacancies yet</p>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
