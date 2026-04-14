@@ -16,29 +16,32 @@ import { AiResponseDto } from 'src/dto/ai.response.dto';
 @Entity('applications')
 @Unique(['applicantId', 'vacancyId'])
 export class Application {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ unique: true })
+  code!: string;
 
   @ManyToOne(() => Applicant, (a) => a.id)
   @JoinColumn({ name: 'applicantId' })
   applicant!: Applicant;
 
-  @Column('uuid')
-  applicantId!: string;
+  @Column()
+  applicantId!: number;
 
   @ManyToOne(() => Vacancy, (v) => v.id)
   @JoinColumn({ name: 'vacancyId' })
   vacancy!: Vacancy;
 
-  @Column('uuid')
-  vacancyId!: string;
+  @Column()
+  vacancyId!: number;
 
   @ManyToOne(() => CV, (c) => c.id)
   @JoinColumn({ name: 'cvId' })
   cv!: CV;
 
-  @Column('uuid')
-  cvId!: string;
+  @Column()
+  cvId!: number;
 
   @Column({
     type: 'enum',

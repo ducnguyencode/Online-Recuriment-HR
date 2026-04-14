@@ -13,10 +13,12 @@ import {
 @Entity('vacancies')
 @Unique(['title', 'department'])
 export class Vacancy {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-  @Exclude()
+  @Column({ unique: true, nullable: true })
+  code!: string;
+
   @ManyToOne(() => Department, (d) => d.id, {
     nullable: true,
     onDelete: 'SET NULL',
@@ -24,20 +26,20 @@ export class Vacancy {
   @JoinColumn({ name: 'departmentId' })
   department!: Department | null;
 
-  @Column('uuid', { nullable: true })
-  departmentId!: string;
+  @Column({ nullable: true })
+  departmentId!: number;
 
   @Column('varchar', { nullable: false })
   title!: string;
 
-  @Column('text', { nullable: true })
+  @Column('text', { nullable: false })
   description!: string;
 
-  @Column('int')
+  @Column('int', { default: 1 })
   numberOfOpenings!: number;
 
   @Column('int', { default: 0 })
-  currentHiredCount!: number;
+  filledCount!: number;
 
   @Column('varchar', { default: 'Opened' })
   status!: string;

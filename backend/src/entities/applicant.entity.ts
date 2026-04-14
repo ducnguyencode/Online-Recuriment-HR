@@ -7,8 +7,11 @@ import {
 
 @Entity('applicants')
 export class Applicant {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ unique: true })
+  code!: string;
 
   @Column('varchar', { nullable: false })
   fullName!: string;
