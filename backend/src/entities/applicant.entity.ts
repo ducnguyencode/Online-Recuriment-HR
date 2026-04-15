@@ -5,10 +5,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity('applicants')
+@Index('UQ_applicant_email', ['email'], { unique: true })
 export class Applicant {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -16,13 +18,13 @@ export class Applicant {
   @Column({ unique: true, nullable: true })
   code!: string;
 
-  @Column('varchar', { nullable: false })
+  @Column()
   fullName!: string;
 
-  @Column('varchar', { unique: true, nullable: true })
+  @Column()
   email!: string;
 
-  @Column('varchar', { nullable: false })
+  @Column({ nullable: true })
   phone!: string;
 
   @Column({

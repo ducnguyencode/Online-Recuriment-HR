@@ -2,18 +2,35 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Applications</h1>
-      <p class="page-subtitle">Manage Applicant-Vacancy records, review CVs, and start interview scheduling</p>
+      <p class="page-subtitle">
+        Manage Applicant-Vacancy records, review CVs, and start interview
+        scheduling
+      </p>
     </div>
     <div class="header-actions">
-      <button class="btn-primary" (click)="openAttachDialog()">Attach Applicant</button>
-      <a class="btn-primary" routerLink="/hr-portal/applications/kanban">Open Kanban Board</a>
+      <button class="btn-primary" (click)="openAttachDialog()">
+        Attach Applicant
+      </button>
+      <a class="btn-primary" routerLink="/hr-portal/applications/kanban"
+        >Open Kanban Board</a
+      >
     </div>
   </div>
 
-
   <div class="filters-bar">
     <div class="search-box">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
       <input
         type="text"
         class="form-input search-input"
@@ -21,28 +38,47 @@
         [(ngModel)]="searchQuery"
       />
     </div>
-    <select class="form-select filter-select" [(ngModel)]="selectedVacancyId" (change)="loadApplications()">
+    <select
+      class="form-select filter-select"
+      [(ngModel)]="selectedVacancyId"
+      (change)="loadApplications()"
+    >
       <option value="">All Vacancies</option>
       @for (v of vacancies(); track v.id) {
-        <option [ngValue]="v.id">[{{ v.id }}] {{ v.title }}</option>
+        <option [ngValue]="v.id">[{{ v.code }}] {{ v.title }}</option>
       }
     </select>
-    <select class="form-select filter-select" [(ngModel)]="filterStatus" (change)="loadApplications()">
+    <select
+      class="form-select filter-select"
+      [(ngModel)]="filterStatus"
+      (change)="loadApplications()"
+    >
       <option value="">All Statuses</option>
-      <option value="Pending">Pending</option>
-      <option value="Screening">Screening</option>
-      <option value="Interview Scheduled">Interview Scheduled</option>
-      <option value="Selected">Selected</option>
-      <option value="Rejected">Rejected</option>
-      <option value="Not Required">Not Required</option>
+      @for (status of applicationStatus; track status) {
+        <option value="status">{{ status }}</option>
+      }
     </select>
     <button class="btn-secondary" (click)="clearFilters()">Reset</button>
-    <span class="result-count">{{ filteredApplications().length }} records</span>
+    <span class="result-count"
+      >{{ filteredApplications().length }} records</span
+    >
     @if (totalPages > 1) {
       <div class="pagination">
-        <button class="btn-ghost btn-sm" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">←</button>
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)"
+        >
+          ←
+        </button>
         <span class="page-info">{{ currentPage() }} / {{ totalPages }}</span>
-        <button class="btn-ghost btn-sm" [disabled]="currentPage() === totalPages" (click)="goToPage(currentPage() + 1)">→</button>
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === totalPages"
+          (click)="goToPage(currentPage() + 1)"
+        >
+          →
+        </button>
       </div>
     }
   </div>
@@ -68,41 +104,73 @@
             <tr>
               <td>
                 <div class="id-stack">
-                  <span class="mono-id">{{ applicationDisplayId(app.id) }}</span>
-                  <span class="sub-id">Applicant: {{ applicantDisplayId(app.applicantId) }}</span>
+                  <span class="mono-id">{{ app.code }}</span>
+                  <span class="sub-id"
+                    >Applicant: {{ app.applicant?.code }}</span
+                  >
                 </div>
               </td>
               <td>
                 <div class="person-cell">
-                  <div class="person-avatar">{{ getInitials(app.applicant?.fullName || '?') }}</div>
+                  <div class="person-avatar">
+                    {{ getInitials(app.applicant?.fullName || "?") }}
+                  </div>
                   <div>
-                    <div class="person-name">{{ app.applicant?.fullName || '—' }}</div>
-                    <div class="person-meta">{{ app.applicant?.email || '—' }}</div>
+                    <div class="person-name">
+                      {{ app.applicant?.fullName || "—" }}
+                    </div>
+                    <div class="person-meta">
+                      {{ app.applicant?.email || "—" }}
+                    </div>
                   </div>
                 </div>
               </td>
               <td>
                 <div class="id-stack">
-                  <span class="vacancy-title">{{ app.vacancy?.title || '—' }}</span>
-                  <span class="sub-id">Vacancy: {{ vacancyDisplayId(app.vacancyId) }}</span>
+                  <span class="vacancy-title">{{
+                    app.vacancy?.title || "—"
+                  }}</span>
+                  <span class="sub-id">Vacancy: {{ app.vacancy?.code }}</span>
                 </div>
               </td>
-              <td>{{ app.createdAt | date:'MM/dd/yyyy HH:mm' }}</td>
-              <td><span class="badge" [ngClass]="getStatusClass(app.status)">{{ app.status }}</span></td>
+              <td>{{ app.createdAt | date: "MM/dd/yyyy HH:mm" }}</td>
               <td>
-                @if (app.aiMatchScore !== undefined) {
-                  <span class="ai-badge" [ngClass]="getScoreClass(app.aiMatchScore)">{{ app.aiMatchScore }}%</span>
+                <span class="badge" [ngClass]="getStatusClass(app.status)">{{
+                  app.status
+                }}</span>
+              </td>
+              <td>
+                @if (app.aiPreview?.matchScore !== undefined) {
+                  <span
+                    class="ai-badge"
+                    [ngClass]="getScoreClass(app.aiPreview?.matchScore)"
+                    >{{ app.aiPreview?.matchScore }}%</span
+                  >
                 } @else {
                   <span class="muted">—</span>
                 }
               </td>
               <td>
                 <div class="cell-actions">
-                  <button class="btn-secondary btn-sm" (click)="openCVDetail(app)">View CV</button>
+                  <button
+                    class="btn-secondary btn-sm"
+                    (click)="openCVDetail(app)"
+                  >
+                    View CV
+                  </button>
                   @if (canSchedule(app)) {
-                    <button class="btn-primary btn-sm" (click)="openInterviewDialog(app, $event)">Schedule</button>
-                  } @else if (app.status === 'Interview Scheduled') {
-                    <a class="btn-primary btn-sm" routerLink="/hr-portal/interviews">Open Interview</a>
+                    <button
+                      class="btn-primary btn-sm"
+                      (click)="openInterviewDialog(app, $event)"
+                    >
+                      Schedule
+                    </button>
+                  } @else if (app.status === "Interview Scheduled") {
+                    <a
+                      class="btn-primary btn-sm"
+                      routerLink="/hr-portal/interviews"
+                      >Open Interview</a
+                    >
                   }
                 </div>
               </td>
@@ -126,44 +194,74 @@
     <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-left">
-          <div class="detail-avatar">{{ getInitials(selectedApplication()!.applicant?.fullName || '?') }}</div>
+          <div class="detail-avatar">
+            {{ getInitials(selectedApplication()!.applicant?.fullName || "?") }}
+          </div>
           <div>
-            <h3 class="modal-title">{{ selectedApplication()!.applicant?.fullName }}</h3>
-            <p class="modal-subtitle">{{ selectedApplication()!.applicant?.email }} · {{ selectedApplication()!.applicant?.phone }}</p>
+            <h3 class="modal-title">
+              {{ selectedApplication()!.applicant?.fullName }}
+            </h3>
+            <p class="modal-subtitle">
+              {{ selectedApplication()!.applicant?.email }} ·
+              {{ selectedApplication()!.applicant?.phone }}
+            </p>
           </div>
         </div>
         <button class="btn-ghost btn-icon" (click)="closeCVDetail()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
-        @if (selectedApplication()!.aiMatchScore !== undefined) {
-          <div class="score-banner" [ngClass]="getScoreClass(selectedApplication()!.aiMatchScore)">
-            <div class="score-number">{{ selectedApplication()!.aiMatchScore }}%</div>
-            <div class="score-label">AI Match Score</div>
+        @if (selectedApplication()!.aiPreview?.matchScore !== undefined) {
+          <div
+            class="score-banner"
+            [ngClass]="
+              getScoreClass(selectedApplication()!.aiPreview?.matchScore)
+            "
+          >
+            <div class="flex gap-4 items-center">
+              <div class="score-number">
+                {{ selectedApplication()!.aiPreview?.matchScore }}%
+              </div>
+              <div class="score-label">AI Match Score</div>
+            </div>
+            <button class="btn-secondary" (click)="viewSelectedApplicationCV()">
+              View CV
+            </button>
           </div>
         }
 
-        @if (selectedApplication()!.cv?.parsedDataAi; as ai) {
-          <div class="cv-sections">
+        @if (selectedApplication()!.aiPreview; as ai) {
+          <div class="cv-sections mb-3">
             <div class="cv-section">
               <h4 class="section-title">Summary</h4>
-              <p class="section-text">{{ ai.summary }}</p>
+              <p class="section-text">{{ ai.sumaryAnalysis }}</p>
             </div>
             <div class="cv-grid">
               <div class="cv-section">
                 <h4 class="section-title">Education</h4>
-                <p class="section-text">{{ ai.education || '—' }}</p>
+                <p class="section-text">{{ ai.cvData.education }}</p>
               </div>
               <div class="cv-section">
                 <h4 class="section-title">Experience</h4>
-                <p class="section-text">{{ ai.experience || '—' }}</p>
+                <p class="section-text">{{ ai.cvData.experience || "—" }}</p>
               </div>
             </div>
             <div class="cv-section">
               <h4 class="section-title">Skills</h4>
               <div class="skills-list">
-                @for (skill of ai.skills || []; track skill) {
+                @for (skill of ai.cvData.skills || []; track skill) {
                   <span class="skill-tag-lg">{{ skill }}</span>
                 }
               </div>
@@ -177,20 +275,26 @@
 
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Application ID</span>
-            <span class="detail-value">{{ selectedApplication()!.id }}</span>
+            <span class="detail-label">Application Code</span>
+            <span class="detail-value">{{ selectedApplication()!.code }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Applicant ID</span>
-            <span class="detail-value">{{ selectedApplication()!.applicantId }}</span>
+            <span class="detail-label">Applicant Code</span>
+            <span class="detail-value">{{
+              selectedApplication()!.applicant?.code
+            }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Vacancy ID</span>
-            <span class="detail-value">{{ selectedApplication()!.vacancyId }}</span>
+            <span class="detail-label">Vacancy Code</span>
+            <span class="detail-value">{{
+              selectedApplication()!.vacancy?.code
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Position</span>
-            <span class="detail-value">{{ selectedApplication()!.vacancy?.title }}</span>
+            <span class="detail-value">{{
+              selectedApplication()!.vacancy?.title
+            }}</span>
           </div>
         </div>
       </div>
@@ -207,7 +311,18 @@
       <div class="modal-header">
         <h3 class="modal-title">Schedule Interview</h3>
         <button class="btn-ghost btn-icon" (click)="closeInterviewDialog()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
@@ -216,17 +331,36 @@
         }
 
         <div class="form-row">
-          <div class="form-group" style="flex:1">
-            <label class="form-label">Interview Date <span class="required">*</span></label>
-            <input type="date" class="form-input" [(ngModel)]="interviewData.date" (change)="onInterviewDateChange()" />
+          <div class="form-group" style="flex: 1">
+            <label class="form-label"
+              >Interview Date <span class="required">*</span></label
+            >
+            <input
+              type="date"
+              class="form-input"
+              [(ngModel)]="interviewData.date"
+              (change)="onInterviewDateChange()"
+            />
           </div>
-          <div class="form-group" style="width:130px">
-            <label class="form-label">Start Time <span class="required">*</span></label>
-            <input type="time" class="form-input" [(ngModel)]="interviewData.startTime" />
+          <div class="form-group" style="width: 130px">
+            <label class="form-label"
+              >Start Time <span class="required">*</span></label
+            >
+            <input
+              type="time"
+              class="form-input"
+              [(ngModel)]="interviewData.startTime"
+            />
           </div>
-          <div class="form-group" style="width:130px">
-            <label class="form-label">End Time <span class="required">*</span></label>
-            <input type="time" class="form-input" [(ngModel)]="interviewData.endTime" />
+          <div class="form-group" style="width: 130px">
+            <label class="form-label"
+              >End Time <span class="required">*</span></label
+            >
+            <input
+              type="time"
+              class="form-input"
+              [(ngModel)]="interviewData.endTime"
+            />
           </div>
         </div>
 
@@ -240,18 +374,33 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Interview Panel <span class="required">*</span></label>
+          <label class="form-label"
+            >Interview Panel <span class="required">*</span></label
+          >
           @if (availableInterviewers().length === 0) {
-            <p class="form-hint warning-text">No interviewers available in this department.</p>
+            <p class="form-hint warning-text">
+              No interviewers available in this department.
+            </p>
           } @else {
             <div class="panel-list">
               @for (emp of availableInterviewers(); track emp.id) {
-                <label class="panel-item" [class.selected]="isPanelSelected(emp.id)">
-                  <input type="checkbox" [checked]="isPanelSelected(emp.id)" (change)="togglePanelMember(emp.id)" />
-                  <div class="panel-avatar">{{ emp.fullName | slice:0:2 }}</div>
+                <label
+                  class="panel-item"
+                  [class.selected]="isPanelSelected(emp.id)"
+                >
+                  <input
+                    type="checkbox"
+                    [checked]="isPanelSelected(emp.id)"
+                    (change)="togglePanelMember(emp.id)"
+                  />
+                  <div class="panel-avatar">
+                    {{ emp.fullName | slice: 0 : 2 }}
+                  </div>
                   <div class="panel-info">
                     <span class="panel-name">{{ emp.fullName }}</span>
-                    <span class="panel-role">{{ emp.position ?? 'Interviewer' }}</span>
+                    <span class="panel-role">{{
+                      emp.position ?? "Interviewer"
+                    }}</span>
                   </div>
                 </label>
               }
@@ -265,11 +414,21 @@
             <div class="availability-list">
               @for (employeeId of selectedPanelIds; track employeeId) {
                 <div class="availability-card">
-                  <div class="availability-name">{{ getEmployeeName(employeeId) }}</div>
-                  @for (slot of availabilityPreview()[employeeId] || []; track slot.startTime + slot.endTime) {
-                    <span class="availability-slot">{{ slot.availableDate }} · {{ slot.startTime }} - {{ slot.endTime }}</span>
+                  <div class="availability-name">
+                    {{ getEmployeeName(employeeId) }}
+                  </div>
+                  @for (
+                    slot of availabilityPreview()[employeeId] || [];
+                    track slot.startTime + slot.endTime
+                  ) {
+                    <span class="availability-slot"
+                      >{{ slot.availableDate }} · {{ slot.startTime }} -
+                      {{ slot.endTime }}</span
+                    >
                   } @empty {
-                    <span class="availability-empty">No free slot found for the selected date.</span>
+                    <span class="availability-empty"
+                      >No free slot found for the selected date.</span
+                    >
                   }
                 </div>
               }
@@ -278,8 +437,12 @@
         }
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeInterviewDialog()">Cancel</button>
-        <button class="btn-primary" (click)="saveInterview()">Schedule Interview</button>
+        <button class="btn-secondary" (click)="closeInterviewDialog()">
+          Cancel
+        </button>
+        <button class="btn-primary" (click)="saveInterview()">
+          Schedule Interview
+        </button>
       </div>
     </div>
   </div>
@@ -291,7 +454,18 @@
       <div class="modal-header">
         <h3 class="modal-title">Attach Applicant to Vacancy</h3>
         <button class="btn-ghost btn-icon" (click)="closeAttachDialog()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
@@ -300,14 +474,23 @@
         }
 
         <div class="form-group">
-          <label class="form-label">Applicant <span class="required">*</span></label>
+          <label class="form-label"
+            >Applicant <span class="required">*</span></label
+          >
           @if (attachSelectedApplicant()) {
             <div class="attach-selected">
               <div class="attach-selected-info">
-                <span class="attach-name">{{ attachSelectedApplicant()!.fullName }}</span>
-                <span class="attach-meta">{{ applicantDisplayId(attachSelectedApplicant()!.id) }} · {{ attachSelectedApplicant()!.email }}</span>
+                <span class="attach-name">{{
+                  attachSelectedApplicant()!.fullName
+                }}</span>
+                <span class="attach-meta"
+                  >{{ applicantDisplayId(attachSelectedApplicant()!.code) }} ·
+                  {{ attachSelectedApplicant()!.email }}</span
+                >
               </div>
-              <button class="btn-ghost btn-sm" (click)="clearAttachApplicant()">Change</button>
+              <button class="btn-ghost btn-sm" (click)="clearAttachApplicant()">
+                Change
+              </button>
             </div>
           } @else {
             <div class="attach-search-wrap">
@@ -322,38 +505,67 @@
               @if (attachSearchResults().length > 0) {
                 <div class="attach-results">
                   @for (item of attachSearchResults(); track item.id) {
-                    <div class="attach-result-item" (click)="selectAttachApplicant(item)">
-                      <div class="attach-item-avatar">{{ getInitials(item.fullName) }}</div>
+                    <div
+                      class="attach-result-item"
+                      (click)="selectAttachApplicant(item)"
+                    >
+                      <div class="attach-item-avatar">
+                        {{ getInitials(item.fullName) }}
+                      </div>
                       <div class="attach-item-info">
-                        <span class="attach-item-name">{{ item.fullName }}</span>
-                        <span class="attach-item-meta">{{ applicantDisplayId(item.id) }} · {{ item.email }} · {{ item.status }}</span>
+                        <span class="attach-item-name">{{
+                          item.fullName
+                        }}</span>
+                        <span class="attach-item-meta"
+                          >{{ item.code }} · {{ item.email }} ·
+                          {{ item.status }}</span
+                        >
                       </div>
                     </div>
                   }
                 </div>
               }
-              @if (attachSearchQuery.length > 1 && attachSearchResults().length === 0) {
-                <p class="form-hint" style="color: var(--shell-text-soft); margin-top: 8px">No applicants found. Try a different search.</p>
+              @if (
+                attachSearchQuery.length > 1 &&
+                attachSearchResults().length === 0
+              ) {
+                <p
+                  class="form-hint"
+                  style="color: var(--shell-text-soft); margin-top: 8px"
+                >
+                  No applicants found. Try a different search.
+                </p>
               }
             </div>
           }
         </div>
 
         <div class="form-group">
-          <label class="form-label">Vacancy <span class="required">*</span></label>
+          <label class="form-label"
+            >Vacancy <span class="required">*</span></label
+          >
           <select class="form-select" [(ngModel)]="attachData.vacancyId">
             <option value="">Select vacancy</option>
             @for (item of vacancies(); track item.id) {
-              <option [ngValue]="item.id">[{{ vacancyDisplayId(item.id) }}] {{ item.title }} · {{ item.status }}</option>
+              <option [ngValue]="item.id">
+                [{{ item.code }}] {{ item.title }} · {{ item.status }}
+              </option>
             }
           </select>
         </div>
 
-        <p class="form-hint">The backend will auto-create the Applicant-Vacancy record with status `Pending` and update Applicant status to `In Process` when valid.</p>
+        <p class="form-hint">
+          The backend will auto-create the Applicant-Vacancy record with status
+          `Pending` and update Applicant status to `In Process` when valid.
+        </p>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeAttachDialog()">Cancel</button>
-        <button class="btn-primary" (click)="saveAttachApplication()">Attach</button>
+        <button class="btn-secondary" (click)="closeAttachDialog()">
+          Cancel
+        </button>
+        <button class="btn-primary" (click)="saveAttachApplication()">
+          Attach
+        </button>
       </div>
     </div>
   </div>

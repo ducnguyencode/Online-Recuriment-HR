@@ -17,30 +17,32 @@ export class CvService {
   }
 
   async create(data: CvCreateDto, file: Express.Multer.File) {
-    let cv = this.cvsTable.create({
-      ...data,
-      applicant: { id: data.applicantId },
-    });
+    return this.cvsTable.manager.transaction(async (manager) => {
+      let cv = manager.create(CV, {
+        ...data,
+        applicant: { id: data.applicantId },
+      });
+      cv = await manager.save(cv);
 
-    cv = await this.cvsTable.save(cv);
+      cv.code = `CV${cv.id.toString().padStart(4, '0')}`;
 
-    if (file) {
-      // get file name
-      const fileName = `${cv.id}.pdf`;
-      const uploadDir = path.join(process.cwd(), 'uploads/cv');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
+      if (file) {
+        // get file name
+        const fileName = `${cv.code}.pdf`;
+        const filePath = `cv/applicant-${cv.applicantId}`;
+        const uploadDir = path.join(process.cwd(), `uploads/${filePath}`);
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        // Save file
+        const saveFilePath = path.join(uploadDir, fileName);
+        fs.writeFileSync(saveFilePath, file.buffer);
+
+        cv.fileUrl = `${filePath}/${fileName}`;
       }
 
-      // Save file
-      const filePath = path.join(uploadDir, fileName);
-      fs.writeFileSync(filePath, file.buffer);
-
-      cv.fileUrl = fileName;
-
-      await this.cvsTable.save(cv);
-    }
-
-    return cv;
+      return manager.save(cv);
+    });
   }
 }

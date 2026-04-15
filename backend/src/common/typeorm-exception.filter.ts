@@ -4,8 +4,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { ExceptionFilter, Catch, ArgumentsHost } from '@nestjs/common';
-
 import { QueryFailedError } from 'typeorm';
+const constraintMessages: Record<string, string> = {
+  UQ_vacancy_title_department: 'Vacancy title already exists in deparment',
+  UQ_applicant_vacancy: 'Applicant already applied to this vacancy',
+  UQ_applicant_email: 'Applicant email already exists',
+  UQ_department_name: 'Department title already exists',
+};
 @Catch(QueryFailedError)
 export class TypeOrmExceptionFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
@@ -18,19 +23,7 @@ export class TypeOrmExceptionFilter implements ExceptionFilter {
 
     // ✅ Unique violation
     if (error?.code === '23505') {
-      const match = error.detail?.match(/\((.*?)\)=\((.*?)\)/) as string[];
-
-      if (match) {
-        const matchFields = match?.[1]
-          .split(',')
-          .map((f) => f.replace(/"/g, '').trim());
-        const matchValues = match?.[2].split(',').map((v) => v.trim());
-        if (matchFields[1]) {
-          message = `${this.capitalize(matchFields[0])} "${matchValues[0]}" already exists in ${matchFields[1].slice(0, -2)}`;
-        } else {
-          message = `${this.capitalize(matchFields[0])} "${matchValues[0]}" already exists`;
-        }
-      }
+      message = constraintMessages[error.constraint] || message;
     }
 
     // ✅ Foreign key violation

@@ -5,14 +5,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
 } from 'typeorm';
 
 @Entity('vacancies')
-@Unique(['title', 'department'])
+@Index('UQ_vacancy_title_department', ['title', 'department'], { unique: true })
 export class Vacancy {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -30,10 +30,10 @@ export class Vacancy {
   @Column({ nullable: true })
   departmentId!: number;
 
-  @Column('varchar', { nullable: false })
+  @Column()
   title!: string;
 
-  @Column('text', { nullable: false })
+  @Column('text')
   description!: string;
 
   @Column('int', { default: 1 })

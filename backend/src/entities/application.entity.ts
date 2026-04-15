@@ -2,24 +2,25 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Applicant } from './applicant.entity';
 import { CV } from './cv.entity';
 import { Vacancy } from './vacancy.entity';
 import { AiResponseDto } from 'src/dto/ai.response.dto';
+import { ApplicationStatus } from 'src/enum/application-status.enum';
 
 @Entity('applications')
-@Unique(['applicantId', 'vacancyId'])
+@Index('UQ_applicant_vacancy', ['vacancy', 'applicant'], { unique: true })
 export class Application {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   code!: string;
 
   @ManyToOne(() => Applicant, (a) => a.id)
@@ -38,20 +39,20 @@ export class Application {
 
   @ManyToOne(() => CV, (c) => c.id)
   @JoinColumn({ name: 'cvId' })
-  cv!: CV;
+  cv!: CV | null;
 
-  @Column()
+  @Column({ nullable: true })
   cvId!: number;
 
   @Column({
     type: 'enum',
-    default: 'Applied',
-    enum: ['Applied', 'Screening', 'Interviewing', 'Hired', 'Rejected'],
+    default: ApplicationStatus.PENDING,
+    enum: ApplicationStatus,
   })
   status!: string;
 
   @Column('jsonb', { nullable: true })
-  aiPrivew!: AiResponseDto;
+  aiPreview!: AiResponseDto;
 
   @Column('text', { nullable: true })
   hrNotes!: string;

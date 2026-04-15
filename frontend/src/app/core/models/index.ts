@@ -109,8 +109,24 @@ export interface CV {
   createdAt: string;
 }
 
+export interface AiPreview {
+  cvData: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    skills?: string[];
+    experience?: string;
+    education?: string;
+    workHistory?: { company: string; role: string; duration: string }[];
+    summary?: string;
+  };
+  matchScore: number;
+  sumaryAnalysis: string;
+}
+
 export interface Application {
   id: string; // UUID
+  code: string;
   applicantId: string;
   applicant?: Applicant;
   vacancyId: string;
@@ -118,7 +134,7 @@ export interface Application {
   cvId?: string;
   cv?: CV;
   status: ApplicationStatus;
-  aiMatchScore?: number;
+  aiPreview?: AiPreview;
   appliedAt?: string;
   createdAt: string;
   updatedAt: string;
