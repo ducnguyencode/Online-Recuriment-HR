@@ -3,12 +3,24 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Kanban Board</h1>
-      <p class="page-subtitle">Drag and drop applicants across recruitment stages</p>
+      <p class="page-subtitle">
+        Drag and drop applicants across recruitment stages
+      </p>
     </div>
-    <div class="vacancy-filter" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <a class="btn-secondary" routerLink="/hr-portal/applications">Application List</a>
+    <div
+      class="vacancy-filter"
+      style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap"
+    >
+      <a class="btn-secondary" routerLink="/hr-portal/applications"
+        >Application List</a
+      >
       <label class="filter-label">Filter by Position:</label>
-      <select class="form-select" [(ngModel)]="selectedVacancyId" (change)="onVacancyChange()" style="width: 260px">
+      <select
+        class="form-select"
+        [(ngModel)]="selectedVacancyId"
+        (change)="onVacancyChange()"
+        style="width: 260px"
+      >
         <option [ngValue]="0">All Positions</option>
         @for (v of vacancies(); track v.id) {
           <option [ngValue]="v.id">{{ v.title }}</option>
@@ -27,39 +39,82 @@
           <span class="column-count">{{ col.items.length }}</span>
         </div>
 
-        <div class="column-body" cdkDropList [id]="col.id" [cdkDropListData]="col.items"
-             [cdkDropListConnectedTo]="connectedLists" (cdkDropListDropped)="onDrop($event, col)">
-
+        <div
+          class="column-body"
+          cdkDropList
+          [id]="col.id"
+          [cdkDropListData]="col.items"
+          [cdkDropListConnectedTo]="connectedLists"
+          (cdkDropListDropped)="onDrop($event, col)"
+        >
           @for (app of col.items; track app.id) {
             <div class="kanban-card" cdkDrag (click)="openCVDetail(app)">
               <!-- Drag placeholder -->
               <div class="card-placeholder" *cdkDragPlaceholder></div>
 
               <div class="card-top">
-                <div class="card-avatar">{{ getInitials(app.applicant?.fullName || '?') }}</div>
+                <div class="card-avatar">
+                  {{ getInitials(app.applicant?.fullName || "?") }}
+                </div>
                 <div class="card-info">
                   <p class="card-name">{{ app.applicant?.fullName }}</p>
-                  <p class="card-email" style="font-size: 12px; color: var(--text-secondary)">{{ app.applicant?.email }}</p>
+                  <p
+                    class="card-email"
+                    style="font-size: 12px; color: var(--text-secondary)"
+                  >
+                    {{ app.applicant?.email }}
+                  </p>
                 </div>
               </div>
 
-              <div class="card-vacancy-info" style="margin: 12px 0; font-size: 13px; color: var(--text-primary)">
+              <div
+                class="card-vacancy-info"
+                style="
+                  margin: 12px 0;
+                  font-size: 13px;
+                  color: var(--text-primary);
+                "
+              >
                 <strong>Position: </strong> {{ app.vacancy?.title }}
               </div>
 
               <div class="card-footer">
-                <span class="card-time">Date: {{ app.createdAt | date:'MM/dd' }}</span>
-                @if (app.aiMatchScore) {
-                  <span class="ai-score" [ngClass]="getScoreClass(app.aiMatchScore)">
-                    AI {{ app.aiMatchScore }}%
+                <span class="card-time"
+                  >Date: {{ app.createdAt | date: "MM/dd" }}</span
+                >
+                @if (app.aiPreview) {
+                  <span
+                    class="ai-score"
+                    [ngClass]="getScoreClass(app.aiPreview.matchScore)"
+                  >
+                    AI {{ app.aiPreview.matchScore }}%
                   </span>
                 }
               </div>
 
-              @if (app.status === 'Screening' || app.status === 'Interview Scheduled' || col.id === 'interview') {
-                <div class="card-actions" style="margin-top: 12px; border-top: 1px solid var(--shell-border); padding-top: 8px;">
-                  <button class="btn-primary btn-sm" style="width: 100%" (click)="openInterviewDialog(app, $event)">
-                    {{ app.status === 'Interview Scheduled' ? 'Reschedule' : 'Schedule Interview' }}
+              @if (
+                app.status === "Screening" ||
+                app.status === "Interview Scheduled" ||
+                col.id === "interview"
+              ) {
+                <div
+                  class="card-actions"
+                  style="
+                    margin-top: 12px;
+                    border-top: 1px solid var(--shell-border);
+                    padding-top: 8px;
+                  "
+                >
+                  <button
+                    class="btn-primary btn-sm"
+                    style="width: 100%"
+                    (click)="openInterviewDialog(app, $event)"
+                  >
+                    {{
+                      app.status === "Interview Scheduled"
+                        ? "Reschedule"
+                        : "Schedule Interview"
+                    }}
                   </button>
                 </div>
               }
@@ -80,23 +135,48 @@
   <div class="modal-backdrop" (click)="closeCVDetail()">
     <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="detail-avatar-lg">{{ getInitials(selectedApp()!.applicant?.fullName || '?') }}</div>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <div class="detail-avatar-lg">
+            {{ getInitials(selectedApp()!.applicant?.fullName || "?") }}
+          </div>
           <div>
-            <h3 class="modal-title">{{ selectedApp()!.applicant?.fullName }}</h3>
-            <p style="font-size:13px;color:#64748B;margin:4px 0 0">{{ selectedApp()!.applicant?.email }} · {{ selectedApp()!.applicant?.phone }}</p>
+            <h3 class="modal-title">
+              {{ selectedApp()!.applicant?.fullName }}
+            </h3>
+            <p style="font-size: 13px; color: #64748b; margin: 4px 0 0">
+              {{ selectedApp()!.applicant?.email }} ·
+              {{ selectedApp()!.applicant?.phone }}
+            </p>
           </div>
         </div>
         <button class="btn-ghost btn-icon" (click)="closeCVDetail()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
         <!-- AI Match Score -->
-        <div class="score-banner" [ngClass]="getScoreClass(selectedApp()!.aiMatchScore)">
-          <div class="score-number">{{ selectedApp()!.aiMatchScore || 0 }}%</div>
+        <div
+          class="score-banner"
+          [ngClass]="getScoreClass(selectedApp()!.aiPreview?.matchScore)"
+        >
+          <div class="score-number">
+            {{ selectedApp()!.aiPreview?.matchScore }}%
+          </div>
           <div class="score-label">AI Match Score</div>
-          <div class="score-desc">Relevance dynamically matched with JD capabilities</div>
+          <div class="score-desc">
+            Relevance dynamically matched with JD capabilities
+          </div>
         </div>
 
         <!-- CV Parsed Info -->
@@ -134,10 +214,12 @@
         }
 
         <!-- Application Info -->
-        <div class="detail-grid" style="margin-top:20px">
+        <div class="detail-grid" style="margin-top: 20px">
           <div class="detail-item">
             <span class="detail-label">Applied Position</span>
-            <span class="detail-value">{{ selectedApp()!.vacancy?.title }}</span>
+            <span class="detail-value">{{
+              selectedApp()!.vacancy?.title
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Status</span>
@@ -145,11 +227,15 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Submission Date</span>
-            <span class="detail-value">{{ selectedApp()!.createdAt | date:'MM/dd/yyyy HH:mm' }}</span>
+            <span class="detail-value">{{
+              selectedApp()!.createdAt | date: "MM/dd/yyyy HH:mm"
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">CV Document</span>
-            <span class="detail-value cv-link">{{ selectedApp()!.cv?.fileName || 'None' }}</span>
+            <span class="detail-value cv-link">{{
+              selectedApp()!.cv?.fileName || "None"
+            }}</span>
           </div>
         </div>
       </div>
@@ -167,7 +253,18 @@
       <div class="modal-header">
         <h3 class="modal-title">Schedule Interview</h3>
         <button class="btn-ghost btn-icon" (click)="closeInterviewDialog()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
@@ -175,17 +272,36 @@
           <div class="form-error-banner">{{ interviewError }}</div>
         }
         <div class="form-row">
-          <div class="form-group" style="flex:1">
-            <label class="form-label">Interview Date <span class="required">*</span></label>
-            <input type="date" class="form-input" [(ngModel)]="interviewData.date" (change)="onInterviewDateChange()" />
+          <div class="form-group" style="flex: 1">
+            <label class="form-label"
+              >Interview Date <span class="required">*</span></label
+            >
+            <input
+              type="date"
+              class="form-input"
+              [(ngModel)]="interviewData.date"
+              (change)="onInterviewDateChange()"
+            />
           </div>
-          <div class="form-group" style="width:130px">
-            <label class="form-label">Start Time <span class="required">*</span></label>
-            <input type="time" class="form-input" [(ngModel)]="interviewData.startTime" />
+          <div class="form-group" style="width: 130px">
+            <label class="form-label"
+              >Start Time <span class="required">*</span></label
+            >
+            <input
+              type="time"
+              class="form-input"
+              [(ngModel)]="interviewData.startTime"
+            />
           </div>
-          <div class="form-group" style="width:130px">
-            <label class="form-label">End Time <span class="required">*</span></label>
-            <input type="time" class="form-input" [(ngModel)]="interviewData.endTime" />
+          <div class="form-group" style="width: 130px">
+            <label class="form-label"
+              >End Time <span class="required">*</span></label
+            >
+            <input
+              type="time"
+              class="form-input"
+              [(ngModel)]="interviewData.endTime"
+            />
           </div>
         </div>
         <div class="form-group">
@@ -201,25 +317,42 @@
         <div class="form-group">
           <label class="form-label">
             Interview Panel <span class="required">*</span>
-            <span class="form-hint">— Interviewers from the same department as this vacancy</span>
+            <span class="form-hint"
+              >— Interviewers from the same department as this vacancy</span
+            >
           </label>
           @if (availableInterviewers().length === 0) {
-            <p class="form-hint" style="color:var(--warning-color)">No interviewers available in this department.</p>
+            <p class="form-hint" style="color: var(--warning-color)">
+              No interviewers available in this department.
+            </p>
           } @else {
             <div class="panel-list">
               @for (emp of availableInterviewers(); track emp.id) {
-                <label class="panel-item" [class.selected]="isPanelSelected(emp.id)">
-                  <input type="checkbox" [checked]="isPanelSelected(emp.id)" (change)="togglePanelMember(emp.id)" />
-                  <div class="panel-avatar">{{ emp.fullName | slice:0:2 }}</div>
+                <label
+                  class="panel-item"
+                  [class.selected]="isPanelSelected(emp.id)"
+                >
+                  <input
+                    type="checkbox"
+                    [checked]="isPanelSelected(emp.id)"
+                    (change)="togglePanelMember(emp.id)"
+                  />
+                  <div class="panel-avatar">
+                    {{ emp.fullName | slice: 0 : 2 }}
+                  </div>
                   <div class="panel-info">
                     <span class="panel-name">{{ emp.fullName }}</span>
-                    <span class="panel-role">{{ emp.position ?? 'Interviewer' }}</span>
+                    <span class="panel-role">{{
+                      emp.position ?? "Interviewer"
+                    }}</span>
                   </div>
                 </label>
               }
             </div>
           }
-          <p class="form-hint">Selected: {{ selectedPanelIds.length }} interviewer(s)</p>
+          <p class="form-hint">
+            Selected: {{ selectedPanelIds.length }} interviewer(s)
+          </p>
         </div>
 
         @if (selectedPanelIds.length > 0) {
@@ -228,11 +361,21 @@
             <div class="availability-list">
               @for (employeeId of selectedPanelIds; track employeeId) {
                 <div class="availability-card">
-                  <div class="availability-name">{{ getEmployeeName(employeeId) }}</div>
-                  @for (slot of availabilityPreview()[employeeId] || []; track slot.startTime + slot.endTime) {
-                    <span class="availability-slot">{{ slot.availableDate }} · {{ slot.startTime }} - {{ slot.endTime }}</span>
+                  <div class="availability-name">
+                    {{ getEmployeeName(employeeId) }}
+                  </div>
+                  @for (
+                    slot of availabilityPreview()[employeeId] || [];
+                    track slot.startTime + slot.endTime
+                  ) {
+                    <span class="availability-slot"
+                      >{{ slot.availableDate }} · {{ slot.startTime }} -
+                      {{ slot.endTime }}</span
+                    >
                   } @empty {
-                    <span class="availability-empty">No free slot found for the selected date.</span>
+                    <span class="availability-empty"
+                      >No free slot found for the selected date.</span
+                    >
                   }
                 </div>
               }
@@ -241,8 +384,12 @@
         }
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeInterviewDialog()">Cancel</button>
-        <button class="btn-primary" (click)="saveInterview()">Schedule &amp; Send Invites</button>
+        <button class="btn-secondary" (click)="closeInterviewDialog()">
+          Cancel
+        </button>
+        <button class="btn-primary" (click)="saveInterview()">
+          Schedule &amp; Send Invites
+        </button>
       </div>
     </div>
   </div>

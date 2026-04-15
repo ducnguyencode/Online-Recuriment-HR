@@ -288,14 +288,15 @@ export class ApplicationListComponent implements OnInit {
           this.closeAttachDialog();
           this.loadApplications();
         },
-        error: () => {
-          this.mockData.attachApplicantToVacancy({
-            applicantId,
-            vacancyId,
-            cvId: cvId || undefined,
-          });
-          this.closeAttachDialog();
-          this.loadApplications();
+        error: (err) => {
+          this.attachError = err.error.message;
+          // this.mockData.attachApplicantToVacancy({
+          //   applicantId,
+          //   vacancyId,
+          //   cvId: cvId || undefined,
+          // });
+          // this.closeAttachDialog();
+          // this.loadApplications();
         },
       });
   }
