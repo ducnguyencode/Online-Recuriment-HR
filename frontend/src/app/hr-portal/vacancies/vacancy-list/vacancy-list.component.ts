@@ -53,6 +53,7 @@ export class VacancyListComponent implements OnInit {
   };
 
   formError = '';
+  departmentFormError = '';
 
   // Add dept inline
   showDeptDialog = signal(false);
@@ -110,6 +111,7 @@ export class VacancyListComponent implements OnInit {
   }
 
   isNearDeadline(v: Vacancy): boolean {
+    if (!v.closingDate) return false;
     const days = (new Date(v.closingDate).getTime() - Date.now()) / 86400000;
     return days >= 0 && days <= 7;
   }
@@ -142,7 +144,7 @@ export class VacancyListComponent implements OnInit {
       })
       .subscribe({
         next: (res) => {
-          const items = (res.data as any)?.vacancies ?? res.data ?? [];
+          const items = (res.data as any)?.items ?? res.data ?? [];
           this.vacancies.set(items);
           this.loading.set(false);
         },
@@ -240,7 +242,7 @@ export class VacancyListComponent implements OnInit {
       ...this.formData,
       closingDate: this.formData.closingDate
         ? new Date(this.formData.closingDate).toISOString()
-        : '',
+        : null,
     };
 
     if (this.isEditing() && this.selectedVacancy()) {
@@ -267,16 +269,18 @@ export class VacancyListComponent implements OnInit {
           this.closeDialogs();
           this.loadVacancies();
         },
-        error: () => {
-          this.mockData.addVacancy({
-            title: dto.title,
-            description: dto.description,
-            departmentId: dto.departmentId,
-            numberOfOpenings: dto.numberOfOpenings,
-            closingDate: dto.closingDate,
-          });
-          this.closeDialogs();
-          this.loadVacancies();
+        error: (err) => {
+          this.formError = err.error.message;
+
+          // this.mockData.addVacancy({
+          //   title: dto.title,
+          //   description: dto.description,
+          //   departmentId: dto.departmentId,
+          //   numberOfOpenings: dto.numberOfOpenings,
+          //   closingDate: dto.closingDate,
+          // });
+          // this.closeDialogs();
+          // this.loadVacancies();
         },
       });
     }
@@ -312,6 +316,7 @@ export class VacancyListComponent implements OnInit {
   }
   closeDeptDialog() {
     this.showDeptDialog.set(false);
+    this.departmentFormError = '';
   }
 
   saveDepartment() {
@@ -322,23 +327,17 @@ export class VacancyListComponent implements OnInit {
         this.formData.departmentId = res.data.id;
         this.closeDeptDialog();
       },
-      error: () => {
-        const d = this.mockData.addDepartment(this.newDeptName.trim());
-        this.departments.update((list) => [
-          ...list,
-          { ...d, id: String(d.id) },
-        ]);
-        this.formData.departmentId = String(d.id);
-        this.closeDeptDialog();
+      error: (err) => {
+        this.departmentFormError = err.error.message;
+
+        // const d = this.mockData.addDepartment(this.newDeptName.trim());
+        // this.departments.update((list) => [
+        //   ...list,
+        //   { ...d, id: String(d.id) },
+        // ]);
+        // this.formData.departmentId = String(d.id);
+        // this.closeDeptDialog();
       },
     });
-  }
-
-  vacancyDisplayId(id: string) {
-    return formatDisplayId('V', id);
-  }
-
-  departmentDisplayId(id: string) {
-    return formatDisplayId('D', id);
   }
 }

@@ -1,17 +1,18 @@
 import { Exclude } from 'class-transformer';
 import { Department } from 'src/entities/department.entity';
+import { VacancyStatus } from 'src/enum/vacancy-status.enum';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
 } from 'typeorm';
 
 @Entity('vacancies')
-@Unique(['title', 'department'])
+@Index('UQ_vacancy_title_department', ['title', 'department'], { unique: true })
 export class Vacancy {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -29,10 +30,10 @@ export class Vacancy {
   @Column({ nullable: true })
   departmentId!: number;
 
-  @Column('varchar', { nullable: false })
+  @Column()
   title!: string;
 
-  @Column('text', { nullable: false })
+  @Column('text')
   description!: string;
 
   @Column('int', { default: 1 })
@@ -41,10 +42,10 @@ export class Vacancy {
   @Column('int', { default: 0 })
   filledCount!: number;
 
-  @Column('varchar', { default: 'Opened' })
+  @Column({ type: 'enum', enum: VacancyStatus, default: VacancyStatus.OPENED })
   status!: string;
 
-  @Column('date')
+  @Column('date', { nullable: true })
   closingDate!: Date;
 
   @CreateDateColumn({ type: 'timestamptz' })

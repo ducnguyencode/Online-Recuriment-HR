@@ -21,6 +21,16 @@ import {
   canAttachVacancyToApplicant,
   formatDisplayId,
 } from '../../../core/models';
+import { environment } from '../../../../environments/environment';
+
+enum ApplicationStatus {
+  PENDING = 'Pending',
+  SCREENING = 'Screening',
+  INTERVIEW_SCHEDULED = 'Interview Scheduled',
+  SELECTED = 'Selected',
+  REJECTED = 'Rejected',
+  NOT_REQUIRED = 'Not Required',
+}
 
 @Component({
   selector: 'app-LApplication-LList',
@@ -30,6 +40,7 @@ import {
   styleUrl: './application-list.component.scss',
 })
 export class ApplicationListComponent implements OnInit {
+  applicationStatus = Object.values(ApplicationStatus);
   applications = signal<Application[]>([]);
   vacancies = signal<Vacancy[]>([]);
   applicants = signal<Applicant[]>([]);
@@ -128,6 +139,7 @@ export class ApplicationListComponent implements OnInit {
       .getAll({
         status: this.filterStatus || undefined,
         vacancyId: this.selectedVacancyId || undefined,
+        search: this.searchQuery || undefined,
       })
       .subscribe({
         next: (res) => {
@@ -492,12 +504,12 @@ export class ApplicationListComponent implements OnInit {
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
-      Pending: 'badge-neutral',
-      Screening: 'badge-warning',
-      'Interview Scheduled': 'badge-info',
-      Selected: 'badge-success',
-      Rejected: 'badge-danger',
-      'Not Required': 'badge-neutral',
+      [ApplicationStatus.PENDING]: 'badge-neutral',
+      [ApplicationStatus.SCREENING]: 'badge-warning',
+      [ApplicationStatus.INTERVIEW_SCHEDULED]: 'badge-info',
+      [ApplicationStatus.SELECTED]: 'badge-success',
+      [ApplicationStatus.REJECTED]: 'badge-danger',
+      [ApplicationStatus.NOT_REQUIRED]: 'badge-neutral',
     };
     return map[status] ?? 'badge-neutral';
   }
@@ -549,5 +561,10 @@ export class ApplicationListComponent implements OnInit {
         role: 'Interviewer',
       },
     ];
+  }
+
+  viewSelectedApplicationCV() {
+    const fileName = this.selectedApplication()?.cv?.fileUrl;
+    window.open(`${environment.baseUrl}/uploads/${fileName}`, '_blank');
   }
 }

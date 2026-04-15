@@ -2,7 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, PaginatedResponse, Applicant, ApplicantStatus } from '../models';
+import {
+  ApiResponse,
+  PaginatedResponse,
+  Applicant,
+  ApplicantStatus,
+} from '../models';
 
 export interface ApplicantFilters {
   status?: string;
@@ -23,13 +28,17 @@ export class ApplicantService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(filters: ApplicantFilters = {}): Observable<ApiResponse<PaginatedResponse<Applicant>>> {
+  getAll(
+    filters: ApplicantFilters = {},
+  ): Observable<ApiResponse<PaginatedResponse<Applicant>>> {
     let params = new HttpParams();
     if (filters.status) params = params.set('status', filters.status);
     if (filters.search) params = params.set('search', filters.search);
-    if (filters.page)   params = params.set('page', filters.page.toString());
-    if (filters.limit)  params = params.set('limit', filters.limit.toString());
-    return this.http.get<ApiResponse<PaginatedResponse<Applicant>>>(this.base, { params });
+    if (filters.page) params = params.set('page', filters.page.toString());
+    if (filters.limit) params = params.set('limit', filters.limit.toString());
+    return this.http.get<ApiResponse<PaginatedResponse<Applicant>>>(this.base, {
+      params,
+    });
   }
 
   getById(id: string): Observable<ApiResponse<Applicant>> {
@@ -40,11 +49,20 @@ export class ApplicantService {
     return this.http.post<ApiResponse<Applicant>>(`${this.base}/create`, dto);
   }
 
-  update(id: string, dto: Partial<CreateApplicantDto>): Observable<ApiResponse<Applicant>> {
+  update(
+    id: string,
+    dto: Partial<CreateApplicantDto>,
+  ): Observable<ApiResponse<Applicant>> {
     return this.http.put<ApiResponse<Applicant>>(`${this.base}/${id}`, dto);
   }
 
-  changeStatus(id: string, status: ApplicantStatus): Observable<ApiResponse<Applicant>> {
-    return this.http.patch<ApiResponse<Applicant>>(`${this.base}/${id}/status`, { status });
+  changeStatus(
+    id: string,
+    status: ApplicantStatus,
+  ): Observable<ApiResponse<Applicant>> {
+    return this.http.patch<ApiResponse<Applicant>>(
+      `${this.base}/${id}/status`,
+      { status },
+    );
   }
 }

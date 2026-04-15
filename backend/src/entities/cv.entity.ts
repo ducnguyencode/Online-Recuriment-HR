@@ -7,7 +7,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Applicant } from './applicant.entity';
-import type { ParsedDataAi } from 'src/interfaces/parsed-data-ai.interface';
 import { Exclude } from 'class-transformer';
 
 @Entity('cvs')
@@ -15,7 +14,7 @@ export class CV {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   code!: string;
 
   @Exclude()
@@ -28,9 +27,6 @@ export class CV {
 
   @Column('varchar', { nullable: true })
   fileUrl!: string;
-
-  @Column('jsonb', { nullable: true })
-  parsedDataAi!: ParsedDataAi;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

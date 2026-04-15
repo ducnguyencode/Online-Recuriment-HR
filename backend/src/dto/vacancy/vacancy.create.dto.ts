@@ -1,4 +1,5 @@
-import { IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDate, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class VacancyCreateDto {
   @IsNumber()
@@ -17,5 +18,7 @@ export class VacancyCreateDto {
   status!: string;
 
   @IsOptional()
+  @Type(() => Date)
+  @IsDate()
   closingDate!: Date;
 }

@@ -1,0 +1,63 @@
+<div class="min-h-[85vh] flex items-center justify-center bg-gray-50 px-4 py-12 font-sans">
+  <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-2xl border border-gray-100 transform transition-all">
+
+    <div class="text-center">
+      <div class="mx-auto h-12 w-12 bg-blue-600 text-white flex items-center justify-center font-extrabold text-2xl rounded-xl shadow-lg shadow-blue-200">HR</div>
+      <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+        @if (viewMode === 'login') { Đăng nhập }
+        @else if (viewMode === 'register') { Đăng ký ứng viên }
+        @else { Quên mật khẩu? }
+      </h2>
+      <p class="mt-2 text-sm text-gray-500 italic">
+        @if (viewMode === 'forgot') { Nhập email để nhận link khôi phục mật khẩu }
+        @else { Chào mừng bạn đến với hệ thống tuyển dụng }
+      </p>
+    </div>
+
+    <form class="mt-8 space-y-5" (submit)="handleFormSubmit($event)">
+      <div class="space-y-4">
+
+        @if (viewMode === 'register') {
+          <div class="animate-in fade-in slide-in-from-top-2 duration-300">
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Họ và tên</label>
+            <input required type="text" placeholder="Nguyễn Văn A" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+          </div>
+        }
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Địa chỉ Email</label>
+          <input required type="email" placeholder="example@gmail.com" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+        </div>
+
+        @if (viewMode !== 'forgot') {
+          <div class="animate-in fade-in slide-in-from-top-2 duration-300">
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Mật khẩu</label>
+            <input required type="password" placeholder="••••••••" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+          </div>
+        }
+      </div>
+
+      @if (viewMode === 'login') {
+        <div class="flex justify-end">
+          <a routerLink="/forgot-password" (click)="viewMode = 'forgot'" class="text-sm font-bold text-blue-600 hover:text-blue-500 transition-colors">Quên mật khẩu?</a>
+        </div>
+      }
+
+      <button type="submit" class="w-full py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-md active:scale-[0.98]">
+        @if (viewMode === 'login') { ĐĂNG NHẬP }
+        @else if (viewMode === 'register') { TẠO TÀI KHOẢN }
+        @else { GỬI YÊU CẦU }
+      </button>
+
+      <div class="text-center pt-4 border-t border-gray-100">
+        <p class="text-sm text-gray-600">
+          @if (viewMode === 'login') {
+            Chưa có tài khoản? <a routerLink="/register" (click)="viewMode = 'register'" class="text-blue-600 font-bold hover:underline">Đăng ký ngay</a>
+          } @else {
+            Đã nhớ mật khẩu? <a routerLink="/login" (click)="viewMode = 'login'" class="text-blue-600 font-bold hover:underline">Quay lại đăng nhập</a>
+          }
+        </p>
+      </div>
+    </form>
+  </div>
+</div>

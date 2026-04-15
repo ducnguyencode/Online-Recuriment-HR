@@ -1,0 +1,49 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { ExceptionFilter, Catch, ArgumentsHost } from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
+const constraintMessages: Record<string, string> = {
+  UQ_vacancy_title_department: 'Vacancy title already exists in deparment',
+  UQ_applicant_vacancy: 'Applicant already applied to this vacancy',
+  UQ_applicant_email: 'Applicant email already exists',
+  UQ_department_name: 'Department title already exists',
+};
+@Catch(QueryFailedError)
+export class TypeOrmExceptionFilter implements ExceptionFilter {
+  catch(exception: any, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+
+    const error = exception.driverError;
+
+    let message = 'Database error';
+
+    // ✅ Unique violation
+    if (error?.code === '23505') {
+      message = constraintMessages[error.constraint] || message;
+    }
+
+    // ✅ Foreign key violation
+    else if (error?.code === '23503') {
+      message = 'Related record does not exist';
+    }
+
+    // fallback
+    else if (error?.message) {
+      message = error.message;
+    }
+
+    return response.status(400).json({
+      statusCode: 400,
+      message,
+      data: null,
+    });
+  }
+
+  private capitalize(text: string) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+}
