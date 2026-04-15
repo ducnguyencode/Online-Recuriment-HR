@@ -1,0 +1,66 @@
+<div class="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 font-sans">
+  <div class="max-w-7xl mx-auto">
+
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Applicant Dashboard</h1>
+        <p class="text-gray-500 mt-1">Chào mừng {{ applicantName }}, đây là trạng thái hồ sơ của bạn.</p>
+      </div>
+      <button class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 shadow-sm">
+        Đăng xuất
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <div class="lg:col-span-2 space-y-6">
+        <h2 class="text-xl font-bold text-gray-800">Hồ sơ đã nộp</h2>
+
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">Senior Frontend Developer (Angular)</h3>
+            <p class="text-sm text-gray-500 mt-1">Nộp ngày: 15/04/2026</p>
+          </div>
+          <span class="px-4 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-full text-sm flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+            Mời phỏng vấn
+          </span>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center opacity-70">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">Product Designer</h3>
+            <p class="text-sm text-gray-500 mt-1">Nộp ngày: 10/04/2026</p>
+          </div>
+          <span class="px-4 py-1.5 bg-gray-100 text-gray-600 font-bold rounded-full text-sm">
+            Đang duyệt CV
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-xl font-bold text-gray-800 mb-6">🗓 Đặt lịch phỏng vấn</h2>
+        <div class="bg-white p-6 rounded-2xl border border-blue-100 shadow-md shadow-blue-50">
+          <p class="text-sm text-blue-600 font-semibold mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+             HR đã gửi lời mời. Vui lòng chọn khung giờ phù hợp với bạn:
+          </p>
+
+          <div class="space-y-3">
+            @for (slot of availableSlots; track slot.time) {
+              <button
+                (click)="confirmInterview(slot)"
+                class="w-full text-left px-5 py-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:ring-1 hover:ring-blue-500 hover:bg-blue-50 transition-all group flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-gray-900 group-hover:text-blue-700">{{ slot.time }}</div>
+                  <div class="text-sm text-gray-500">{{ slot.date }}</div>
+                </div>
+                <span class="text-blue-600 opacity-0 group-hover:opacity-100 font-bold transition-opacity">Chọn</span>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1,0 +1,30 @@
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16">
+
+      <div class="flex items-center cursor-pointer" routerLink="/careers">
+        <div class="w-8 h-8 bg-blue-600 text-white flex items-center justify-center font-bold rounded-lg mr-2">HR</div>
+        <span class="font-bold text-xl text-gray-900">Tuyển Dụng</span>
+      </div>
+
+      <div class="hidden sm:flex items-center space-x-8">
+        <a routerLink="/careers" routerLinkActive="text-blue-600 font-bold border-b-2 border-blue-600" class="text-gray-600 hover:text-blue-600 h-full flex items-center px-1 border-b-2 border-transparent transition-colors">Danh sách việc làm</a>
+        <a routerLink="/applicant" routerLinkActive="text-blue-600 font-bold border-b-2 border-blue-600" class="text-gray-600 hover:text-blue-600 h-full flex items-center px-1 border-b-2 border-transparent transition-colors">Dashboard của tôi</a>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <a href="/hr-portal" class="text-sm font-medium text-gray-500 hover:text-blue-600">Dành cho HR</a>
+        <button routerLink="/login" class="bg-gray-900 text-white px-5 py-2 rounded-lg font-bold hover:bg-gray-800 transition">Đăng nhập</button>
+      </div>
+
+    </div>
+  </div>
+</nav>
+
+<main class="min-h-[80vh]">
+  <router-outlet></router-outlet>
+</main>
+
+<footer class="bg-white border-t border-gray-200 py-8 mt-10 text-center text-gray-500 text-sm font-medium">
+  <p>© 2026 Dev 5 - Khang. Hệ thống tuyển dụng trực tuyến.</p>
+</footer>
