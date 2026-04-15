@@ -335,100 +335,110 @@ export class MockDataService {
 
   private applications: Application[] = [
     {
-      id: 'appl-id-1',
+      id: '1',
+      code: 'A0001',
       applicantId: 'appl-1',
       vacancyId: '1',
       cvId: 'cv-1',
       status: 'Interview Scheduled',
-      aiMatchScore: 88,
+      // aiMatchScore: 88,
       createdAt: this.pastDate(8),
       updatedAt: this.pastDate(6),
     },
     {
-      id: 'appl-id-2',
+      id: '2',
+      code: 'A0002',
       applicantId: 'appl-2',
       vacancyId: '2',
       cvId: 'cv-2',
       status: 'Screening',
-      aiMatchScore: 82,
+      // aiMatchScore: 82,
       createdAt: this.pastDate(7),
       updatedAt: this.pastDate(7),
     },
     {
-      id: 'appl-id-3',
+      id: '3',
+      code: 'A0003',
       applicantId: 'appl-1',
       vacancyId: '3',
       cvId: 'cv-1',
       status: 'Pending',
-      aiMatchScore: 45,
+      // aiMatchScore: 45,
       createdAt: this.pastDate(7),
       updatedAt: this.pastDate(7),
     },
     {
-      id: 'appl-id-4',
+      id: '4',
+      code: 'A0004',
       applicantId: 'appl-3',
       vacancyId: '4',
       cvId: 'cv-3',
       status: 'Selected',
-      aiMatchScore: 95,
+      // aiMatchScore: 95,
       createdAt: this.pastDate(20),
       updatedAt: this.pastDate(2),
     },
     {
-      id: 'appl-id-5',
+      id: '5',
+      code: 'A0005',
       applicantId: 'appl-5',
       vacancyId: '2',
       cvId: 'cv-4',
       status: 'Screening',
-      aiMatchScore: 52,
+      // aiMatchScore: 52,
       createdAt: this.pastDate(6),
       updatedAt: this.pastDate(4),
     },
     {
-      id: 'appl-id-6',
+      id: '6',
+      code: 'A0006',
       applicantId: 'appl-7',
       vacancyId: '6',
       cvId: 'cv-5',
       status: 'Interview Scheduled',
-      aiMatchScore: 91,
+      // aiMatchScore: 91,
       createdAt: this.pastDate(5),
       updatedAt: this.pastDate(3),
     },
     {
-      id: 'appl-id-7',
+      id: '7',
+      code: 'A0007',
       applicantId: 'appl-5',
       vacancyId: '6',
       cvId: 'cv-4',
       status: 'Pending',
-      aiMatchScore: 60,
+      // aiMatchScore: 60,
       createdAt: this.pastDate(5),
       updatedAt: this.pastDate(5),
     },
     {
-      id: 'appl-id-8',
+      id: '8',
+      code: 'A0008',
       applicantId: 'appl-8',
       vacancyId: '1',
       status: 'Pending',
-      aiMatchScore: 72,
+      // aiMatchScore: 72,
       createdAt: this.pastDate(3),
       updatedAt: this.pastDate(3),
     },
     {
-      id: 'appl-id-9',
+      id: '9',
+      code: 'A0009',
       applicantId: 'appl-4',
       vacancyId: '7',
       status: 'Rejected',
-      aiMatchScore: 35,
+      // aiMatchScore: 35,
       createdAt: this.pastDate(4),
       updatedAt: this.pastDate(1),
     },
     {
-      id: 'appl-id-10',
+      id: '10',
+      code: 'A00010',
       applicantId: 'appl-2',
       vacancyId: '1',
       cvId: 'cv-2',
       status: 'Screening',
-      aiMatchScore: 68,
+      // aiMatchScore: 68,
       createdAt: this.pastDate(2),
       updatedAt: this.pastDate(2),
     },
@@ -730,17 +740,20 @@ export class MockDataService {
     vacancyId: string;
     cvId?: string;
   }): Application {
+    const id = `${this.applications.length + 1}`;
+    const code = `A${id.padStart(4, '0')}`;
     const applicant = this.getApplicantById(data.applicantId);
     const cv = data.cvId
       ? this.cvs.find((item) => item.id === data.cvId)
       : this.getCvByApplicantId(data.applicantId);
     const application: Application = {
-      id: `appl-id-${this.applications.length + 1}`,
+      id: id,
+      code: code,
       applicantId: data.applicantId,
       vacancyId: data.vacancyId,
       cvId: cv?.id,
       status: 'Pending',
-      aiMatchScore: Math.floor(Math.random() * 40) + 55,
+      // aiMatchScore: Math.floor(Math.random() * 40) + 55,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -780,8 +793,8 @@ export class MockDataService {
     const newApplId = `appl-${this.applicants.length + 1}`;
     const newApplCode = `A${newApplId.padStart(4, '0')}`;
     const newCvId = `cv-${this.cvs.length + 1}`;
-    const newAppId = `appl-id-${this.applications.length + 1}`;
-
+    const newAppId = `${this.applications.length + 1}`;
+    const newAppCode = `A${newAppId.padStart(4, '0')}`;
     const applicant: Applicant = {
       id: newApplId,
       code: newApplCode,
@@ -811,11 +824,12 @@ export class MockDataService {
 
     const application: Application = {
       id: newAppId,
+      code: newAppCode,
       applicantId: newApplId,
       vacancyId: data.vacancyId,
       cvId: newCvId,
       status: 'Pending',
-      aiMatchScore: Math.floor(Math.random() * 40) + 50,
+      // aiMatchScore: Math.floor(Math.random() * 40) + 50,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

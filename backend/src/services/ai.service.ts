@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/await-thenable */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -20,11 +21,22 @@ export class AiService {
     );
   }
 
-  async reviewCv(
-    fileName: string,
-    application: Application,
-  ): Promise<AiResponseDto | null> {
-    const fileUrl = `${this.configService.get('BASE_URL')}/uploads/cv/${fileName}`;
+  async generateWithRetry(fn: () => Promise<any>, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        if (err?.status === 503 && i < retries - 1) {
+          await new Promise((res) => setTimeout(res, 1000 * (i + 1))); // backoff
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  async reviewCv(application: Application): Promise<AiResponseDto | null> {
+    const fileUrl = `${this.configService.get('BASE_URL')}/uploads/${application.cv?.fileUrl}`;
     const response = await axios.get(fileUrl, {
       responseType: 'arraybuffer',
     });
@@ -37,22 +49,24 @@ export class AiService {
       };
       // 2. Call gemini
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-3.1-flash-lite-preview',
+        model: 'gemini-3-flash-preview',
       });
 
       const prompt = `
         Extract cv data into JSON
         Then compare with application to see how % that cv match application's vacancy.
+        Remember to check correct info of applicant and cv, if not match no need to compare. Give 0% score and said it right in sumaryAnalysis
         No explaination.
         
         Format:
         {
             "cvData": {
                 "name": "",
-                "skills": [{"skillName":"","skillExp":""},...];
-                "positionFavor": "";
+                "skills": ["skillName",...];
+                "education": "";
+                "experience":"x years"
             },
-            "matchScore": "",
+            "matchScore": number (example 70% show 70),
             "sumaryAnalysis": ""
         }
 
@@ -63,7 +77,9 @@ export class AiService {
         ${pdfText}
         `;
 
-      const result = await model.generateContent(prompt);
+      const result = await this.generateWithRetry(() =>
+        model.generateContent(prompt),
+      );
       const response = await result.response;
       const text = response.text();
 
