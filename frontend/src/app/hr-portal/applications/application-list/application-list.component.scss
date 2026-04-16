@@ -274,19 +274,30 @@
   font-weight: 600;
 }
 
+/* AI Score color bands: green → yellow → orange → red */
 .score-high {
   background: var(--shell-success-soft);
   color: var(--shell-success);
 }
 
 .score-medium {
-  background: var(--shell-brand-soft);
-  color: var(--shell-brand);
+  background: var(--shell-warning-soft);
+  color: var(--shell-warning);
+}
+
+.score-fair {
+  background: #fff4ed;
+  color: #ea6c00;
 }
 
 .score-low {
   background: var(--shell-danger-soft);
   color: var(--shell-danger);
+}
+
+.score-none {
+  background: #f1f5f9;
+  color: var(--shell-text-soft);
 }
 
 .score-banner {

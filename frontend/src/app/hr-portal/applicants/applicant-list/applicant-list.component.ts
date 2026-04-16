@@ -138,8 +138,8 @@ export class ApplicantListComponent implements OnInit {
   }
 
   saveApplicant() {
-    if (!this.formData.fullName.trim() || !this.formData.email.trim()) {
-      this.formError = 'Full name and email are required.';
+    if (!this.formData.fullName.trim() || !this.formData.email.trim() || !this.formData.phone.trim()) {
+      this.formError = 'Full name, email and phone are required.';
       return;
     }
 

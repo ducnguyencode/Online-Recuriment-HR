@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -54,6 +54,11 @@ export class VacancyListComponent implements OnInit {
 
   formError = '';
   departmentFormError = '';
+
+  // Expanded description editor
+  showExpandedEditor = signal(false);
+  @ViewChild('editorEl') editorEl?: ElementRef<HTMLDivElement>;
+  private savedRange: Range | null = null;
 
   // Add dept inline
   showDeptDialog = signal(false);
@@ -306,6 +311,61 @@ export class VacancyListComponent implements OnInit {
       Closed: 'badge-danger',
     };
     return map[status] ?? 'badge-neutral';
+  }
+
+  // ── Expanded description editor ─────────────────────────────────────────
+
+  openExpandedEditor() {
+    this.savedRange = null;
+    this.showExpandedEditor.set(true);
+    setTimeout(() => {
+      if (this.editorEl) {
+        this.editorEl.nativeElement.innerHTML = this.formData.description || '';
+        this.editorEl.nativeElement.focus();
+      }
+    }, 50);
+  }
+
+  closeExpandedEditor() {
+    this.savedRange = null;
+    this.showExpandedEditor.set(false);
+  }
+
+  applyExpandedContent() {
+    if (this.editorEl) {
+      this.formData = { ...this.formData, description: this.editorEl.nativeElement.innerHTML };
+    }
+    this.closeExpandedEditor();
+  }
+
+  onEditorBlur() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      this.savedRange = sel.getRangeAt(0).cloneRange();
+    }
+  }
+
+  execCommand(command: string, value?: string) {
+    const editor = this.editorEl?.nativeElement;
+    if (!editor) return;
+
+    editor.focus();
+
+    if (this.savedRange) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(this.savedRange);
+      }
+    }
+
+    document.execCommand(command, false, value ?? undefined);
+
+    // Save updated selection after command
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      this.savedRange = sel.getRangeAt(0).cloneRange();
+    }
   }
 
   // ── Department quick-add ──────────────────────────────────────────────────

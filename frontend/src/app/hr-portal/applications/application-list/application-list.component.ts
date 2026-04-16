@@ -516,9 +516,10 @@ export class ApplicationListComponent implements OnInit {
   }
 
   getScoreClass(score: number | undefined): string {
-    if (!score) return 'score-low';
+    if (score === undefined || score === null) return 'score-none';
     if (score >= 80) return 'score-high';
     if (score >= 60) return 'score-medium';
+    if (score >= 40) return 'score-fair';
     return 'score-low';
   }
 
