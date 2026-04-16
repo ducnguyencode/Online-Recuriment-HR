@@ -4,7 +4,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpException,
   HttpStatus,
   Post,
   UploadedFile,
@@ -28,30 +27,21 @@ export class CvController {
     @Body() cvCreateDto: CvCreateDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    try {
-      return await this.cvService.create(cvCreateDto, file);
-    } catch (err) {
-      throw new HttpException(err as string, HttpStatus.BAD_REQUEST);
-    }
+    const data = await this.cvService.create(cvCreateDto, file);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Success create a cv',
+      data,
+    };
   }
 
   @Get()
   async findAll() {
-    return await this.cvService.findAll();
+    const data = await this.cvService.findAll();
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Success create a cv',
+      data,
+    };
   }
-
-  // @Post('test')
-  // @UseInterceptors(FileInterceptor('file'))
-  // async test(
-  //   @Body('id') applicationId: string,
-  //   @UploadedFile()
-  //   file: Express.Multer.File,
-  // ) {
-  //   try {
-  //     return await this.aiService.pdfToJson(file, applicationId);
-  //   } catch (err) {
-  //     console.log(err);
-  //     throw new HttpException(err as string, HttpStatus.BAD_REQUEST);
-  //   }
-  // }
 }

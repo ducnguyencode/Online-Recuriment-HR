@@ -1,11 +1,15 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('departments')
+@Index('UQ_department_name', ['name'], { unique: true })
 export class Department {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-  @Column('varchar', { unique: true, nullable: false })
+  @Column({ unique: true, nullable: true })
+  code!: string;
+
+  @Column()
   name!: string;
 
   @Column('text', { nullable: true })

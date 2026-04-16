@@ -2,38 +2,71 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Applicants</h1>
-      <p class="page-subtitle">Manage applicant records and review their application history with AI-parsed CV data</p>
+      <p class="page-subtitle">
+        Manage applicant records and review their application history with
+        AI-parsed CV data
+      </p>
     </div>
-    <button class="btn-primary" (click)="openCreateDialog()">Add Applicant</button>
+    <button class="btn-primary" (click)="openCreateDialog()">
+      Add Applicant
+    </button>
   </div>
 
   <div class="filters-bar">
     <div class="search-box">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
       <input
         type="text"
         class="form-input search-input"
-        placeholder="Search by applicant ID, name, email, or vacancy ID..."
+        placeholder="Search by applicant ID, name, email..."
         [(ngModel)]="searchQuery"
         (input)="loadApplicants()"
       />
     </div>
-    <select class="form-select filter-select" [(ngModel)]="filterStatus" (change)="loadApplicants()">
+    <select
+      class="form-select filter-select"
+      [(ngModel)]="filterStatus"
+      (change)="loadApplicants()"
+    >
       <option value="">All Statuses</option>
-      <option value="Not in Process">Not in Process</option>
-      <option value="In Process">In Process</option>
-      <option value="Hired">Hired</option>
-      <option value="Banned">Banned</option>
+      @for (status of applicantStatus; track status) {
+        <option [value]="status">{{ status }}</option>
+      }
     </select>
     @if (searchQuery || filterStatus) {
-      <button class="btn-secondary btn-sm" (click)="clearFilters()">Reset</button>
+      <button class="btn-secondary btn-sm" (click)="clearFilters()">
+        Reset
+      </button>
     }
     <span class="result-count">{{ applicants().length }} applicants</span>
     @if (totalPages > 1) {
       <div class="pagination">
-        <button class="btn-ghost btn-sm" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">←</button>
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)"
+        >
+          ←
+        </button>
         <span class="page-info">{{ currentPage() }} / {{ totalPages }}</span>
-        <button class="btn-ghost btn-sm" [disabled]="currentPage() === totalPages" (click)="goToPage(currentPage() + 1)">→</button>
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === totalPages"
+          (click)="goToPage(currentPage() + 1)"
+        >
+          →
+        </button>
       </div>
     }
   </div>
@@ -58,10 +91,12 @@
             <tr class="applicant-row" (click)="openDetail(applicant)">
               <td>
                 <div class="person-cell">
-                  <div class="person-avatar">{{ getInitials(applicant.fullName) }}</div>
+                  <div class="person-avatar">
+                    {{ getInitials(applicant.fullName) }}
+                  </div>
                   <div class="id-stack">
                     <span class="person-name">{{ applicant.fullName }}</span>
-                    <span class="mono-id">{{ applicantDisplayId(applicant.id) }}</span>
+                    <span class="mono-id">{{ applicant.code }}</span>
                   </div>
                 </div>
               </td>
@@ -71,16 +106,34 @@
                   <span class="muted">{{ applicant.phone }}</span>
                 </div>
               </td>
-              <td><span class="badge" [ngClass]="getStatusClass(applicant.status)">{{ applicant.status }}</span></td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="getStatusClass(applicant.status)"
+                  >{{ applicant.status }}</span
+                >
+              </td>
               <td>{{ getApplicantApplicationsCount(applicant.id) }}</td>
-              <td class="latest-vacancy">{{ getLatestVacancyTitle(applicant.id) }}</td>
+              <td class="latest-vacancy">
+                {{ getLatestVacancyTitle(applicant.id) }}
+              </td>
               <td class="cell-actions" (click)="$event.stopPropagation()">
-                <button class="btn-ghost btn-sm" (click)="openEditDialog(applicant, $event)">Edit</button>
-                <select class="form-select status-select" [ngModel]="applicant.status" (change)="changeStatus(applicant, $any($event.target).value, $event)">
-                  <option value="Not in Process">Not in Process</option>
-                  <option value="In Process">In Process</option>
-                  <option value="Hired">Hired</option>
-                  <option value="Banned">Banned</option>
+                <button
+                  class="btn-ghost btn-sm"
+                  (click)="openEditDialog(applicant, $event)"
+                >
+                  Edit
+                </button>
+                <select
+                  class="form-select status-select"
+                  [ngModel]="applicant.status"
+                  (change)="
+                    changeStatus(applicant, $any($event.target).value, $event)
+                  "
+                >
+                  @for (status of applicantStatus; track status) {
+                    <option [value]="status">{{ status }}</option>
+                  }
                 </select>
               </td>
             </tr>
@@ -103,25 +156,47 @@
     <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-left">
-          <div class="detail-avatar">{{ getInitials(selectedApplicant()!.fullName) }}</div>
+          <div class="detail-avatar">
+            {{ getInitials(selectedApplicant()!.fullName) }}
+          </div>
           <div>
             <h3 class="modal-title">{{ selectedApplicant()!.fullName }}</h3>
-            <p class="modal-subtitle">{{ selectedApplicant()!.id }} · {{ selectedApplicant()!.email }} · {{ selectedApplicant()!.phone }}</p>
+            <p class="modal-subtitle">
+              {{ selectedApplicant()!.id }} · {{ selectedApplicant()!.email }} ·
+              {{ selectedApplicant()!.phone }}
+            </p>
           </div>
         </div>
         <button class="btn-ghost btn-icon" (click)="closeDetail()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Applicant Status</span>
-            <span class="badge" [ngClass]="getStatusClass(selectedApplicant()!.status)">{{ selectedApplicant()!.status }}</span>
+            <span
+              class="badge"
+              [ngClass]="getStatusClass(selectedApplicant()!.status)"
+              >{{ selectedApplicant()!.status }}</span
+            >
           </div>
           <div class="detail-item">
             <span class="detail-label">Created Date</span>
-            <span class="detail-value">{{ selectedApplicant()!.createdAt | date:'MM/dd/yyyy' }}</span>
+            <span class="detail-value">{{
+              selectedApplicant()!.createdAt | date: "MM/dd/yyyy"
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Applications Count</span>
@@ -129,22 +204,26 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Last Updated</span>
-            <span class="detail-value">{{ selectedApplicant()!.updatedAt | date:'MM/dd/yyyy' }}</span>
+            <span class="detail-value">{{
+              selectedApplicant()!.updatedAt | date: "MM/dd/yyyy"
+            }}</span>
           </div>
         </div>
 
         @if (selectedCv()?.parsedDataAi; as ai) {
           <div class="cv-section">
             <h4 class="section-title">AI Parsed CV</h4>
-            <p class="section-text">{{ ai.summary || 'No summary available' }}</p>
+            <p class="section-text">
+              {{ ai.summary || "No summary available" }}
+            </p>
             <div class="cv-grid">
               <div class="detail-item">
                 <span class="detail-label">Education</span>
-                <span class="detail-value">{{ ai.education || '—' }}</span>
+                <span class="detail-value">{{ ai.education || "—" }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">Experience</span>
-                <span class="detail-value">{{ ai.experience || '—' }}</span>
+                <span class="detail-value">{{ ai.experience || "—" }}</span>
               </div>
             </div>
             <div class="skills-list">
@@ -154,7 +233,9 @@
             </div>
           </div>
         } @else {
-          <div class="no-cv">No AI-parsed CV data available for this applicant.</div>
+          <div class="no-cv">
+            No AI-parsed CV data available for this applicant.
+          </div>
         }
 
         <div class="history-section">
@@ -175,16 +256,28 @@
                     <td class="mono-id">{{ item.id }}</td>
                     <td>
                       <div class="id-stack">
-                        <span class="person-name">{{ item.vacancy?.title || '—' }}</span>
-                        <span class="muted">{{ vacancyDisplayId(item.vacancyId) }}</span>
+                        <span class="person-name">{{
+                          item.vacancy?.title || "—"
+                        }}</span>
+                        <span class="muted">{{
+                          vacancyDisplayId(item.vacancyId)
+                        }}</span>
                       </div>
                     </td>
-                    <td><span class="badge" [ngClass]="getApplicationStatusClass(item.status)">{{ item.status }}</span></td>
-                    <td>{{ item.createdAt | date:'MM/dd/yyyy HH:mm' }}</td>
+                    <td>
+                      <span
+                        class="badge"
+                        [ngClass]="getApplicationStatusClass(item.status)"
+                        >{{ item.status }}</span
+                      >
+                    </td>
+                    <td>{{ item.createdAt | date: "MM/dd/yyyy HH:mm" }}</td>
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="4" class="empty-state">No application history</td>
+                    <td colspan="4" class="empty-state">
+                      No application history
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -203,9 +296,22 @@
   <div class="modal-backdrop" (click)="closeFormDialog()">
     <div class="modal-content modal-md" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3 class="modal-title">{{ isEditing() ? 'Edit Applicant' : 'Create Applicant' }}</h3>
+        <h3 class="modal-title">
+          {{ isEditing() ? "Edit Applicant" : "Create Applicant" }}
+        </h3>
         <button class="btn-ghost btn-icon" (click)="closeFormDialog()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
@@ -213,23 +319,43 @@
           <div class="form-error-banner">{{ formError }}</div>
         }
         <div class="form-group">
-          <label class="form-label">Full Name <span class="required">*</span></label>
-          <input type="text" class="form-input" [(ngModel)]="formData.fullName" />
+          <label class="form-label"
+            >Full Name <span class="required">*</span></label
+          >
+          <input
+            type="text"
+            class="form-input"
+            [(ngModel)]="formData.fullName"
+          />
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Email <span class="required">*</span></label>
-            <input type="email" class="form-input" [(ngModel)]="formData.email" />
+            <label class="form-label"
+              >Email <span class="required">*</span></label
+            >
+            <input
+              type="email"
+              class="form-input"
+              [(ngModel)]="formData.email"
+            />
           </div>
           <div class="form-group">
             <label class="form-label">Phone</label>
-            <input type="text" class="form-input" [(ngModel)]="formData.phone" />
+            <input
+              type="text"
+              class="form-input"
+              [(ngModel)]="formData.phone"
+            />
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeFormDialog()">Cancel</button>
-        <button class="btn-primary" (click)="saveApplicant()">{{ isEditing() ? 'Save Changes' : 'Create Applicant' }}</button>
+        <button class="btn-secondary" (click)="closeFormDialog()">
+          Cancel
+        </button>
+        <button class="btn-primary" (click)="saveApplicant()">
+          {{ isEditing() ? "Save Changes" : "Create Applicant" }}
+        </button>
       </div>
     </div>
   </div>

@@ -1,28 +1,36 @@
+import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity('applicants')
+@Index('UQ_applicant_email', ['email'], { unique: true })
 export class Applicant {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-  @Column('varchar', { nullable: false })
+  @Column({ unique: true, nullable: true })
+  code!: string;
+
+  @Column()
   fullName!: string;
 
-  @Column('varchar', { unique: true, nullable: true })
+  @Column()
   email!: string;
 
-  @Column('varchar', { nullable: false })
+  @Column({ nullable: true })
   phone!: string;
 
   @Column({
     type: 'enum',
-    enum: ['OpenToWork', 'Hired', 'Banned'],
-    default: 'OpenToWork',
+    enum: ApplicantStatus,
+    default: ApplicantStatus.NOT_IN_PROCESS,
   })
   status!: string;
 
@@ -31,4 +39,12 @@ export class Applicant {
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  normalize() {
+    if (this.email) {
+      this.email = this.email.trim();
+    }
+  }
 }

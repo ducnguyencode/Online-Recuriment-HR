@@ -1,7 +1,8 @@
 export enum ApplicationStatus {
-  APPLIED = 'Applied',
+  PENDING = 'Pending',
   SCREENING = 'Screening',
-  INTERVIEWING = 'Interviewing',
-  HIRED = 'Hired',
+  INTERVIEW_SCHEDULED = 'Interview Scheduled',
+  SELECTED = 'Selected',
   REJECTED = 'Rejected',
+  NOT_REQUIRED = 'Not Required',
 }

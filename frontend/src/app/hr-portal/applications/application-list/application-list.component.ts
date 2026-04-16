@@ -5,11 +5,32 @@ import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 import { ApplicantService } from '../../../core/services/applicant.service';
 import { ApplicationService } from '../../../core/services/application.service';
-import { InterviewService, ScheduleInterviewDto } from '../../../core/services/interview.service';
+import {
+  InterviewService,
+  ScheduleInterviewDto,
+} from '../../../core/services/interview.service';
 import { VacancyService } from '../../../core/services/vacancy.service';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
-import { Applicant, Application, Employee, Vacancy, canAttachToVacancy, canAttachVacancyToApplicant, formatDisplayId } from '../../../core/models';
+import {
+  Applicant,
+  Application,
+  Employee,
+  Vacancy,
+  canAttachToVacancy,
+  canAttachVacancyToApplicant,
+  formatDisplayId,
+} from '../../../core/models';
+import { environment } from '../../../../environments/environment';
+
+enum ApplicationStatus {
+  PENDING = 'Pending',
+  SCREENING = 'Screening',
+  INTERVIEW_SCHEDULED = 'Interview Scheduled',
+  SELECTED = 'Selected',
+  REJECTED = 'Rejected',
+  NOT_REQUIRED = 'Not Required',
+}
 
 @Component({
   selector: 'app-LApplication-LList',
@@ -19,6 +40,7 @@ import { Applicant, Application, Employee, Vacancy, canAttachToVacancy, canAttac
   styleUrl: './application-list.component.scss',
 })
 export class ApplicationListComponent implements OnInit {
+  applicationStatus = Object.values(ApplicationStatus);
   applications = signal<Application[]>([]);
   vacancies = signal<Vacancy[]>([]);
   applicants = signal<Applicant[]>([]);
@@ -51,7 +73,12 @@ export class ApplicationListComponent implements OnInit {
     platform: 'Google Meet' as 'Google Meet' | 'Zoom' | 'On-site',
   };
   interviewError = '';
-  availabilityPreview = signal<Record<string, { availableDate: string; startTime: string; endTime: string }[]>>({});
+  availabilityPreview = signal<
+    Record<
+      string,
+      { availableDate: string; startTime: string; endTime: string }[]
+    >
+  >({});
 
   showAttachDialog = signal(false);
   attachData = { applicantId: '', vacancyId: '', cvId: '' };
@@ -74,78 +101,94 @@ export class ApplicationListComponent implements OnInit {
 
   loadApplicants() {
     this.applicantService.getAll({ page: 1, limit: 100 }).subscribe({
-      next: res => {
+      next: (res) => {
         const items = (res.data as any)?.items ?? res.data ?? [];
         this.applicants.set(items);
       },
       error: () => {
         this.applicants.set(this.mockData.getApplicants());
-      }
+      },
     });
   }
 
   loadVacancies() {
-    this.vacancyService.getAll({ status: 'Open' }).subscribe({
-      next: res => {
+    this.vacancyService.getAll({ status: 'Opened' }).subscribe({
+      next: (res) => {
         const items = (res.data as any)?.items ?? res.data ?? [];
         this.vacancies.set(items);
       },
       error: () => {
-        const raw = this.mockData.getVacancies({ status: 'Open' });
-        this.vacancies.set(raw.map(v => ({
-          ...v,
-          id: String(v.id),
-          departmentId: String(v.departmentId),
-          ownedByEmployeeId: String(v.ownedByEmployeeId),
-          numberOfOpenings: (v as any).openings ?? v.numberOfOpenings ?? 1,
-          closingDate: (v as any).deadline ?? v.closingDate ?? '',
-        })) as unknown as Vacancy[]);
-      }
+        const raw = this.mockData.getVacancies({ status: 'Opened' });
+        this.vacancies.set(
+          raw.map((v) => ({
+            ...v,
+            id: String(v.id),
+            departmentId: String(v.departmentId),
+            ownedByEmployeeId: String(v.ownedByEmployeeId),
+            numberOfOpenings: (v as any).openings ?? v.numberOfOpenings ?? 1,
+            closingDate: (v as any).deadline ?? v.closingDate ?? '',
+          })) as unknown as Vacancy[],
+        );
+      },
     });
   }
 
   loadApplications() {
     this.loading.set(true);
-    this.applicationService.getAll({
-      status: this.filterStatus || undefined,
-      vacancyId: this.selectedVacancyId || undefined,
-    }).subscribe({
-      next: res => {
-        const items: Application[] = (res.data as any)?.items ?? [];
-        this.applications.set(items);
-        this.loading.set(false);
-      },
-      error: () => {
-        const raw = this.mockData.getApplications({
-          ...(this.filterStatus ? { status: this.filterStatus as any } : {}),
-          ...(this.selectedVacancyId ? { vacancyId: this.selectedVacancyId } : {}),
-        });
-        const items = raw.map(a => ({
-          ...a,
-          id: String(a.id),
-          applicantId: String(a.applicantId),
-          vacancyId: String(a.vacancyId),
-        })) as unknown as Application[];
-        this.applications.set(items);
-        this.loading.set(false);
-      }
-    });
+    this.applicationService
+      .getAll({
+        status: this.filterStatus || undefined,
+        vacancyId: this.selectedVacancyId || undefined,
+        search: this.searchQuery || undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          const items: Application[] = (res.data as any)?.items ?? [];
+          this.applications.set(items);
+          this.loading.set(false);
+        },
+        error: () => {
+          const raw = this.mockData.getApplications({
+            ...(this.filterStatus ? { status: this.filterStatus as any } : {}),
+            ...(this.selectedVacancyId
+              ? { vacancyId: this.selectedVacancyId }
+              : {}),
+          });
+          const items = raw.map((a) => ({
+            ...a,
+            id: String(a.id),
+            applicantId: String(a.applicantId),
+            vacancyId: String(a.vacancyId),
+          })) as unknown as Application[];
+          this.applications.set(items);
+          this.loading.set(false);
+        },
+      });
   }
 
   filteredApplications(): Application[] {
     const query = this.searchQuery.trim().toLowerCase();
     if (!query) return this.applications();
-    return this.applications().filter(app => {
+    return this.applications().filter((app) => {
       const values = [
-        app.id, app.applicantId, app.vacancyId,
-        app.applicant?.fullName, app.applicant?.email, app.vacancy?.title,
+        app.id,
+        app.applicantId,
+        app.vacancyId,
+        app.applicant?.fullName,
+        app.applicant?.email,
+        app.vacancy?.title,
       ];
-      return values.some(value => (value ?? '').toLowerCase().includes(query));
+      return values.some((value) =>
+        (value ?? '').toLowerCase().includes(query),
+      );
     });
   }
 
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredApplications().length / this.pageSize));
+    return Math.max(
+      1,
+      Math.ceil(this.filteredApplications().length / this.pageSize),
+    );
   }
 
   pagedApplications(): Application[] {
@@ -189,12 +232,16 @@ export class ApplicationListComponent implements OnInit {
 
   onAttachSearch() {
     const q = this.attachSearchQuery.trim().toLowerCase();
-    if (!q) { this.attachSearchResults.set([]); return; }
-    const all = this.applicants().filter(a =>
-      canAttachVacancyToApplicant(a.status) &&
-      (a.fullName.toLowerCase().includes(q) ||
-       a.email.toLowerCase().includes(q) ||
-       String(a.id).toLowerCase().includes(q))
+    if (!q) {
+      this.attachSearchResults.set([]);
+      return;
+    }
+    const all = this.applicants().filter(
+      (a) =>
+        canAttachVacancyToApplicant(a.status) &&
+        (a.fullName.toLowerCase().includes(q) ||
+          a.email.toLowerCase().includes(q) ||
+          String(a.id).toLowerCase().includes(q)),
     );
     this.attachSearchResults.set(all.slice(0, 10));
   }
@@ -215,15 +262,18 @@ export class ApplicationListComponent implements OnInit {
 
   saveAttachApplication() {
     const { applicantId, vacancyId, cvId } = this.attachData;
-    const applicant = this.applicants().find(item => item.id === applicantId);
-    const vacancy = this.vacancies().find(item => item.id === vacancyId) ?? this.mockData.getVacancyById(vacancyId);
+    const applicant = this.applicants().find((item) => item.id === applicantId);
+    const vacancy =
+      this.vacancies().find((item) => item.id === vacancyId) ??
+      this.mockData.getVacancyById(vacancyId);
 
     if (!applicantId || !vacancyId) {
       this.attachError = 'Applicant and vacancy are required.';
       return;
     }
     if (applicant && !canAttachVacancyToApplicant(applicant.status)) {
-      this.attachError = 'This applicant cannot be attached because the status is Hired or Banned.';
+      this.attachError =
+        'This applicant cannot be attached because the status is Hired or Banned.';
       return;
     }
     if (vacancy && !canAttachToVacancy(vacancy.status)) {
@@ -231,17 +281,24 @@ export class ApplicationListComponent implements OnInit {
       return;
     }
 
-    this.applicationService.create({ applicantId, vacancyId, cvId: cvId || undefined }).subscribe({
-      next: () => {
-        this.closeAttachDialog();
-        this.loadApplications();
-      },
-      error: () => {
-        this.mockData.attachApplicantToVacancy({ applicantId, vacancyId, cvId: cvId || undefined });
-        this.closeAttachDialog();
-        this.loadApplications();
-      }
-    });
+    this.applicationService
+      .create({ applicantId, vacancyId, cvId: cvId || undefined })
+      .subscribe({
+        next: () => {
+          this.closeAttachDialog();
+          this.loadApplications();
+        },
+        error: (err) => {
+          this.attachError = err.error.message;
+          // this.mockData.attachApplicantToVacancy({
+          //   applicantId,
+          //   vacancyId,
+          //   cvId: cvId || undefined,
+          // });
+          // this.closeAttachDialog();
+          // this.loadApplications();
+        },
+      });
   }
 
   openCVDetail(app: Application) {
@@ -259,7 +316,9 @@ export class ApplicationListComponent implements OnInit {
   }
 
   availableApplicants(): Applicant[] {
-    return this.applicants().filter(item => canAttachVacancyToApplicant(item.status));
+    return this.applicants().filter((item) =>
+      canAttachVacancyToApplicant(item.status),
+    );
   }
 
   openInterviewDialog(app: Application, event: Event) {
@@ -278,7 +337,10 @@ export class ApplicationListComponent implements OnInit {
     const departmentId = app.vacancy?.departmentId ?? '';
     if (departmentId) {
       this.employeeService.getInterviewersByDepartment(departmentId).subscribe({
-        next: res => this.availableInterviewers.set(Array.isArray(res.data) ? res.data : []),
+        next: (res) =>
+          this.availableInterviewers.set(
+            Array.isArray(res.data) ? res.data : [],
+          ),
         error: () => this.availableInterviewers.set(this.getMockInterviewers()),
       });
     } else {
@@ -315,42 +377,65 @@ export class ApplicationListComponent implements OnInit {
       return;
     }
 
-    const requests = this.selectedPanelIds.map(employeeId =>
-      this.interviewService.getAvailability({
-        employeeId,
-        startDate: this.interviewData.date,
-        endDate: this.interviewData.date,
-      }).pipe(
-        catchError(() => of({ data: this.mockData.getAvailability(employeeId, this.interviewData.date, this.interviewData.date) } as any))
-      )
+    const requests = this.selectedPanelIds.map((employeeId) =>
+      this.interviewService
+        .getAvailability({
+          employeeId,
+          startDate: this.interviewData.date,
+          endDate: this.interviewData.date,
+        })
+        .pipe(
+          catchError(() =>
+            of({
+              data: this.mockData.getAvailability(
+                employeeId,
+                this.interviewData.date,
+                this.interviewData.date,
+              ),
+            } as any),
+          ),
+        ),
     );
 
-    forkJoin(requests).subscribe(results => {
-      const preview: Record<string, { availableDate: string; startTime: string; endTime: string }[]> = {};
+    forkJoin(requests).subscribe((results) => {
+      const preview: Record<
+        string,
+        { availableDate: string; startTime: string; endTime: string }[]
+      > = {};
       results.forEach((result, index) => {
-        preview[this.selectedPanelIds[index]] = (result.data ?? []).map((slot: any) => ({
-          availableDate: slot.availableDate,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-        }));
+        preview[this.selectedPanelIds[index]] = (result.data ?? []).map(
+          (slot: any) => ({
+            availableDate: slot.availableDate,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          }),
+        );
       });
       this.availabilityPreview.set(preview);
     });
   }
 
   getEmployeeName(employeeId: string): string {
-    return this.availableInterviewers().find(item => item.id === employeeId)?.fullName ?? employeeId;
+    return (
+      this.availableInterviewers().find((item) => item.id === employeeId)
+        ?.fullName ?? employeeId
+    );
   }
 
   hasValidAvailability(): boolean {
-    return this.selectedPanelIds.every(employeeId => {
+    return this.selectedPanelIds.every((employeeId) => {
       const slots = this.availabilityPreview()[employeeId] ?? [];
-      return slots.some(slot => this.interviewData.startTime >= slot.startTime && this.interviewData.endTime <= slot.endTime);
+      return slots.some(
+        (slot) =>
+          this.interviewData.startTime >= slot.startTime &&
+          this.interviewData.endTime <= slot.endTime,
+      );
     });
   }
 
   saveInterview() {
-    const { applicationId, date, startTime, endTime, platform } = this.interviewData;
+    const { applicationId, date, startTime, endTime, platform } =
+      this.interviewData;
 
     if (!date || !startTime || !endTime) {
       this.interviewError = 'Date, start time and end time are required.';
@@ -369,7 +454,12 @@ export class ApplicationListComponent implements OnInit {
       return;
     }
 
-    const conflicts = this.mockData.getInterviewerConflicts(this.selectedPanelIds, date, startTime, endTime);
+    const conflicts = this.mockData.getInterviewerConflicts(
+      this.selectedPanelIds,
+      date,
+      startTime,
+      endTime,
+    );
     if (conflicts.length > 0) {
       this.interviewError = `Conflict: ${conflicts.join(', ')} already has an interview at this time.`;
       return;
@@ -377,9 +467,11 @@ export class ApplicationListComponent implements OnInit {
 
     const dto: ScheduleInterviewDto = {
       applicationId,
-      panel: this.selectedPanelIds.map(id => ({
+      panel: this.selectedPanelIds.map((id) => ({
         employeeId: id,
-        role: this.availableInterviewers().find(emp => emp.id === id)?.position ?? 'Interviewer',
+        role:
+          this.availableInterviewers().find((emp) => emp.id === id)?.position ??
+          'Interviewer',
       })),
       interviewDate: date,
       startTime,
@@ -393,22 +485,32 @@ export class ApplicationListComponent implements OnInit {
         this.loadApplications();
       },
       error: () => {
-        const duration = (new Date(`2000-01-01T${endTime}`).getTime() - new Date(`2000-01-01T${startTime}`).getTime()) / 60000;
-        this.mockData.addInterview({ applicationId, date, time: startTime, duration, platform, interviewers: this.selectedPanelIds });
+        const duration =
+          (new Date(`2000-01-01T${endTime}`).getTime() -
+            new Date(`2000-01-01T${startTime}`).getTime()) /
+          60000;
+        this.mockData.addInterview({
+          applicationId,
+          date,
+          time: startTime,
+          duration,
+          platform,
+          interviewers: this.selectedPanelIds,
+        });
         this.closeInterviewDialog();
         this.loadApplications();
-      }
+      },
     });
   }
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
-      'Pending': 'badge-neutral',
-      'Screening': 'badge-warning',
-      'Interview Scheduled': 'badge-info',
-      'Selected': 'badge-success',
-      'Rejected': 'badge-danger',
-      'Not Required': 'badge-neutral',
+      [ApplicationStatus.PENDING]: 'badge-neutral',
+      [ApplicationStatus.SCREENING]: 'badge-warning',
+      [ApplicationStatus.INTERVIEW_SCHEDULED]: 'badge-info',
+      [ApplicationStatus.SELECTED]: 'badge-success',
+      [ApplicationStatus.REJECTED]: 'badge-danger',
+      [ApplicationStatus.NOT_REQUIRED]: 'badge-neutral',
     };
     return map[status] ?? 'badge-neutral';
   }
@@ -421,7 +523,12 @@ export class ApplicationListComponent implements OnInit {
   }
 
   getInitials(name: string) {
-    return name.split(' ').map(part => part.charAt(0)).slice(-2).join('').toUpperCase();
+    return name
+      .split(' ')
+      .map((part) => part.charAt(0))
+      .slice(-2)
+      .join('')
+      .toUpperCase();
   }
 
   applicantDisplayId(id?: string) {
@@ -438,8 +545,27 @@ export class ApplicationListComponent implements OnInit {
 
   private getMockInterviewers(): Employee[] {
     return [
-      { id: 'emp-uuid-001', fullName: 'Nguyen Van An', email: 'an@abc.com', departmentId: 'dept-1', position: 'Tech Lead', role: 'Interviewer' },
-      { id: 'emp-uuid-003', fullName: 'Le Van Cuong', email: 'cuong@abc.com', departmentId: 'dept-1', position: 'Senior Developer', role: 'Interviewer' },
+      {
+        id: 'emp-uuid-001',
+        fullName: 'Nguyen Van An',
+        email: 'an@abc.com',
+        departmentId: 'dept-1',
+        position: 'Tech Lead',
+        role: 'Interviewer',
+      },
+      {
+        id: 'emp-uuid-003',
+        fullName: 'Le Van Cuong',
+        email: 'cuong@abc.com',
+        departmentId: 'dept-1',
+        position: 'Senior Developer',
+        role: 'Interviewer',
+      },
     ];
+  }
+
+  viewSelectedApplicationCV() {
+    const fileName = this.selectedApplication()?.cv?.fileUrl;
+    window.open(`${environment.baseUrl}/uploads/${fileName}`, '_blank');
   }
 }
