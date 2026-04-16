@@ -16,22 +16,52 @@ import { ApplicantController } from './controller/applicant.controller';
 import { CvController } from './controller/cv.controller';
 import { ApplicationController } from './controller/application.controller';
 import { AiService } from './services/ai.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { NotificationGateway } from './gateways/notification.gateway';
+import { BullModule } from '@nestjs/bull';
+import { EmailQueueService } from './services/email-queue.service';
+import { EmailProcessor } from './processors/email.processor';
+import { DevToolsController } from './controller/dev-tools.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: '1Changchang@',
-      database: 'online_recruitment',
-      autoLoadEntities: true,
-      synchronize: true,
+
+    EventEmitterModule.forRoot(),
+
+    // Kết nối tới Cỗ máy Redis trong Docker của bạn
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        redis: {
+          host: configService.get('REDIS_HOST'),
+          port: configService.get('REDIS_PORT'),
+        },
+      }),
+    }),
+
+    // Khởi tạo Bảng công việc
+    BullModule.registerQueue({
+      name: 'email-queue',
+    }),
+
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
+        autoLoadEntities: true,
+        synchronize: true, // Lưu ý: Tắt khi lên môi trường thực tế (Production)
+      }),
     }),
     TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV]),
   ],
@@ -41,6 +71,7 @@ import { ConfigModule } from '@nestjs/config';
     ApplicantController,
     CvController,
     ApplicationController,
+    DevToolsController,
   ],
   providers: [
     VacanciesService,
@@ -49,6 +80,9 @@ import { ConfigModule } from '@nestjs/config';
     ApplicantService,
     CvService,
     AiService,
+    NotificationGateway,
+    EmailQueueService,
+    EmailProcessor,
   ],
 })
-export class AppModule {}
+export class AppModule { }

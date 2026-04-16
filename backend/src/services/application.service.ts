@@ -5,6 +5,7 @@ import { ApplicationCreateDto } from 'src/dto/application.create.dto';
 import { Repository } from 'typeorm';
 import { AiService } from './ai.service';
 import { ApplicationStatus } from 'src/enum/application-status.enum';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ApplicationService {
@@ -12,7 +13,8 @@ export class ApplicationService {
     @InjectRepository(Application)
     private applicationsTable: Repository<Application>,
     private aiService: AiService,
-  ) {}
+    private eventEmitter: EventEmitter2,
+  ) { }
 
   findAll(): Promise<Application[]> {
     return this.applicationsTable.find({
@@ -51,6 +53,23 @@ export class ApplicationService {
     } catch (err) {
       console.log(err);
     }
+
+    // 1. Phát sự kiện Real-time cho NotificationGateway
+    this.eventEmitter.emit('notification.send', {
+      notificationId: `notif-${application.id}`,
+      type: 'SUCCESS',
+      message: `Ứng viên ${applicationData.applicant.fullName} vừa nộp CV vào vị trí ${applicationData.vacancy.title}`,
+      linkUrl: `/hr-portal/applications/${application.id}`,
+      createdAt: new Date().toISOString()
+    });
+
+    // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
+    this.eventEmitter.emit('application.submitted', {
+      applicationId: application.id,
+      candidateEmail: applicationData.applicant.email,
+      candidateName: applicationData.applicant.fullName,
+      vacancyTitle: applicationData.vacancy.title
+    });
 
     return application;
   }
