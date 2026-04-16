@@ -68,7 +68,7 @@ export class AuthService {
       role: account.role,
     });
 
-    return this.buildAuthResponse(account);
+    return this.buildAuthResponse(account.id, 'Register employee successfully');
   }
 
   async registerApplicant(payload: RegisterApplicantDto) {
@@ -101,7 +101,7 @@ export class AuthService {
       applicantId: applicant.id,
     });
 
-    return this.buildAuthResponse(account);
+    return this.buildAuthResponse(account.id, 'Register applicant successfully');
   }
 
   async login(payload: LoginDto, request: Request) {
@@ -119,14 +119,27 @@ export class AuthService {
     await this.writeLoginHistory(account.id, true, request, null);
     await this.writeActivity(account.id, 'LOGIN', null);
 
-    return this.buildAuthResponse(account);
+    return this.buildAuthResponse(account.id, 'Login successfully');
   }
 
   getProfile(user: AuthUser): AuthUser {
     return user;
   }
 
-  private async buildAuthResponse(account: UserAccount) {
+  private async buildAuthResponse(accountId: string, message: string) {
+    const account = await this.userAccountRepository.findOne({
+      where: { id: accountId },
+      relations: {
+        employee: true,
+        applicant: true,
+      },
+    });
+
+    if (!account) {
+      throw new UnauthorizedException('Account not found');
+    }
+
+    const fullName = account.employee?.fullName ?? account.applicant?.fullName ?? account.email;
     const tokenPayload = {
       sub: account.id,
       email: account.email,
@@ -136,8 +149,20 @@ export class AuthService {
     };
 
     return {
-      accessToken: await this.jwtService.signAsync(tokenPayload),
-      user: tokenPayload,
+      statusCode: 200,
+      message,
+      data: {
+        token: await this.jwtService.signAsync(tokenPayload),
+        user: {
+          id: account.id,
+          email: account.email,
+          fullName,
+          role: account.role,
+          employeeId: account.employeeId ?? undefined,
+          applicantId: account.applicantId ?? undefined,
+          isActive: account.isActive,
+        },
+      },
     };
   }
 

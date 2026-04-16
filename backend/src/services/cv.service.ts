@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import path from 'path';
@@ -32,7 +30,6 @@ export class CvService {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      // Save file
       const filePath = path.join(uploadDir, fileName);
       fs.writeFileSync(filePath, file.buffer);
 

@@ -1,16 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Application } from 'src/entities/application.entity';
 import { ApplicationCreateDto } from 'src/dto/application.create.dto';
 import { Repository } from 'typeorm';
 import { AiService } from './ai.service';
 import { ApplicationStatus } from 'src/enum/application-status.enum';
+import { CV } from 'src/entities/cv.entity';
 
 @Injectable()
 export class ApplicationService {
   constructor(
     @InjectRepository(Application)
     private applicationsTable: Repository<Application>,
+    @InjectRepository(CV)
+    private cvsTable: Repository<CV>,
     private aiService: AiService,
   ) {}
 
@@ -28,17 +31,20 @@ export class ApplicationService {
   }
 
   async create(data: ApplicationCreateDto) {
-    let application = this.applicationsTable.create({
-      ...data,
+    const cvId = data.cvId ?? await this.resolveCvId(data.applicantId);
+
+    const application = this.applicationsTable.create({
       applicant: { id: data.applicantId },
       vacancy: { id: data.vacancyId },
-      cv: { id: data.cvId },
+      cv: { id: cvId },
+      ...(data.status ? { status: data.status } : {}),
+      ...(data.hrNotes ? { hrNotes: data.hrNotes } : {}),
     });
 
-    application = await this.applicationsTable.save(application);
+    const savedApplication = await this.applicationsTable.save(application);
 
     // AI preview
-    const applicationData = await this.findById(application.id);
+    const applicationData = await this.findById(savedApplication.id);
     try {
       const aiResponse = await this.aiService.reviewCv(
         applicationData.cv.fileUrl,
@@ -46,18 +52,32 @@ export class ApplicationService {
       );
       if (aiResponse) {
         application.aiPrivew = aiResponse;
-        await this.applicationsTable.save(application);
+        await this.applicationsTable.save(savedApplication);
       }
     } catch (err) {
       console.log(err);
     }
 
-    return application;
+    return savedApplication;
   }
 
   async changeStatus(id: string, status: ApplicationStatus) {
     const application = await this.findById(id);
     application.status = status;
     return this.applicationsTable.save(application);
+  }
+
+  private async resolveCvId(applicantId: string): Promise<string> {
+    const cv = await this.cvsTable.findOne({
+      where: { applicantId },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!cv) {
+      throw new BadRequestException(
+        `CV not found for applicantId=${applicantId}`,
+      );
+    }
+    return cv.id;
   }
 }
