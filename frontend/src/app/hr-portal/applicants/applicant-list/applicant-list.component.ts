@@ -151,13 +151,15 @@ export class ApplicantListComponent implements OnInit {
             this.closeFormDialog();
             this.loadApplicants();
           },
-          error: () => {
-            this.mockData.updateApplicant(
-              this.selectedApplicant()!.id,
-              this.formData as Partial<Applicant>,
-            );
-            this.closeFormDialog();
-            this.loadApplicants();
+          error: (err) => {
+            this.formError = err.error.message;
+
+            // this.mockData.updateApplicant(
+            //   this.selectedApplicant()!.id,
+            //   this.formData as Partial<Applicant>,
+            // );
+            // this.closeFormDialog();
+            // this.loadApplicants();
           },
         });
       return;

@@ -17,6 +17,7 @@ import { CvController } from './controller/cv.controller';
 import { ApplicationController } from './controller/application.controller';
 import { AiService } from './services/ai.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CustomValidator } from './helper/validator/custom.validator';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     ApplicantService,
     CvService,
     AiService,
+    CustomValidator,
   ],
 })
 export class AppModule {}

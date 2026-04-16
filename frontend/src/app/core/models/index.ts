@@ -88,6 +88,7 @@ export interface Applicant {
   isActive?: boolean;
   createdAt: string; // auto, immutable
   updatedAt: string;
+  applications?: Application[];
 }
 
 export interface CV {

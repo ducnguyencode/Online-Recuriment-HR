@@ -5,13 +5,16 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { TypeOrmExceptionFilter } from './common/typeorm-exception.filter';
 import { HttpExceptionFilter } from './common/http-exception.filter';
+import { CleanInputPipe } from './helper/clean-input-pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useGlobalPipes(
+    new CleanInputPipe(),
     new ValidationPipe({
       transform: true,
       whitelist: true,
+      forbidNonWhitelisted: true,
     }),
   );
   app.enableCors({

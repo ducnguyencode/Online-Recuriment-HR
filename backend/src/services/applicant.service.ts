@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Applicant } from 'src/entities/applicant.entity';
@@ -6,6 +9,7 @@ import { Brackets, Repository } from 'typeorm';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
 import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
+import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
 
 @Injectable()
 export class ApplicantService {
@@ -18,7 +22,14 @@ export class ApplicantService {
   ): Promise<FindResponseDto<Applicant>> {
     const { page, limit, search, status } = request;
 
-    const qb = this.applicantsTable.createQueryBuilder('applicant');
+    const qb = this.applicantsTable
+      .createQueryBuilder('applicant')
+      .leftJoinAndSelect('applicant.applications', 'application')
+      .leftJoinAndSelect('application.vacancy', 'vacancy')
+      .orderBy('applicant.createdAt', 'DESC')
+      .addOrderBy('application.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
     //Filter
     if (search) {
@@ -35,12 +46,6 @@ export class ApplicantService {
     if (status) {
       qb.andWhere('applicant.status = :status', { status: status });
     }
-
-    //Pagination
-    qb.skip((page - 1) * limit).take(limit);
-
-    //Order
-    qb.orderBy('applicant.createdAt', 'DESC');
 
     const [applicants, totalApplicant] = await qb.getManyAndCount();
 
@@ -71,5 +76,16 @@ export class ApplicantService {
     applicant.status = status;
 
     return this.applicantsTable.save(applicant);
+  }
+
+  update(id: number, data: ApplicantUpdateDto) {
+    return this.applicantsTable.manager.transaction(async (manager) => {
+      const applicant = await this.applicantsTable.findOneBy({ id });
+      if (!applicant) {
+        throw new NotFoundException('Applicant not found');
+      }
+      Object.assign(applicant, data);
+      return await manager.save(applicant);
+    });
   }
 }

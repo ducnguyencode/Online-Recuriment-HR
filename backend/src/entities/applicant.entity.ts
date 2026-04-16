@@ -6,8 +6,10 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Application } from './application.entity';
 
 @Entity('applicants')
 @Index('UQ_applicant_email', ['email'], { unique: true })
@@ -17,6 +19,9 @@ export class Applicant {
 
   @Column({ unique: true, nullable: true })
   code!: string;
+
+  @OneToMany(() => Application, (a) => a.applicant)
+  applications!: Application[];
 
   @Column()
   fullName!: string;
@@ -32,7 +37,7 @@ export class Applicant {
     enum: ApplicantStatus,
     default: ApplicantStatus.NOT_IN_PROCESS,
   })
-  status!: string;
+  status!: ApplicantStatus;
 
   @Column('boolean', { default: true })
   isActive!: boolean;

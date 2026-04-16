@@ -113,9 +113,12 @@
                   >{{ applicant.status }}</span
                 >
               </td>
-              <td>{{ getApplicantApplicationsCount(applicant.id) }}</td>
+              <td>{{ applicant.applications?.length || 0 }}</td>
               <td class="latest-vacancy">
-                {{ getLatestVacancyTitle(applicant.id) }}
+                {{
+                  applicant.applications?.[0]?.vacancy?.title ??
+                    "No vacancy attached"
+                }}
               </td>
               <td class="cell-actions" (click)="$event.stopPropagation()">
                 <button
@@ -200,7 +203,9 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Applications Count</span>
-            <span class="detail-value">{{ selectedHistory().length }}</span>
+            <span class="detail-value">{{
+              selectedApplicant()?.applications?.length || 0
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Last Updated</span>
@@ -210,7 +215,7 @@
           </div>
         </div>
 
-        @if (selectedCv()?.parsedDataAi; as ai) {
+        <!-- @if (selectedCv()?.parsedDataAi; as ai) {
           <div class="cv-section">
             <h4 class="section-title">AI Parsed CV</h4>
             <p class="section-text">
@@ -236,7 +241,7 @@
           <div class="no-cv">
             No AI-parsed CV data available for this applicant.
           </div>
-        }
+        } -->
 
         <div class="history-section">
           <h4 class="section-title">Application History</h4>
@@ -251,7 +256,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (item of selectedHistory(); track item.id) {
+                @for (item of selectedApplicant()?.applications; track item.id) {
                   <tr>
                     <td class="mono-id">{{ item.id }}</td>
                     <td>
@@ -260,7 +265,7 @@
                           item.vacancy?.title || "—"
                         }}</span>
                         <span class="muted">{{
-                          vacancyDisplayId(item.vacancyId)
+                          item.vacancy?.code
                         }}</span>
                       </div>
                     </td>

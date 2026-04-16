@@ -6,12 +6,14 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
+import { ApplicantStatusUpdateDto } from 'src/dto/applicant/applicant-status.update.dto';
 import { ApplicantCreateDto } from 'src/dto/applicant/applicant.create.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
+import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
 import { Applicant } from 'src/entities/applicant.entity';
-import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
 import { ApiResponse } from 'src/helper/api-response';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantService } from 'src/services/applicant.service';
@@ -26,8 +28,24 @@ export class ApplicantController {
   ): Promise<ApiResponse<Applicant>> {
     const data = await this.applicantServie.create(applicantCreateDto);
     return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Success create an applicant',
+      data,
+    };
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() applicantUpdateDto: ApplicantUpdateDto,
+  ): Promise<ApiResponse<Applicant>> {
+    const data = await this.applicantServie.update(
+      Number(id),
+      applicantUpdateDto,
+    );
+    return {
       statusCode: HttpStatus.OK,
-      message: 'Success create a applicant',
+      message: 'Success update an applicant',
       data,
     };
   }
@@ -47,9 +65,12 @@ export class ApplicantController {
   @Patch(':id/status')
   async changeStatus(
     @Param('id') id: string,
-    @Body('status') status: ApplicantStatus,
+    @Body() applicantStatusUpdateDto: ApplicantStatusUpdateDto,
   ) {
-    const data = await this.applicantServie.changeStatus(Number(id), status);
+    const data = await this.applicantServie.changeStatus(
+      Number(id),
+      applicantStatusUpdateDto.status,
+    );
     return {
       statusCode: HttpStatus.OK,
       message: 'Success change applicant status',

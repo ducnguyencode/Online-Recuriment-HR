@@ -140,23 +140,28 @@
                 }}</span>
               </td>
               <td>
-                @if (app.aiPreview?.matchScore !== undefined) {
+                @if (app.aiPreview) {
                   <span
                     class="ai-badge"
-                    [ngClass]="getScoreClass(app.aiPreview?.matchScore)"
-                    >{{ app.aiPreview?.matchScore }}%</span
+                    [ngClass]="getScoreClass(app.aiPreview.matchScore)"
+                    >{{ app.aiPreview.matchScore }}%</span
                   >
                 } @else {
-                  <span class="muted">—</span>
+                  <span class="muted">TBA</span>
                 }
               </td>
               <td>
                 <div class="cell-actions">
                   <button
-                    class="btn-secondary btn-sm"
+                    [class]="
+                      (app.cv ? 'btn-primary' : 'btn-secondary') +
+                      ' ' +
+                      'btn-primary btn-sm'
+                    "
+                    [disabled]="!app.cv"
                     (click)="openCVDetail(app)"
                   >
-                    View CV
+                    {{ app.cv ? "View CV" : "No CV" }}
                   </button>
                   @if (canSchedule(app)) {
                     <button
