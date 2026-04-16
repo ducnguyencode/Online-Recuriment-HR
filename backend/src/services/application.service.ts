@@ -95,7 +95,7 @@ export class ApplicationService {
         throw new NotFoundException('Vacancy not found');
       }
 
-    
+
       const cv = await manager.findOne(CV, { where: { id: data.cvId } });
 
       let application = manager.create(Application, {
@@ -121,25 +121,25 @@ export class ApplicationService {
         }
       }
       application = await manager.save(application);
-      
+
       // 1. Phát sự kiện Real-time cho NotificationGateway
-    this.eventEmitter.emit('notification.send', {
-      notificationId: `notif-${application.id}`,
-      type: 'SUCCESS',
-      message: `Ứng viên ${applicationData.applicant.fullName} vừa nộp CV vào vị trí ${applicationData.vacancy.title}`,
-      linkUrl: `/hr-portal/applications/${application.id}`,
-      createdAt: new Date().toISOString()
-    });
+      this.eventEmitter.emit('notification.send', {
+        notificationId: `notif-${application.id}`,
+        type: 'SUCCESS',
+        message: `Ứng viên ${application.applicant.fullName} vừa nộp CV vào vị trí ${application.vacancy.title}`,
+        linkUrl: `/hr-portal/applications/${application.id}`,
+        createdAt: new Date().toISOString()
+      });
 
-    // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
-    this.eventEmitter.emit('application.submitted', {
-      applicationId: application.id,
-      candidateEmail: applicationData.applicant.email,
-      candidateName: applicationData.applicant.fullName,
-      vacancyTitle: applicationData.vacancy.title
-    });
+      // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
+      this.eventEmitter.emit('application.submitted', {
+        applicationId: application.id,
+        candidateEmail: application.applicant.email,
+        candidateName: application.applicant.fullName,
+        vacancyTitle: application.vacancy.title
+      });
 
-    return application;
+      return application;
     });
   }
 
