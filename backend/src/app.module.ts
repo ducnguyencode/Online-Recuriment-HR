@@ -18,6 +18,13 @@ import { ApplicationController } from './controller/application.controller';
 import { AiService } from './services/ai.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CustomValidator } from './helper/validator/custom.validator';
+import { UserService } from './services/user.service';
+import { AuthService } from './services/auth.service';
+import { AuthController } from './controller/auth.controller';
+import { JwtStrategy } from './services/jwt/jwt.strategy';
+import { User } from './entities/user.entity';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -38,7 +45,23 @@ import { CustomValidator } from './helper/validator/custom.validator';
         synchronize: true,
       }),
     }),
-    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV]),
+    TypeOrmModule.forFeature([
+      Vacancy,
+      Department,
+      Application,
+      Applicant,
+      CV,
+      User,
+    ]),
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET') || 'secret',
+        signOptions: { expiresIn: '1d' },
+      }),
+    }),
   ],
   controllers: [
     VacancyController,
@@ -46,6 +69,7 @@ import { CustomValidator } from './helper/validator/custom.validator';
     ApplicantController,
     CvController,
     ApplicationController,
+    AuthController,
   ],
   providers: [
     VacanciesService,
@@ -55,6 +79,9 @@ import { CustomValidator } from './helper/validator/custom.validator';
     CvService,
     AiService,
     CustomValidator,
+    UserService,
+    AuthService,
+    JwtStrategy,
   ],
 })
 export class AppModule {}
