@@ -17,6 +17,12 @@ import { CvController } from './controller/cv.controller';
 import { ApplicationController } from './controller/application.controller';
 import { AiService } from './services/ai.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { NotificationGateway } from './gateways/notification.gateway';
+import { BullModule } from '@nestjs/bull';
+import { EmailQueueService } from './services/email-queue.service';
+import { EmailProcessor } from './processors/email.processor';
+import { DevToolsController } from './controller/dev-tools.controller';
 import { CustomValidator } from './helper/validator/custom.validator';
 
 @Module({
@@ -24,16 +30,36 @@ import { CustomValidator } from './helper/validator/custom.validator';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
+    EventEmitterModule.forRoot(),
+
+    // Kết nối tới Cỗ máy Redis trong Docker của bạn
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        redis: {
+          host: configService.get('REDIS_HOST'),
+          port: configService.get('REDIS_PORT'),
+        },
+      }),
+    }),
+
+    // Khởi tạo Bảng công việc
+    BullModule.registerQueue({
+      name: 'email-queue',
+    }),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get('DB_HOST'),
-        port: configService.get('DB_PORT'),
-        username: configService.get('DB_USERNAME'),
-        password: configService.get('DB_PASSWORD'),
-        database: configService.get('DB_NAME'),
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: true,
       }),
@@ -46,6 +72,7 @@ import { CustomValidator } from './helper/validator/custom.validator';
     ApplicantController,
     CvController,
     ApplicationController,
+    DevToolsController,
   ],
   providers: [
     VacanciesService,
@@ -54,7 +81,10 @@ import { CustomValidator } from './helper/validator/custom.validator';
     ApplicantService,
     CvService,
     AiService,
+    NotificationGateway,
+    EmailQueueService,
+    EmailProcessor,
     CustomValidator,
   ],
 })
-export class AppModule {}
+export class AppModule { }

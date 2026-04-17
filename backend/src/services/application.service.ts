@@ -5,6 +5,7 @@ import { ApplicationCreateDto } from 'src/dto/application/application.create.dto
 import { Brackets, Repository } from 'typeorm';
 import { AiService } from './ai.service';
 import { ApplicationStatus } from 'src/enum/application-status.enum';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Applicant } from 'src/entities/applicant.entity';
 import { Vacancy } from 'src/entities/vacancy.entity';
 import { CV } from 'src/entities/cv.entity';
@@ -147,7 +148,26 @@ export class ApplicationService {
           console.log(err);
         }
       }
-      return manager.save(application);
+      application = await manager.save(application);
+
+      // 1. Phát sự kiện Real-time cho NotificationGateway
+      this.eventEmitter.emit('notification.send', {
+        notificationId: `notif-${application.id}`,
+        type: 'SUCCESS',
+        message: `Ứng viên ${application.applicant.fullName} vừa nộp CV vào vị trí ${application.vacancy.title}`,
+        linkUrl: `/hr-portal/applications/${application.id}`,
+        createdAt: new Date().toISOString()
+      });
+
+      // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
+      this.eventEmitter.emit('application.submitted', {
+        applicationId: application.id,
+        candidateEmail: application.applicant.email,
+        candidateName: application.applicant.fullName,
+        vacancyTitle: application.vacancy.title
+      });
+
+      return application;
     });
   }
 

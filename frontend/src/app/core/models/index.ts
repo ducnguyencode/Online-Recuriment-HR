@@ -1,6 +1,6 @@
 // ==================== ENUMS ====================
 
-export type UserRole = 'HR' | 'Interviewer' | 'Applicant';
+export type UserRole = 'HR' | 'Interviewer' | 'Applicant' | 'Superadmin';
 
 export type VacancyStatus = 'Opened' | 'Suspended' | 'Closed';
 
