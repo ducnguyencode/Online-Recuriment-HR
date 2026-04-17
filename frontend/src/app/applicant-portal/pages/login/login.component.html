@@ -1,63 +1,96 @@
-<div class="min-h-[85vh] flex items-center justify-center bg-gray-50 px-4 py-12 font-sans">
-  <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-2xl border border-gray-100 transform transition-all">
+<div class="min-h-[calc(100vh-64px)] bg-slate-50 flex items-center justify-center p-4 py-12 animate-in fade-in duration-500">
+  <div class="w-full max-w-md bg-white border border-slate-200 rounded-[24px] p-8 shadow-xl shadow-slate-200/50">
 
-    <div class="text-center">
-      <div class="mx-auto h-12 w-12 bg-blue-600 text-white flex items-center justify-center font-extrabold text-2xl rounded-xl shadow-lg shadow-blue-200">HR</div>
-      <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
-        @if (viewMode === 'login') { Đăng nhập }
-        @else if (viewMode === 'register') { Đăng ký ứng viên }
-        @else { Quên mật khẩu? }
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 text-white font-black text-xl rounded-2xl shadow-sm mb-4">
+        HR
+      </div>
+      <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
+        @if (currentView === 'login') { Welcome Back }
+        @if (currentView === 'register') { Create an Account }
+        @if (currentView === 'forgot') { Reset Password }
       </h2>
-      <p class="mt-2 text-sm text-gray-500 italic">
-        @if (viewMode === 'forgot') { Nhập email để nhận link khôi phục mật khẩu }
-        @else { Chào mừng bạn đến với hệ thống tuyển dụng }
+      <p class="text-sm text-slate-500 mt-2">
+        @if (currentView === 'login') { Enter your details to access your account. }
+        @if (currentView === 'register') { Join us and find your dream job today. }
+        @if (currentView === 'forgot') { We'll send you instructions to reset your password. }
       </p>
     </div>
 
-    <form class="mt-8 space-y-5" (submit)="handleFormSubmit($event)">
-      <div class="space-y-4">
-
-        @if (viewMode === 'register') {
-          <div class="animate-in fade-in slide-in-from-top-2 duration-300">
-            <label class="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Họ và tên</label>
-            <input required type="text" placeholder="Nguyễn Văn A" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-          </div>
-        }
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Địa chỉ Email</label>
-          <input required type="email" placeholder="example@gmail.com" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-        </div>
-
-        @if (viewMode !== 'forgot') {
-          <div class="animate-in fade-in slide-in-from-top-2 duration-300">
-            <label class="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Mật khẩu</label>
-            <input required type="password" placeholder="••••••••" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-          </div>
-        }
+    @if (currentView === 'login') {
+      <div class="flex p-1 mb-8 bg-slate-100 rounded-xl">
+        <button
+          (click)="setRole('applicant')"
+          [class.bg-white]="selectedRole === 'applicant'"
+          [class.text-blue-600]="selectedRole === 'applicant'"
+          [class.shadow-sm]="selectedRole === 'applicant'"
+          [class.text-slate-500]="selectedRole !== 'applicant'"
+          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all">
+          Applicant
+        </button>
+        <button
+          (click)="setRole('hr')"
+          [class.bg-white]="selectedRole === 'hr'"
+          [class.text-blue-600]="selectedRole === 'hr'"
+          [class.shadow-sm]="selectedRole === 'hr'"
+          [class.text-slate-500]="selectedRole !== 'hr'"
+          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all">
+          HR / Employer
+        </button>
       </div>
+    }
 
-      @if (viewMode === 'login') {
-        <div class="flex justify-end">
-          <a routerLink="/forgot-password" (click)="viewMode = 'forgot'" class="text-sm font-bold text-blue-600 hover:text-blue-500 transition-colors">Quên mật khẩu?</a>
+    <form class="space-y-4" (submit)="$event.preventDefault()">
+
+      @if (currentView === 'register') {
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Full Name</label>
+          <input type="text" placeholder="Nguyen Van A" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
         </div>
       }
 
-      <button type="submit" class="w-full py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-md active:scale-[0.98]">
-        @if (viewMode === 'login') { ĐĂNG NHẬP }
-        @else if (viewMode === 'register') { TẠO TÀI KHOẢN }
-        @else { GỬI YÊU CẦU }
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
+        <input type="email" placeholder="you@example.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
+      </div>
+
+      @if (currentView !== 'forgot') {
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
+            @if (currentView === 'login') {
+              <a href="javascript:void(0)" (click)="switchView('forgot')" class="text-xs font-bold text-blue-500 hover:text-blue-700 transition">Forgot?</a>
+            }
+          </div>
+          <input type="password" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
+        </div>
+      }
+
+      @if (currentView === 'register') {
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Confirm Password</label>
+          <input type="password" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
+        </div>
+      }
+
+      <button class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg">
+        @if (currentView === 'login') { Sign In as {{ selectedRole === 'applicant' ? 'Applicant' : 'HR' }} }
+        @if (currentView === 'register') { Create Account }
+        @if (currentView === 'forgot') { Send Reset Link }
       </button>
 
-      <div class="text-center pt-4 border-t border-gray-100">
-        <p class="text-sm text-gray-600">
-          @if (viewMode === 'login') {
-            Chưa có tài khoản? <a routerLink="/register" (click)="viewMode = 'register'" class="text-blue-600 font-bold hover:underline">Đăng ký ngay</a>
-          } @else {
-            Đã nhớ mật khẩu? <a routerLink="/login" (click)="viewMode = 'login'" class="text-blue-600 font-bold hover:underline">Quay lại đăng nhập</a>
-          }
-        </p>
-      </div>
     </form>
+
+    <div class="mt-8 text-center text-sm font-medium text-slate-500">
+      @if (currentView === 'login') {
+        Don't have an account?
+        <a href="javascript:void(0)" (click)="switchView('register')" class="text-blue-600 font-bold hover:underline">Sign up now</a>
+      }
+      @if (currentView === 'register' || currentView === 'forgot') {
+        Back to
+        <a href="javascript:void(0)" (click)="switchView('login')" class="text-blue-600 font-bold hover:underline">Sign in</a>
+      }
+    </div>
+
   </div>
 </div>
