@@ -1,5 +1,7 @@
 import { Controller, Post } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { USER_ROLES } from 'src/auth/role.constants';
+import { Roles } from 'src/auth/roles.decorator';
 
 @Controller('dev-tools')
 export class DevToolsController {
@@ -7,6 +9,7 @@ export class DevToolsController {
     constructor(private eventEmitter: EventEmitter2) { }
 
     @Post('trigger-notification')
+    @Roles(USER_ROLES.SUPERADMIN, USER_ROLES.HR, USER_ROLES.ADMIN)
     triggerNotification() {
         console.log('[DevTools] Đang tạo dữ liệu giả lập để test...');
 

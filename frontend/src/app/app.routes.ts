@@ -22,9 +22,11 @@ export const routes: Routes = [
     children: [
       { path: 'careers', component: CareersComponent },
       { path: 'applicant', component: DashboardComponent },
-      { path: 'login', component: LoginComponent },
-      { path: 'register', component: LoginComponent },
-      { path: 'forgot-password', component: LoginComponent },
+      { path: 'login', component: LoginComponent, data: { portal: 'public' } },
+      { path: 'staff-login', component: LoginComponent, data: { portal: 'staff' } },
+      { path: 'register', component: LoginComponent, data: { portal: 'public' } },
+      { path: 'forgot-password', component: LoginComponent, data: { portal: 'public' } },
+      { path: 'reset-password', component: LoginComponent, data: { portal: 'public' } },
       { path: '', redirectTo: 'careers', pathMatch: 'full' }
     ]
   },

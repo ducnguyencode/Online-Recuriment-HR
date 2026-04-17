@@ -51,7 +51,7 @@ export interface Employee {
 }
 
 export interface UserAccount {
-  id: string; // UUID
+  id: string | number;
   email: string;
   fullName: string;
   role: UserRole;
@@ -59,6 +59,8 @@ export interface UserAccount {
   applicantId?: string;
   avatarUrl?: string;
   isActive: boolean;
+  departmentId?: number | null;
+  mustChangePassword?: boolean;
 }
 
 export interface Vacancy {
@@ -200,12 +202,35 @@ export interface LoginHistory {
 // ==================== API RESPONSES ====================
 
 export interface LoginResponse {
-  statusCode: number;
-  message: string;
-  data: {
-    token: string;
-    user: UserAccount;
+  accessToken: string;
+  user: {
+    id: number;
+    fullName: string;
+    email: string;
+    roles: string[];
+    departmentId: number | null;
+    mustChangePassword: boolean;
   };
+}
+
+export interface RegisterInternalUserPayload {
+  fullName: string;
+  email: string;
+  departmentId?: number | null;
+  role: 'HR' | 'INTERVIEWER';
+}
+
+export interface RegisterInternalUserResponse {
+  accessToken: string;
+  user: {
+    id: number;
+    fullName: string;
+    email: string;
+    roles: string[];
+    departmentId: string | null;
+    mustChangePassword: boolean;
+  };
+  message: string;
 }
 
 export interface ApiResponse<T> {

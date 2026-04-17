@@ -8,6 +8,9 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { Public } from 'src/auth/public.decorator';
+import { USER_ROLES } from 'src/auth/role.constants';
+import { Roles } from 'src/auth/roles.decorator';
 import { ApplicantCreateDto } from 'src/dto/applicant/applicant.create.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
 import { Applicant } from 'src/entities/applicant.entity';
@@ -21,6 +24,7 @@ export class ApplicantController {
   constructor(private applicantServie: ApplicantService) {}
 
   @Post('create')
+  @Public()
   async create(
     @Body() applicantCreateDto: ApplicantCreateDto,
   ): Promise<ApiResponse<Applicant>> {
@@ -33,6 +37,12 @@ export class ApplicantController {
   }
 
   @Get()
+  @Roles(
+    USER_ROLES.SUPERADMIN,
+    USER_ROLES.HR,
+    USER_ROLES.ADMIN,
+    USER_ROLES.HIRING_MANAGER,
+  )
   async findAll(
     @Query() query: ApplicantFindDto,
   ): Promise<ApiResponse<FindResponseDto<Applicant>>> {
@@ -45,6 +55,12 @@ export class ApplicantController {
   }
 
   @Patch(':id/status')
+  @Roles(
+    USER_ROLES.SUPERADMIN,
+    USER_ROLES.HR,
+    USER_ROLES.ADMIN,
+    USER_ROLES.HIRING_MANAGER,
+  )
   async changeStatus(
     @Param('id') id: string,
     @Body('status') status: ApplicantStatus,

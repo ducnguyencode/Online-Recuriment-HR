@@ -23,6 +23,11 @@ import { BullModule } from '@nestjs/bull';
 import { EmailQueueService } from './services/email-queue.service';
 import { EmailProcessor } from './processors/email.processor';
 import { DevToolsController } from './controller/dev-tools.controller';
+import { User } from './entities/user.entity';
+import { LoginHistory } from './entities/login-history.entity';
+import { AuthModule } from './auth/auth.module';
+import { UsersController } from './users/users.controller';
+import { UsersService } from './users/users.service';
 
 @Module({
   imports: [
@@ -60,10 +65,11 @@ import { DevToolsController } from './controller/dev-tools.controller';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: true, // Lưu ý: Tắt khi lên môi trường thực tế (Production)
+        synchronize: configService.get<string>('DB_SYNC') === 'true',
       }),
     }),
-    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV]),
+    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV, User, LoginHistory]),
+    AuthModule,
   ],
   controllers: [
     VacancyController,
@@ -72,6 +78,7 @@ import { DevToolsController } from './controller/dev-tools.controller';
     CvController,
     ApplicationController,
     DevToolsController,
+    UsersController,
   ],
   providers: [
     VacanciesService,
@@ -83,6 +90,7 @@ import { DevToolsController } from './controller/dev-tools.controller';
     NotificationGateway,
     EmailQueueService,
     EmailProcessor,
+    UsersService,
   ],
 })
 export class AppModule { }

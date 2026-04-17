@@ -60,11 +60,62 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
         </section>
 
+        @if (auth.isSuperadmin()) {
+          <section class="card panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Create Internal Account</h2>
+                <p class="panel-copy">Superadmin can create HR or Interviewer accounts from inside the portal. The temporary password is sent only through Gmail.</p>
+              </div>
+            </div>
+
+            @if (registerMessage()) {
+              <div class="info-banner info-banner-info">{{ registerMessage() }}</div>
+            }
+
+            @if (registerError()) {
+              <div class="form-error-banner">{{ registerError() }}</div>
+            }
+
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input class="form-input" [(ngModel)]="registerForm.fullName" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Gmail</label>
+                <input class="form-input" [(ngModel)]="registerForm.email" placeholder="example@gmail.com" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Role</label>
+                <select class="form-input" [(ngModel)]="registerForm.role">
+                  <option value="HR">HR</option>
+                  <option value="INTERVIEWER">Interviewer</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Department ID</label>
+              <input class="form-input" type="number" [(ngModel)]="registerForm.departmentId" />
+            </div>
+
+            @if (createdPasswordHash()) {
+              <div class="info-banner info-banner-info">
+                Password hash stored in DB: <code>{{ createdPasswordHash() }}</code>
+              </div>
+            }
+
+            <div class="panel-actions">
+              <button class="btn-primary" (click)="createInternalAccount()">Create Account</button>
+            </div>
+          </section>
+        }
+
         <section class="card panel">
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Change Password</h2>
-              <p class="panel-copy">This frontend mock validates the flow so Dev 1 can connect the real security APIs later.</p>
+              <p class="panel-copy">Update your account password in the real backend flow.</p>
             </div>
           </div>
 
@@ -118,6 +169,9 @@ export class ProfileComponent {
   detailMessage = signal('');
   passwordMessage = signal('');
   passwordError = signal('');
+  registerMessage = signal('');
+  registerError = signal('');
+  createdPasswordHash = signal('');
 
   detailForm = {
     fullName: '',
@@ -128,6 +182,13 @@ export class ProfileComponent {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+  };
+
+  registerForm = {
+    fullName: '',
+    email: '',
+    departmentId: null as number | null,
+    role: 'HR' as 'HR' | 'INTERVIEWER',
   };
 
   constructor(public auth: AuthService) {
@@ -158,10 +219,6 @@ export class ProfileComponent {
       this.passwordError.set('All password fields are required.');
       return;
     }
-    if (this.passwordForm.currentPassword !== '123456') {
-      this.passwordError.set('Current password is incorrect for the mock account.');
-      return;
-    }
     if (this.passwordForm.newPassword.length < 6) {
       this.passwordError.set('New password must be at least 6 characters.');
       return;
@@ -171,8 +228,45 @@ export class ProfileComponent {
       return;
     }
 
-    this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
-    this.passwordMessage.set('Password updated successfully in the mock workflow.');
-    setTimeout(() => this.passwordMessage.set(''), 2500);
+    this.auth.changePassword({
+      currentPassword: this.passwordForm.currentPassword,
+      newPassword: this.passwordForm.newPassword,
+    }).subscribe({
+      next: (response) => {
+        this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
+        this.passwordMessage.set(response.message);
+        setTimeout(() => this.passwordMessage.set(''), 2500);
+      },
+      error: (error) => {
+        this.passwordError.set(error?.error?.message || 'Unable to change password.');
+      },
+    });
+  }
+
+  createInternalAccount() {
+    this.registerError.set('');
+    this.registerMessage.set('');
+    this.createdPasswordHash.set('');
+
+    if (!this.registerForm.fullName || !this.registerForm.email) {
+      this.registerError.set('Full name and Gmail are required.');
+      return;
+    }
+
+    this.auth.registerInternalUser(this.registerForm).subscribe({
+      next: (response) => {
+        this.registerMessage.set(response.message);
+        this.createdPasswordHash.set('Temporary password has been sent in request flow.');
+        this.registerForm = {
+          fullName: '',
+          email: '',
+          departmentId: null,
+          role: 'HR',
+        };
+      },
+      error: (error) => {
+        this.registerError.set(error?.error?.message || 'Unable to create account.');
+      },
+    });
   }
 }

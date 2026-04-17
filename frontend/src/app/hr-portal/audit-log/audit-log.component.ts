@@ -1,7 +1,21 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { MockDataService } from '../../core/services/mock-data.service';
-import { ActivityLog } from '../../core/models';
+import { environment } from '../../../environments/environment';
+
+interface LoginAuditLog {
+  id: string;
+  userId: number;
+  fullName: string;
+  email: string;
+  roles: string[];
+  ipAddress: string | null;
+  userAgent: string | null;
+  isSuccess: boolean;
+  failureReason: string | null;
+  loggedAt: string;
+}
 
 @Component({
   selector: 'app-LAudit-LLog',
@@ -21,27 +35,35 @@ import { ActivityLog } from '../../core/models';
           <thead>
             <tr>
               <th>Time</th>
-              <th>Action</th>
-              <th>Entity</th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>IP</th>
               <th>Details</th>
             </tr>
           </thead>
           <tbody>
             @for (item of logs(); track item.id) {
               <tr>
-                <td class="mono-id">{{ item.createdAt | date:'MM/dd/yyyy HH:mm' }}</td>
-                <td><span class="badge badge-neutral">{{ item.action }}</span></td>
+                <td class="mono-id">{{ item.loggedAt | date:'MM/dd/yyyy HH:mm' }}</td>
                 <td>
                   <div class="entity-stack">
-                    <span>{{ item.entityType }}</span>
-                    <span class="mono-id">{{ item.entityId }}</span>
+                    <span>{{ item.fullName }}</span>
+                    <span class="mono-id">{{ item.email }}</span>
                   </div>
                 </td>
-                <td>{{ item.details || '—' }}</td>
+                <td>{{ item.roles.join(', ') }}</td>
+                <td>
+                  <span class="badge" [ngClass]="item.isSuccess ? 'badge-success' : 'badge-danger'">
+                    {{ item.isSuccess ? 'Success' : 'Failed' }}
+                  </span>
+                </td>
+                <td class="mono-id">{{ item.ipAddress || '—' }}</td>
+                <td>{{ item.failureReason || item.userAgent || '—' }}</td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="4" class="empty-state">
+                <td colspan="6" class="empty-state">
                   <div class="empty-icon">🧾</div>
                   <p>No audit logs available</p>
                 </td>
@@ -57,11 +79,38 @@ import { ActivityLog } from '../../core/models';
   `]
 })
 export class AuditLogComponent implements OnInit {
-  logs = signal<ActivityLog[]>([]);
+  logs = signal<LoginAuditLog[]>([]);
 
-  constructor(private mockData: MockDataService) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly mockData: MockDataService,
+  ) {}
 
   ngOnInit() {
-    this.logs.set(this.mockData.getActivityLogs());
+    this.http
+      .get<{ statusCode: number; message: string; data: LoginAuditLog[] }>(
+        `${environment.apiUrl}/users/auditlogs`,
+      )
+      .subscribe({
+        next: (response) => {
+          this.logs.set(response.data ?? []);
+        },
+        error: () => {
+          // Fallback to local mock if API is unavailable.
+          const fallback = this.mockData.getActivityLogs().map((item) => ({
+            id: item.id,
+            userId: Number(item.userId ?? 0),
+            fullName: item.user?.fullName ?? 'Unknown',
+            email: item.user?.email ?? 'unknown@example.com',
+            roles: item.user?.role ? [item.user.role] : [],
+            ipAddress: item.ipAddress ?? null,
+            userAgent: null,
+            isSuccess: true,
+            failureReason: item.details ?? null,
+            loggedAt: item.createdAt,
+          }));
+          this.logs.set(fallback);
+        },
+      });
   }
 }

@@ -3,15 +3,14 @@ import type { Job } from 'bull';
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
 
-@Processor('email-queue') // Khai báo anh thợ này chuyên xử lý 'email-queue'
+@Processor('email-queue')
 export class EmailProcessor {
     private transporter;
 
     constructor(private configService: ConfigService) {
-        // Cấu hình trạm phát tín hiệu theo chuẩn Brevo SMTP
         this.transporter = nodemailer.createTransport({
-            host: this.configService.get<string>('SMTP_HOST'), // smtp-relay.brevo.com
-            port: this.configService.get<number>('SMTP_PORT'), // 587
+            host: this.configService.get<string>('SMTP_HOST'),
+            port: this.configService.get<number>('SMTP_PORT'),
             secure: false,
             auth: {
                 user: this.configService.get<string>('SMTP_USER'),
@@ -20,15 +19,12 @@ export class EmailProcessor {
         });
     }
 
-    // Nhận việc: Chỉ xử lý tờ note có tiêu đề 'send-thank-you'
     @Process('send-thank-you')
     async handleSendThankYouEmail(job: Job) {
         const { candidateEmail, candidateName, vacancyTitle } = job.data;
 
-        console.log(`[Worker] Tiến hành gửi email cảm ơn cho: ${candidateEmail}...`);
-
         const mailOptions = {
-            from: `"Tuyển dụng Online" <${this.configService.get<string>('SMTP_USER')}>`, // Hoặc email đại diện công ty
+            from: `"Tuyển dụng Online" <${this.configService.get<string>('SMTP_USER')}>`,
             to: candidateEmail,
             subject: `Xác nhận ứng tuyển thành công - Vị trí ${vacancyTitle}`,
             html: `
@@ -42,10 +38,31 @@ export class EmailProcessor {
         </div>
       `,
         };
-
-        // Tiến hành gửi (quá trình này mất khoảng 2-3s nhưng chạy ngầm nên không ảnh hưởng ai)
         await this.transporter.sendMail(mailOptions);
+    }
 
-        console.log(`[Worker] ✅ Đã gửi email THÀNH CÔNG tới: ${candidateEmail}`);
+    @Process('send-account-password')
+    async handleSendAccountPassword(job: Job) {
+        const { email, fullName, password, role } = job.data;
+
+        const mailOptions = {
+            from: `"Tuyển dụng Online" <${this.configService.get<string>('SMTP_USER')}>`,
+            to: email,
+            subject: 'Tai khoan he thong tuyen dung da duoc tao',
+            html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
+          <h2 style="color: #2c3e50;">Chao ${fullName},</h2>
+          <p>Tai khoan ${role} cua ban tren he thong tuyen dung da duoc tao.</p>
+          <p>Email dang nhap: <b>${email}</b></p>
+          <p>Mat khau tam thoi: <b>${password}</b></p>
+          <p style="color: #c0392b;"><b>Luu y:</b> Hay dang nhap va doi mat khau ngay sau lan dang nhap dau tien de dam bao an toan.</p>
+          <br/>
+          <p>Tran trong,</p>
+          <p><b>He thong quan tri</b></p>
+        </div>
+      `,
+        };
+
+        await this.transporter.sendMail(mailOptions);
     }
 }

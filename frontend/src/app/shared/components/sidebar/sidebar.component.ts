@@ -1,15 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { UserAccount } from '../../../core/models';
 
 interface NavItem {
   label: string;
   icon: string;
   route: string;
   hrOnly?: boolean;
-  interviewerVisible?: boolean;
 }
 
 @Component({
@@ -21,7 +19,6 @@ interface NavItem {
 })
 export class SidebarComponent {
   collapsed = signal(false);
-  showRoleMenu = signal(false);
 
   menuItems: NavItem[] = [
     { label: 'Dashboard', icon: 'layout-dashboard', route: '/hr-portal' },
@@ -40,13 +37,7 @@ export class SidebarComponent {
     { label: 'Help', icon: 'circle-help', route: '/hr-portal/help' },
   ];
 
-  readonly devRoles: { role: UserAccount['role']; label: string; email: string }[] = [
-    { role: 'Superadmin', label: 'Superadmin', email: 'admin@abc.com' },
-    { role: 'HR', label: 'HR Staff', email: 'an.nguyen@abc.com' },
-    { role: 'Interviewer', label: 'Interviewer', email: 'cuong.le@abc.com' },
-  ];
-
-  constructor(public auth: AuthService, private router: Router) {}
+  constructor(public auth: AuthService) {}
 
   get visibleMenuItems(): NavItem[] {
     return this.menuItems.filter(item => !item.hrOnly || this.auth.isHR() || this.auth.isSuperadmin());
@@ -58,16 +49,6 @@ export class SidebarComponent {
 
   toggleCollapse() {
     this.collapsed.update(v => !v);
-  }
-
-  toggleRoleMenu() {
-    this.showRoleMenu.update(v => !v);
-  }
-
-  switchRole(role: UserAccount['role']) {
-    this.auth.mockLoginAsRole(role);
-    this.showRoleMenu.set(false);
-    this.router.navigate(['/hr-portal']);
   }
 
   logout() {

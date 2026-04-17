@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router'; // Thêm cái này
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-applicant-layout',
@@ -9,4 +10,10 @@ import { RouterModule } from '@angular/router'; // Thêm cái này
   templateUrl: './applicant-layout.html',
   styleUrls: ['./applicant-layout.scss']
 })
-export class ApplicantLayoutComponent {}
+export class ApplicantLayoutComponent {
+  constructor(public auth: AuthService) {}
+
+  logout() {
+    this.auth.logout();
+  }
+}

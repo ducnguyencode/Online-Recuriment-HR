@@ -5,9 +5,12 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { TypeOrmExceptionFilter } from './common/typeorm-exception.filter';
 import { HttpExceptionFilter } from './common/http-exception.filter';
+import { LoggerMiddleware } from './common/logger.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const httpLogger = new LoggerMiddleware();
+  app.use(httpLogger.use.bind(httpLogger));
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

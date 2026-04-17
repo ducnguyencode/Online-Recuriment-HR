@@ -10,6 +10,7 @@ const constraintMessages: Record<string, string> = {
   UQ_applicant_vacancy: 'Applicant already applied to this vacancy',
   UQ_applicant_email: 'Applicant email already exists',
   UQ_department_name: 'Department title already exists',
+  UQ_user_email: 'User email already exists',
 };
 @Catch(QueryFailedError)
 export class TypeOrmExceptionFilter implements ExceptionFilter {
