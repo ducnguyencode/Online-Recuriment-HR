@@ -5,6 +5,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -13,6 +14,7 @@ import { CV } from './cv.entity';
 import { Vacancy } from './vacancy.entity';
 import { AiResponseDto } from 'src/dto/ai.response.dto';
 import { ApplicationStatus } from 'src/enum/application-status.enum';
+import { Interview } from './interview.entity';
 
 @Entity('applications')
 @Index('UQ_applicant_vacancy', ['vacancy', 'applicant'], { unique: true })
@@ -62,4 +64,7 @@ export class Application {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
+
+  @OneToMany(() => Interview, (interview) => interview.application)
+  interviews: Interview[];
 }

@@ -26,7 +26,7 @@ export const hrGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  if (auth.isLoggedIn() && auth.isHR()) {
+  if (auth.isLoggedIn() && (auth.isHR() || auth.isSuperadmin())) {
     return true;
   }
   router.navigate(['/hr-portal']);
