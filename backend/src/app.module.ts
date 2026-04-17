@@ -23,11 +23,45 @@ import { BullModule } from '@nestjs/bull';
 import { EmailQueueService } from './services/email-queue.service';
 import { EmailProcessor } from './processors/email.processor';
 import { DevToolsController } from './controller/dev-tools.controller';
+import { GoogleMeetService } from './services/google-meet.service';
+import { InterviewController } from './controller/interview.controller';
+import { InterviewService } from './services/interview.service';
+import { Interview } from './entities/interview.entity';
+import { InterviewListener } from './listeners/interview.listener';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
+import { join } from 'path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+
+    MailerModule.forRootAsync({
+      imports: [ConfigModule], // Import này để lấy được các biến .env
+      useFactory: async (configService: ConfigService) => ({
+        transport: {
+          host: configService.get('SMTP_HOST'), // Ví dụ: smtp.gmail.com
+          port: configService.get('SMTP_PORT'),
+          auth: {
+            user: configService.get('SMTP_USER'),
+            pass: configService.get('SMTP_PASS'),
+          },
+        },
+        defaults: {
+          from: '"HR Recruitment" <noreply@example.com>',
+        },
+        template: {
+          // Lưu ý: join(__dirname, 'mail', 'templates') nếu thư mục mail nằm trong src
+          dir: join(__dirname, 'mail', 'templates'),
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+      inject: [ConfigService],
     }),
 
     EventEmitterModule.forRoot(),
@@ -63,7 +97,8 @@ import { DevToolsController } from './controller/dev-tools.controller';
         synchronize: true, // Lưu ý: Tắt khi lên môi trường thực tế (Production)
       }),
     }),
-    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV]),
+    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV, Interview]),
+
   ],
   controllers: [
     VacancyController,
@@ -72,6 +107,7 @@ import { DevToolsController } from './controller/dev-tools.controller';
     CvController,
     ApplicationController,
     DevToolsController,
+    InterviewController,
   ],
   providers: [
     VacanciesService,
@@ -83,6 +119,9 @@ import { DevToolsController } from './controller/dev-tools.controller';
     NotificationGateway,
     EmailQueueService,
     EmailProcessor,
+    GoogleMeetService,
+    InterviewService,
+    InterviewListener,
   ],
 })
 export class AppModule { }
