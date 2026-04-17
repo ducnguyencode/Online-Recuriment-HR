@@ -10,6 +10,7 @@ export class AuthService {
   private readonly USER_KEY = 'hr_user';
   private readonly DEV_ROLE_KEY = 'hr_dev_role';
   private readonly MOCK_USERS: UserAccount[] = [
+    { id: 'uuid-sa-01', email: 'admin@abc.com', fullName: 'Quản Lý Hệ Thống', role: 'Superadmin', employeeId: 'emp-uuid-admin', isActive: true },
     { id: 'uuid-hr-01', email: 'an.nguyen@abc.com', fullName: 'Nguyễn Huỳnh Đức', role: 'HR', employeeId: 'emp-uuid-001', isActive: true },
     { id: 'uuid-hr-02', email: 'binh.tran@abc.com', fullName: 'Trần Thị Bình', role: 'HR', employeeId: 'emp-uuid-002', isActive: true },
     { id: 'uuid-iv-01', email: 'cuong.le@abc.com', fullName: 'Lê Văn Cường', role: 'Interviewer', employeeId: 'emp-uuid-003', isActive: true },
@@ -18,6 +19,7 @@ export class AuthService {
 
   currentUser = signal<UserAccount | null>(this.loadUser());
   isLoggedIn = computed(() => !!this.currentUser());
+  isSuperadmin = computed(() => this.currentUser()?.role === 'Superadmin');
   isHR = computed(() => this.currentUser()?.role === 'HR');
   isInterviewer = computed(() => this.currentUser()?.role === 'Interviewer');
   isApplicant = computed(() => this.currentUser()?.role === 'Applicant');
@@ -58,7 +60,7 @@ export class AuthService {
 
   getDevRole(): UserAccount['role'] | null {
     const role = localStorage.getItem(this.DEV_ROLE_KEY);
-    return role === 'HR' || role === 'Interviewer' || role === 'Applicant' ? role : null;
+    return role === 'HR' || role === 'Interviewer' || role === 'Applicant' || role === 'Superadmin' ? role : null;
   }
 
   getMockUsers(): UserAccount[] {

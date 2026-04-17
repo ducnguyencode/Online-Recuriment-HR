@@ -41,6 +41,7 @@ export class SidebarComponent {
   ];
 
   readonly devRoles: { role: UserAccount['role']; label: string; email: string }[] = [
+    { role: 'Superadmin', label: 'Superadmin', email: 'admin@abc.com' },
     { role: 'HR', label: 'HR Staff', email: 'an.nguyen@abc.com' },
     { role: 'Interviewer', label: 'Interviewer', email: 'cuong.le@abc.com' },
   ];
@@ -48,11 +49,11 @@ export class SidebarComponent {
   constructor(public auth: AuthService, private router: Router) {}
 
   get visibleMenuItems(): NavItem[] {
-    return this.menuItems.filter(item => !item.hrOnly || this.auth.isHR());
+    return this.menuItems.filter(item => !item.hrOnly || this.auth.isHR() || this.auth.isSuperadmin());
   }
 
   get visibleSystemItems(): NavItem[] {
-    return this.systemItems.filter(item => !item.hrOnly || this.auth.isHR());
+    return this.systemItems.filter(item => !item.hrOnly || this.auth.isHR() || this.auth.isSuperadmin());
   }
 
   toggleCollapse() {
