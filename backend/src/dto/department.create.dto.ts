@@ -6,6 +6,4 @@ export class DepartmentCreateDto {
 
   @IsOptional()
   description!: string;
-
-  isActive!: boolean;
 }

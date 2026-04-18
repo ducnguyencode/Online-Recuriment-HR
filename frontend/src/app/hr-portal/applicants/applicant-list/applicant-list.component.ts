@@ -29,7 +29,8 @@ enum ApplicantStatus {
   styleUrl: './applicant-list.component.scss',
 })
 export class ApplicantListComponent implements OnInit {
-  applicantStatus = Object.values(ApplicantStatus);
+  applicantStatus = ApplicantStatus;
+  applicantStatusList = Object.values(this.applicantStatus);
   applicants = signal<Applicant[]>([]);
   loading = signal(false);
 
@@ -138,7 +139,11 @@ export class ApplicantListComponent implements OnInit {
   }
 
   saveApplicant() {
-    if (!this.formData.fullName.trim() || !this.formData.email.trim() || !this.formData.phone.trim()) {
+    if (
+      !this.formData.fullName.trim() ||
+      !this.formData.email.trim() ||
+      !this.formData.phone.trim()
+    ) {
       this.formError = 'Full name, email and phone are required.';
       return;
     }

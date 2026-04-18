@@ -9,6 +9,7 @@ import {
   VacancyStatus,
   InAppNotification,
   ActivityLog,
+  ApplicantStatus,
 } from '../models';
 
 /**
@@ -49,7 +50,7 @@ export class MockDataService {
       filledCount: 0,
       ownedByEmployeeId: 'emp-uuid-001',
       closingDate: this.futureDate(30),
-      status: 'Opened',
+      status: VacancyStatus.OPENED,
       createdAt: this.pastDate(10),
       updatedAt: this.pastDate(10),
     },
@@ -65,7 +66,7 @@ export class MockDataService {
       filledCount: 0,
       ownedByEmployeeId: 'emp-uuid-001',
       closingDate: this.futureDate(20),
-      status: 'Opened',
+      status: VacancyStatus.OPENED,
       createdAt: this.pastDate(15),
       updatedAt: this.pastDate(15),
     },
@@ -81,7 +82,7 @@ export class MockDataService {
       filledCount: 1,
       ownedByEmployeeId: 'emp-uuid-002',
       closingDate: this.futureDate(10),
-      status: 'Opened',
+      status: VacancyStatus.OPENED,
       createdAt: this.pastDate(20),
       updatedAt: this.pastDate(5),
     },
@@ -97,7 +98,7 @@ export class MockDataService {
       filledCount: 1,
       ownedByEmployeeId: 'emp-uuid-002',
       closingDate: this.pastDate(5),
-      status: 'Closed',
+      status: VacancyStatus.CLOSED,
       createdAt: this.pastDate(30),
       updatedAt: this.pastDate(2),
     },
@@ -113,7 +114,7 @@ export class MockDataService {
       filledCount: 0,
       ownedByEmployeeId: 'emp-uuid-001',
       closingDate: this.futureDate(15),
-      status: 'Suspended',
+      status: VacancyStatus.SUSPENDED,
       createdAt: this.pastDate(12),
       updatedAt: this.pastDate(3),
     },
@@ -129,7 +130,7 @@ export class MockDataService {
       filledCount: 0,
       ownedByEmployeeId: 'emp-uuid-002',
       closingDate: this.futureDate(25),
-      status: 'Opened',
+      status: VacancyStatus.OPENED,
       createdAt: this.pastDate(8),
       updatedAt: this.pastDate(8),
     },
@@ -145,7 +146,7 @@ export class MockDataService {
       filledCount: 0,
       ownedByEmployeeId: 'emp-uuid-001',
       closingDate: this.futureDate(18),
-      status: 'Opened',
+      status: VacancyStatus.OPENED,
       createdAt: this.pastDate(6),
       updatedAt: this.pastDate(6),
     },
@@ -161,7 +162,7 @@ export class MockDataService {
       filledCount: 0,
       ownedByEmployeeId: 'emp-uuid-002',
       closingDate: this.futureDate(22),
-      status: 'Opened',
+      status: VacancyStatus.OPENED,
       createdAt: this.pastDate(4),
       updatedAt: this.pastDate(4),
     },
@@ -174,7 +175,7 @@ export class MockDataService {
       fullName: 'Hoang Minh Tuan',
       email: 'tuan.hoang@gmail.com',
       phone: '0901234567',
-      status: 'In Process',
+      status: ApplicantStatus.IN_PROCESS,
       createdAt: this.pastDate(9),
       updatedAt: this.pastDate(9),
     },
@@ -184,7 +185,7 @@ export class MockDataService {
       fullName: 'Vo Thi Lan',
       email: 'lan.vo@gmail.com',
       phone: '0912345678',
-      status: 'In Process',
+      status: ApplicantStatus.IN_PROCESS,
       createdAt: this.pastDate(8),
       updatedAt: this.pastDate(8),
     },
@@ -194,7 +195,7 @@ export class MockDataService {
       fullName: 'Bui Duc Manh',
       email: 'manh.bui@gmail.com',
       phone: '0923456789',
-      status: 'Hired',
+      status: ApplicantStatus.HIRED,
       createdAt: this.pastDate(25),
       updatedAt: this.pastDate(2),
     },
@@ -204,7 +205,7 @@ export class MockDataService {
       fullName: 'Nguyen Thi Hoa',
       email: 'hoa.nguyen@gmail.com',
       phone: '0934567890',
-      status: 'Not in Process',
+      status: ApplicantStatus.NOT_IN_PROCESS,
       createdAt: this.pastDate(5),
       updatedAt: this.pastDate(5),
     },
@@ -214,7 +215,7 @@ export class MockDataService {
       fullName: 'Dang Van Khoa',
       email: 'khoa.dang@gmail.com',
       phone: '0945678901',
-      status: 'In Process',
+      status: ApplicantStatus.IN_PROCESS,
       createdAt: this.pastDate(7),
       updatedAt: this.pastDate(7),
     },
@@ -224,7 +225,7 @@ export class MockDataService {
       fullName: 'Ly Thi Mai',
       email: 'mai.ly@gmail.com',
       phone: '0956789012',
-      status: 'Banned',
+      status: ApplicantStatus.BANNED,
       createdAt: this.pastDate(20),
       updatedAt: this.pastDate(10),
     },
@@ -234,7 +235,7 @@ export class MockDataService {
       fullName: 'Tran Van Nam',
       email: 'nam.tran@gmail.com',
       phone: '0967890123',
-      status: 'In Process',
+      status: ApplicantStatus.IN_PROCESS,
       createdAt: this.pastDate(6),
       updatedAt: this.pastDate(6),
     },
@@ -244,7 +245,7 @@ export class MockDataService {
       fullName: 'Phan Thi Oanh',
       email: 'oanh.phan@gmail.com',
       phone: '0978901234',
-      status: 'Not in Process',
+      status: ApplicantStatus.NOT_IN_PROCESS,
       createdAt: this.pastDate(3),
       updatedAt: this.pastDate(3),
     },
@@ -340,7 +341,7 @@ export class MockDataService {
       applicantId: 'appl-1',
       vacancyId: '1',
       cvId: 'cv-1',
-      status: 'Interview Scheduled',
+      status: ApplicationStatus.INTERVIEW_SCHEDULED,
       // aiMatchScore: 88,
       createdAt: this.pastDate(8),
       updatedAt: this.pastDate(6),
@@ -351,7 +352,7 @@ export class MockDataService {
       applicantId: 'appl-2',
       vacancyId: '2',
       cvId: 'cv-2',
-      status: 'Screening',
+      status: ApplicationStatus.SCREENING,
       // aiMatchScore: 82,
       createdAt: this.pastDate(7),
       updatedAt: this.pastDate(7),
@@ -362,7 +363,7 @@ export class MockDataService {
       applicantId: 'appl-1',
       vacancyId: '3',
       cvId: 'cv-1',
-      status: 'Pending',
+      status: ApplicationStatus.PENDING,
       // aiMatchScore: 45,
       createdAt: this.pastDate(7),
       updatedAt: this.pastDate(7),
@@ -373,7 +374,7 @@ export class MockDataService {
       applicantId: 'appl-3',
       vacancyId: '4',
       cvId: 'cv-3',
-      status: 'Selected',
+      status: ApplicationStatus.SELECTED,
       // aiMatchScore: 95,
       createdAt: this.pastDate(20),
       updatedAt: this.pastDate(2),
@@ -384,7 +385,7 @@ export class MockDataService {
       applicantId: 'appl-5',
       vacancyId: '2',
       cvId: 'cv-4',
-      status: 'Screening',
+      status: ApplicationStatus.SCREENING,
       // aiMatchScore: 52,
       createdAt: this.pastDate(6),
       updatedAt: this.pastDate(4),
@@ -395,7 +396,7 @@ export class MockDataService {
       applicantId: 'appl-7',
       vacancyId: '6',
       cvId: 'cv-5',
-      status: 'Interview Scheduled',
+      status: ApplicationStatus.INTERVIEW_SCHEDULED,
       // aiMatchScore: 91,
       createdAt: this.pastDate(5),
       updatedAt: this.pastDate(3),
@@ -406,7 +407,7 @@ export class MockDataService {
       applicantId: 'appl-5',
       vacancyId: '6',
       cvId: 'cv-4',
-      status: 'Pending',
+      status: ApplicationStatus.PENDING,
       // aiMatchScore: 60,
       createdAt: this.pastDate(5),
       updatedAt: this.pastDate(5),
@@ -416,7 +417,7 @@ export class MockDataService {
       code: 'A0008',
       applicantId: 'appl-8',
       vacancyId: '1',
-      status: 'Pending',
+      status: ApplicationStatus.PENDING,
       // aiMatchScore: 72,
       createdAt: this.pastDate(3),
       updatedAt: this.pastDate(3),
@@ -426,7 +427,7 @@ export class MockDataService {
       code: 'A0009',
       applicantId: 'appl-4',
       vacancyId: '7',
-      status: 'Rejected',
+      status: ApplicationStatus.REJECTED,
       // aiMatchScore: 35,
       createdAt: this.pastDate(4),
       updatedAt: this.pastDate(1),
@@ -437,7 +438,7 @@ export class MockDataService {
       applicantId: 'appl-2',
       vacancyId: '1',
       cvId: 'cv-2',
-      status: 'Screening',
+      status: ApplicationStatus.SCREENING,
       // aiMatchScore: 68,
       createdAt: this.pastDate(2),
       updatedAt: this.pastDate(2),
@@ -610,7 +611,7 @@ export class MockDataService {
       filledCount: 0,
       ownedByEmployeeId: 'emp-uuid-001',
       closingDate: data.closingDate ?? this.futureDate(30),
-      status: 'Opened',
+      status: VacancyStatus.OPENED,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -705,7 +706,7 @@ export class MockDataService {
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,
-      status: 'Not in Process',
+      status: ApplicantStatus.NOT_IN_PROCESS,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -752,14 +753,14 @@ export class MockDataService {
       applicantId: data.applicantId,
       vacancyId: data.vacancyId,
       cvId: cv?.id,
-      status: 'Pending',
+      status: ApplicationStatus.PENDING,
       // aiMatchScore: Math.floor(Math.random() * 40) + 55,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     this.applications.unshift(application);
-    if (applicant && applicant.status === 'Not in Process') {
-      this.updateApplicantStatus(applicant.id, 'In Process');
+    if (applicant && applicant.status === ApplicantStatus.NOT_IN_PROCESS) {
+      this.updateApplicantStatus(applicant.id, ApplicantStatus.IN_PROCESS);
     }
     return application;
   }
@@ -777,7 +778,10 @@ export class MockDataService {
     if (appcIdx > -1) {
       this.applicants[appcIdx] = {
         ...this.applicants[appcIdx],
-        status: status === 'Selected' ? 'Hired' : 'In Process',
+        status:
+          status === ApplicationStatus.SELECTED
+            ? ApplicantStatus.HIRED
+            : ApplicantStatus.IN_PROCESS,
       };
     }
     return this.applications[idx];
@@ -801,7 +805,7 @@ export class MockDataService {
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,
-      status: 'In Process',
+      status: ApplicantStatus.IN_PROCESS,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -828,7 +832,7 @@ export class MockDataService {
       applicantId: newApplId,
       vacancyId: data.vacancyId,
       cvId: newCvId,
-      status: 'Pending',
+      status: ApplicationStatus.PENDING,
       // aiMatchScore: Math.floor(Math.random() * 40) + 50,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -854,13 +858,13 @@ export class MockDataService {
           employeeId: 'emp-uuid-001',
           fullName: 'Nguyen Van An',
           role: 'Tech Lead',
-          vote: 'Pending',
+          vote: ApplicationStatus.PENDING,
         },
         {
           employeeId: 'emp-uuid-002',
           fullName: 'Tran Thi Binh',
           role: 'HR',
-          vote: 'Pending',
+          vote: ApplicationStatus.PENDING,
         },
       ],
     },
@@ -879,7 +883,7 @@ export class MockDataService {
           employeeId: 'emp-uuid-003',
           fullName: 'Le Van Cuong',
           role: 'Senior Developer',
-          vote: 'Pending',
+          vote: ApplicationStatus.PENDING,
         },
       ],
     },
@@ -939,7 +943,10 @@ export class MockDataService {
     const newId = `inv-${this.interviews.length + 1}`;
     const endMinutes = this.timeToMinutes(data.time) + data.duration;
     const endTime = this.minutesToTime(endMinutes);
-    this.updateApplicationStatus(data.applicationId, 'Interview Scheduled');
+    this.updateApplicationStatus(
+      data.applicationId,
+      ApplicationStatus.INTERVIEW_SCHEDULED,
+    );
     const newInterview = {
       id: newId,
       applicationId: data.applicationId,
@@ -1044,10 +1051,13 @@ export class MockDataService {
     ).length;
     const totalApplications = this.applications.length;
     const inProcess = this.applications.filter(
-      (a) => !['Selected', 'Rejected'].includes(a.status),
+      (a) =>
+        ![ApplicationStatus.SELECTED, ApplicationStatus.REJECTED].includes(
+          a.status,
+        ),
     ).length;
     const selected = this.applications.filter(
-      (a) => a.status === 'Selected',
+      (a) => a.status === ApplicationStatus.SELECTED,
     ).length;
     return {
       openVacancies,

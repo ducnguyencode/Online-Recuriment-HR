@@ -10,12 +10,9 @@ import { Router } from '@angular/router';
   styleUrl: './login.component.scss',
 })
 export class LoginComponent implements OnInit {
-  loginForm = { email: '', password: '' };
+  loginForm = { email: 'admin@test.com', password: '123456' };
 
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-  ) {}
+  constructor(private authService: AuthService) {}
 
   ngOnInit(): void {}
 
@@ -24,7 +21,7 @@ export class LoginComponent implements OnInit {
       .login(this.loginForm.email, this.loginForm.password)
       .subscribe({
         next: (res) => {
-          this.router.navigate(['/dashboard']);
+          this.authService.handleLoginSuccess(res);
         },
         error: (err) => {},
       });

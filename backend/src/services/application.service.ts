@@ -1,19 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Application } from 'src/entities/application.entity';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
 import { Brackets, Repository } from 'typeorm';
 import { AiService } from './ai.service';
-import { ApplicationStatus } from 'src/enum/application-status.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Applicant } from 'src/entities/applicant.entity';
 import { Vacancy } from 'src/entities/vacancy.entity';
 import { CV } from 'src/entities/cv.entity';
 import { ApplicationFindDto } from 'src/dto/application/application.find.dto';
 import { FindResponseDto } from 'src/helper/find.response.dto';
-import { CustomValidator } from 'src/helper/validator/custom.validator';
-import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
+import { CustomValidator } from 'src/common/validator/custom.validator';
 import { ApplicantService } from './applicant.service';
+import { ApplicantStatus, ApplicationStatus } from 'src/common/enum';
 
 @Injectable()
 export class ApplicationService {
@@ -23,6 +24,7 @@ export class ApplicationService {
     private aiService: AiService,
     private customValidator: CustomValidator,
     private applicantService: ApplicantService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async findAll(
@@ -156,7 +158,7 @@ export class ApplicationService {
         type: 'SUCCESS',
         message: `Ứng viên ${application.applicant.fullName} vừa nộp CV vào vị trí ${application.vacancy.title}`,
         linkUrl: `/hr-portal/applications/${application.id}`,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       });
 
       // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
@@ -164,7 +166,7 @@ export class ApplicationService {
         applicationId: application.id,
         candidateEmail: application.applicant.email,
         candidateName: application.applicant.fullName,
-        vacancyTitle: application.vacancy.title
+        vacancyTitle: application.vacancy.title,
       });
 
       return application;

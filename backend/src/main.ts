@@ -3,8 +3,8 @@ import { AppModule } from './app.module';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import { TypeOrmExceptionFilter } from './common/typeorm-exception.filter';
-import { HttpExceptionFilter } from './common/http-exception.filter';
+import { TypeOrmExceptionFilter } from './common/api-response-format/typeorm-exception.filter';
+import { HttpExceptionFilter } from './common/api-response-format/http-exception.filter';
 import { CleanInputPipe } from './helper/clean-input-pipe';
 
 async function bootstrap() {

@@ -1,4 +1,10 @@
-import { Component, signal, OnInit, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  signal,
+  OnInit,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -11,10 +17,8 @@ import { MockDataService } from '../../../core/services/mock-data.service';
 import {
   Vacancy,
   Department,
-  VacancyStatus,
-  canChangeVacancyStatus,
   isVacancyOwner,
-  formatDisplayId,
+  VacancyStatus,
 } from '../../../core/models';
 
 @Component({
@@ -43,6 +47,7 @@ export class VacancyListComponent implements OnInit {
   showDetailDialog = signal(false);
   isEditing = signal(false);
   selectedVacancy = signal<Vacancy | null>(null);
+  minDate: string = '';
 
   formData: CreateVacancyDto = {
     title: '',
@@ -72,12 +77,15 @@ export class VacancyListComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    this.minDate = tomorrow.toISOString().split('T')[0];
     this.loadDepartments();
     this.loadVacancies();
   }
 
   get currentUserId(): string {
-    return this.auth.currentUser()?.employeeId ?? '';
+    return this.auth.currentUser()?.id ?? '';
   }
 
   // ── Business rule helpers ────────────────────────────────────────────────
@@ -86,26 +94,43 @@ export class VacancyListComponent implements OnInit {
     return isVacancyOwner(v, this.currentUserId);
   }
 
+  isSuperadmin(): boolean {
+    return this.auth.isSuperadmin();
+  }
+
+  isClosedOrSuspended(v: Vacancy): boolean {
+    return [VacancyStatus.CLOSED, VacancyStatus.SUSPENDED].includes(v.status);
+  }
+
   canEdit(v: Vacancy): boolean {
-    return isVacancyOwner(v, this.currentUserId) && v.status !== 'Closed';
+    return (
+      (isVacancyOwner(v, this.currentUserId) && !this.isClosedOrSuspended(v)) ||
+      this.isSuperadmin()
+    );
   }
 
   canChangeStatus(v: Vacancy): boolean {
     return (
-      isVacancyOwner(v, this.currentUserId) && canChangeVacancyStatus(v.status)
+      (isVacancyOwner(v, this.currentUserId) && !this.isClosedOrSuspended(v)) ||
+      this.isSuperadmin()
     );
   }
 
   editTitle(v: Vacancy): string {
-    if (v.status === 'Closed') return 'Cannot edit a closed vacancy';
+    if (this.isClosedOrSuspended(v))
+      return 'Cannot edit a closed or suspended vacancy';
     if (!this.isOwner(v)) return 'Only the vacancy owner can edit';
     return 'Edit vacancy';
   }
 
   /** Per spec: Opened → Closed | Suspended. Suspended → Opened | Closed. Closed → nothing */
   allowedStatuses(v: Vacancy): VacancyStatus[] {
-    if (v.status === 'Opened') return ['Suspended', 'Closed'];
-    if (v.status === 'Suspended') return ['Opened', 'Closed'];
+    if (v.status === VacancyStatus.OPENED)
+      return [VacancyStatus.SUSPENDED, VacancyStatus.CLOSED];
+    if (v.status === VacancyStatus.SUSPENDED)
+      return [VacancyStatus.OPENED, VacancyStatus.CLOSED];
+    if (v.status === VacancyStatus.CLOSED && this.isSuperadmin())
+      return [VacancyStatus.OPENED];
     return [];
   }
 
@@ -256,16 +281,18 @@ export class VacancyListComponent implements OnInit {
           this.closeDialogs();
           this.loadVacancies();
         },
-        error: () => {
-          // Mock fallback
-          this.mockData.updateVacancy(this.selectedVacancy()!.id, {
-            title: dto.title,
-            description: dto.description,
-            numberOfOpenings: dto.numberOfOpenings,
-            closingDate: dto.closingDate,
-          });
-          this.closeDialogs();
-          this.loadVacancies();
+        error: (err) => {
+          this.formError = err.error.message;
+
+          // // Mock fallback
+          // this.mockData.updateVacancy(this.selectedVacancy()!.id, {
+          //   title: dto.title,
+          //   description: dto.description,
+          //   numberOfOpenings: dto.numberOfOpenings,
+          //   closingDate: dto.closingDate,
+          // });
+          // this.closeDialogs();
+          // this.loadVacancies();
         },
       });
     } else {
@@ -333,7 +360,10 @@ export class VacancyListComponent implements OnInit {
 
   applyExpandedContent() {
     if (this.editorEl) {
-      this.formData = { ...this.formData, description: this.editorEl.nativeElement.innerHTML };
+      this.formData = {
+        ...this.formData,
+        description: this.editorEl.nativeElement.innerHTML,
+      };
     }
     this.closeExpandedEditor();
   }

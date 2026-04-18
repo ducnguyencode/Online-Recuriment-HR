@@ -1,4 +1,3 @@
-import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
 import {
   BeforeInsert,
   BeforeUpdate,
@@ -10,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Application } from './application.entity';
+import { ApplicantStatus } from 'src/common/enum';
 
 @Entity('applicants')
 @Index('UQ_applicant_email', ['email'], { unique: true })
@@ -17,7 +17,10 @@ export class Applicant {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true, nullable: true })
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `'A' || LPAD(id::text, 4,'0')`,
+  })
   code!: string;
 
   @OneToMany(() => Application, (a) => a.applicant)

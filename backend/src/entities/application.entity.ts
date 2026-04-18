@@ -12,7 +12,7 @@ import { Applicant } from './applicant.entity';
 import { CV } from './cv.entity';
 import { Vacancy } from './vacancy.entity';
 import { AiResponseDto } from 'src/dto/ai.response.dto';
-import { ApplicationStatus } from 'src/enum/application-status.enum';
+import { ApplicationStatus } from 'src/common/enum';
 
 @Entity('applications')
 @Index('UQ_applicant_vacancy', ['vacancy', 'applicant'], { unique: true })
@@ -20,7 +20,10 @@ export class Application {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true, nullable: true })
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `'A' || LPAD(id::text, 4,'0')`,
+  })
   code!: string;
 
   @ManyToOne(() => Applicant, (a) => a.id)

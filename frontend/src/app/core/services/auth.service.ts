@@ -1,38 +1,83 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { UserAccount, LoginResponse } from '../models';
+import { UserAccount, LoginResponse, UserRole } from '../models';
 import { environment } from '../../../environments/environment';
-
+import { tap } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'hr_token';
   private readonly USER_KEY = 'hr_user';
   private readonly DEV_ROLE_KEY = 'hr_dev_role';
   private readonly MOCK_USERS: UserAccount[] = [
-    { id: 'uuid-sa-01', email: 'admin@abc.com', fullName: 'Quản Lý Hệ Thống', role: 'Superadmin', employeeId: 'emp-uuid-admin', isActive: true },
-    { id: 'uuid-hr-01', email: 'an.nguyen@abc.com', fullName: 'Nguyễn Huỳnh Đức', role: 'HR', employeeId: 'emp-uuid-001', isActive: true },
-    { id: 'uuid-hr-02', email: 'binh.tran@abc.com', fullName: 'Trần Thị Bình', role: 'HR', employeeId: 'emp-uuid-002', isActive: true },
-    { id: 'uuid-iv-01', email: 'cuong.le@abc.com', fullName: 'Lê Văn Cường', role: 'Interviewer', employeeId: 'emp-uuid-003', isActive: true },
-    { id: 'uuid-ap-01', email: 'hoa.nguyen@gmail.com', fullName: 'Nguyễn Thị Hoa', role: 'Applicant', applicantId: 'appl-4', isActive: true },
+    {
+      id: 'uuid-sa-01',
+      email: 'admin@abc.com',
+      fullName: 'Quản Lý Hệ Thống',
+      role: UserRole.SUPER_ADMIN,
+      employeeId: 'emp-uuid-admin',
+      isActive: true,
+    },
+    {
+      id: 'uuid-hr-01',
+      email: 'an.nguyen@abc.com',
+      fullName: 'Nguyễn Huỳnh Đức',
+      role: UserRole.HR,
+      employeeId: 'emp-uuid-001',
+      isActive: true,
+    },
+    {
+      id: 'uuid-hr-02',
+      email: 'binh.tran@abc.com',
+      fullName: 'Trần Thị Bình',
+      role: UserRole.HR,
+      employeeId: 'emp-uuid-002',
+      isActive: true,
+    },
+    {
+      id: 'uuid-iv-01',
+      email: 'cuong.le@abc.com',
+      fullName: 'Lê Văn Cường',
+      role: UserRole.INTERVIEWER,
+      employeeId: 'emp-uuid-003',
+      isActive: true,
+    },
+    {
+      id: 'uuid-ap-01',
+      email: 'hoa.nguyen@gmail.com',
+      fullName: 'Nguyễn Thị Hoa',
+      role: UserRole.APPLICANT,
+      applicantId: 'appl-4',
+      isActive: true,
+    },
   ];
 
   currentUser = signal<UserAccount | null>(this.loadUser());
   isLoggedIn = computed(() => !!this.currentUser());
-  isSuperadmin = computed(() => this.currentUser()?.role === 'Superadmin');
-  isHR = computed(() => this.currentUser()?.role === 'HR');
-  isInterviewer = computed(() => this.currentUser()?.role === 'Interviewer');
-  isApplicant = computed(() => this.currentUser()?.role === 'Applicant');
+  isSuperadmin = computed(
+    () => this.currentUser()?.role === UserRole.SUPER_ADMIN,
+  );
+  isHR = computed(() => this.currentUser()?.role === UserRole.HR);
+  isInterviewer = computed(
+    () => this.currentUser()?.role === UserRole.INTERVIEWER,
+  );
+  isApplicant = computed(() => this.currentUser()?.role === UserRole.APPLICANT);
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+  ) {}
 
   login(email: string, password: string) {
-    return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, { email, password });
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, {
+      email,
+      password,
+    });
   }
 
   handleLoginSuccess(response: LoginResponse) {
-    const { token, user } = response.data;
-    localStorage.setItem(this.TOKEN_KEY, token);
+    const { access_token, user } = response.data;
+    localStorage.setItem(this.TOKEN_KEY, access_token);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.currentUser.set(user);
     this.router.navigate(['/hr-portal']);
@@ -43,7 +88,7 @@ export class AuthService {
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.DEV_ROLE_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/hr-portal/login']);
   }
 
   getToken(): string | null {
@@ -60,7 +105,7 @@ export class AuthService {
 
   getDevRole(): UserAccount['role'] | null {
     const role = localStorage.getItem(this.DEV_ROLE_KEY);
-    return role === 'HR' || role === 'Interviewer' || role === 'Applicant' || role === 'Superadmin' ? role : null;
+    return (role as UserRole) ?? null;
   }
 
   getMockUsers(): UserAccount[] {
@@ -68,7 +113,7 @@ export class AuthService {
   }
 
   mockLoginAsRole(role: UserAccount['role']): boolean {
-    const user = this.MOCK_USERS.find(item => item.role === role);
+    const user = this.MOCK_USERS.find((item) => item.role === role);
     if (!user) return false;
     const mockToken = 'mock-jwt-token-' + Date.now();
     localStorage.setItem(this.TOKEN_KEY, mockToken);
@@ -81,14 +126,18 @@ export class AuthService {
   private loadUser(): UserAccount | null {
     const stored = localStorage.getItem(this.USER_KEY);
     if (stored) {
-      try { return JSON.parse(stored); } catch { return null; }
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
     }
     return null;
   }
 
   // === MOCK LOGIN (khi backend chưa sẵn sàng) ===
   mockLogin(email: string, password: string): boolean {
-    const user = this.MOCK_USERS.find(u => u.email === email);
+    const user = this.MOCK_USERS.find((u) => u.email === email);
     if (user && password === '123456') {
       const mockToken = 'mock-jwt-token-' + Date.now();
       localStorage.setItem(this.TOKEN_KEY, mockToken);
@@ -98,5 +147,14 @@ export class AuthService {
       return true;
     }
     return false;
+  }
+
+  refreshMe() {
+    return this.http.get<UserAccount>(`${environment.apiUrl}/auth/me`).pipe(
+      tap((user) => {
+        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+        this.currentUser.set(user);
+      }),
+    );
   }
 }

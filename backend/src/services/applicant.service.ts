@@ -8,8 +8,8 @@ import { ApplicantCreateDto } from 'src/dto/applicant/applicant.create.dto';
 import { Brackets, Repository } from 'typeorm';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
-import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
 import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
+import { ApplicantStatus } from 'src/common/enum';
 
 @Injectable()
 export class ApplicantService {

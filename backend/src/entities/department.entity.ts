@@ -6,7 +6,10 @@ export class Department {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true, nullable: true })
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `'D' || LPAD(id::text, 4,'0')`,
+  })
   code!: string;
 
   @Column()

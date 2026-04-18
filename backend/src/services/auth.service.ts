@@ -4,6 +4,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from './user.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { plainToInstance } from 'class-transformer';
+import { User } from 'src/entities/user.entity';
 @Injectable()
 export class AuthService {
   constructor(
@@ -37,7 +39,10 @@ export class AuthService {
     };
 
     return {
-      access_token: this.jwtService.signAsync(payload),
+      access_token: this.jwtService.sign(payload),
+      user: plainToInstance(User, user, {
+        excludeExtraneousValues: true,
+      }),
     };
   }
 }

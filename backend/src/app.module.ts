@@ -23,14 +23,16 @@ import { BullModule } from '@nestjs/bull';
 import { EmailQueueService } from './services/email-queue.service';
 import { EmailProcessor } from './processors/email.processor';
 import { DevToolsController } from './controller/dev-tools.controller';
-import { CustomValidator } from './helper/validator/custom.validator';
+import { CustomValidator } from './common/validator/custom.validator';
 import { UserService } from './services/user.service';
 import { AuthService } from './services/auth.service';
 import { AuthController } from './controller/auth.controller';
-import { JwtStrategy } from './services/jwt/jwt.strategy';
+import { JwtStrategy } from './common/jwt.strategy';
 import { User } from './entities/user.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { BootstrapService } from './services/bootstrap.service';
+import { Seed } from './database/seed';
 
 @Module({
   imports: [
@@ -44,7 +46,7 @@ import { JwtModule } from '@nestjs/jwt';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         redis: {
           host: configService.get('REDIS_HOST'),
           port: configService.get('REDIS_PORT'),
@@ -67,8 +69,11 @@ import { JwtModule } from '@nestjs/jwt';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
+
         autoLoadEntities: true,
         synchronize: true,
+
+        // dropSchema: true,
       }),
     }),
     TypeOrmModule.forFeature([
@@ -85,7 +90,7 @@ import { JwtModule } from '@nestjs/jwt';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET') || 'secret',
-        signOptions: { expiresIn: '1d' },
+        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') || '1d' },
       }),
     }),
   ],
@@ -111,7 +116,9 @@ import { JwtModule } from '@nestjs/jwt';
     CustomValidator,
     UserService,
     AuthService,
+    BootstrapService,
     JwtStrategy,
+    Seed,
   ],
 })
-export class AppModule { }
+export class AppModule {}

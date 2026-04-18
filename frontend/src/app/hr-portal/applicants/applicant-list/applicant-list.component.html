@@ -40,7 +40,7 @@
       (change)="loadApplicants()"
     >
       <option value="">All Statuses</option>
-      @for (status of applicantStatus; track status) {
+      @for (status of applicantStatusList; track status) {
         <option [value]="status">{{ status }}</option>
       }
     </select>
@@ -134,7 +134,7 @@
                     changeStatus(applicant, $any($event.target).value, $event)
                   "
                 >
-                  @for (status of applicantStatus; track status) {
+                  @for (status of applicantStatusList; track status) {
                     <option [value]="status">{{ status }}</option>
                   }
                 </select>
@@ -256,7 +256,10 @@
                 </tr>
               </thead>
               <tbody>
-                @for (item of selectedApplicant()?.applications; track item.id) {
+                @for (
+                  item of selectedApplicant()?.applications;
+                  track item.id
+                ) {
                   <tr>
                     <td class="mono-id">{{ item.id }}</td>
                     <td>
@@ -264,9 +267,7 @@
                         <span class="person-name">{{
                           item.vacancy?.title || "—"
                         }}</span>
-                        <span class="muted">{{
-                          item.vacancy?.code
-                        }}</span>
+                        <span class="muted">{{ item.vacancy?.code }}</span>
                       </div>
                     </td>
                     <td>
@@ -345,7 +346,9 @@
             />
           </div>
           <div class="form-group">
-            <label class="form-label">Phone <span class="required">*</span></label>
+            <label class="form-label"
+              >Phone <span class="required">*</span></label
+            >
             <input
               type="text"
               class="form-input"

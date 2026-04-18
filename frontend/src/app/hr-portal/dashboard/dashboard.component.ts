@@ -16,7 +16,7 @@ import { ApplicationService } from '../../core/services/application.service';
 })
 export class DashboardComponent implements OnInit {
   isHR = false;
-
+  isSuperadmin = false;
   stats = signal({
     openVacancies: 0,
     applicantsInProcess: 0,
@@ -61,6 +61,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit() {
     this.isHR = this.auth.isHR();
+    this.isSuperadmin = this.auth.isSuperadmin();
 
     // Load data from MockDataService
     this.stats.set(this.mockData.getDashboardStats());

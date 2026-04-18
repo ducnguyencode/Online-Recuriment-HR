@@ -9,10 +9,10 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApplicationStatus } from 'src/common/enum';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
 import { ApplicationFindDto } from 'src/dto/application/application.find.dto';
 import { Application } from 'src/entities/application.entity';
-import { ApplicationStatus } from 'src/enum/application-status.enum';
 import { ApiResponse } from 'src/helper/api-response';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicationService } from 'src/services/application.service';
