@@ -88,7 +88,7 @@ export class AuthService {
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.DEV_ROLE_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/hr-portal/login']);
+    this.router.navigate(['/']);
   }
 
   getToken(): string | null {
@@ -150,6 +150,10 @@ export class AuthService {
   }
 
   refreshMe() {
+    const token = this.getToken();
+    if (!token && !this.currentUser()) {
+      return;
+    }
     return this.http.get<UserAccount>(`${environment.apiUrl}/auth/me`).pipe(
       tap((user) => {
         localStorage.setItem(this.USER_KEY, JSON.stringify(user));

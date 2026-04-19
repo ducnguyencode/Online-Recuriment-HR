@@ -9,9 +9,9 @@ import { AuthService } from './core/services/auth.service';
   template: `<router-outlet />`,
 })
 export class AppComponent implements OnInit {
-  constructor(private authService: AuthService) {}
+  constructor(public authService: AuthService) {}
   ngOnInit(): void {
-    this.authService.refreshMe().subscribe({
+    this.authService.refreshMe()?.subscribe({
       error: () => {
         this.authService.logout();
       },

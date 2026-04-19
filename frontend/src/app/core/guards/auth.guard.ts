@@ -2,10 +2,10 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-export const authGuard: CanActivateFn = () => {
+export const authAdminGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  if (auth.isLoggedIn()) {
+  if (auth.isLoggedIn() && !auth.isApplicant()) {
     return true;
   }
   // DEV MODE: Auto-login vì Login page do Dev 5 xây dựng
@@ -16,7 +16,7 @@ export const authGuard: CanActivateFn = () => {
   // }
 
   // Production: redirect về login (do Dev 5 build)
-  router.navigate(['/hr-portal/login']);
+  router.navigate(['/']);
   return false;
 };
 
@@ -30,11 +30,24 @@ export const hrGuard: CanActivateFn = () => {
   return false;
 };
 
-export const guestGuard: CanActivateFn = () => {
+export const loginAdminGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.isLoggedIn() && auth.isApplicant()) {
+    return router.navigate(['/']);
+  }
+
+  if (auth.isLoggedIn() && !auth.isApplicant()) {
+    return router.navigate(['/hr-portal']);
+  }
+  return true;
+};
+
+export const loginGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   if (auth.isLoggedIn()) {
-    return router.navigate(['/hr-portal']);
+    return router.navigate(['/']);
   }
   return true;
 };

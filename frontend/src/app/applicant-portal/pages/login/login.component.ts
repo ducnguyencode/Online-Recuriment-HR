@@ -7,7 +7,7 @@ import { Router, RouterModule } from '@angular/router';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
+  styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent implements OnInit {
   // viewMode sẽ có 3 trạng thái: 'login', 'register', 'forgot'
@@ -36,8 +36,10 @@ export class LoginComponent implements OnInit {
     event.preventDefault();
     let message = '';
 
-    if (this.viewMode === 'login') message = 'Đăng nhập thành công! Đang vào Dashboard...';
-    else if (this.viewMode === 'register') message = 'Đăng ký hoàn tất! Vui lòng xác thực Email.';
+    if (this.viewMode === 'login')
+      message = 'Đăng nhập thành công! Đang vào Dashboard...';
+    else if (this.viewMode === 'register')
+      message = 'Đăng ký hoàn tất! Vui lòng xác thực Email.';
     else message = 'Yêu cầu đã gửi! Vui lòng kiểm tra hộp thư để đổi mật khẩu.';
 
     alert(message);
