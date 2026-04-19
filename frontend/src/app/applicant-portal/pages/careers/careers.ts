@@ -1,47 +1,99 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Title, Meta } from '@angular/platform-browser';
-
-interface Job {
-  id: string; title: string; department: string; location: string; type: string; salary: string; skills: string[]; postedDate: string;
-}
+import { RouterModule, Router } from '@angular/router';
+import { VacancyService } from '../../../core/services/vacancy.service';
+import { Vacancy } from '../../../core/models';
 
 @Component({
   selector: 'app-careers',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './careers.html',
   styleUrls: ['./careers.scss']
 })
 export class CareersComponent implements OnInit {
-  jobs: Job[] = [
-    { id: 'VAC-001', title: 'Senior Frontend Developer (Angular)', department: 'Engineering', location: 'Hồ Chí Minh', type: 'Full-time', salary: '$1500 - $2500', skills: ['Angular', 'TypeScript', 'Tailwind CSS'], postedDate: '15/04/2026' },
-    { id: 'VAC-002', title: 'Backend Developer (NestJS)', department: 'Engineering', location: 'Hà Nội', type: 'Full-time', salary: '$1200 - $2000', skills: ['Node.js', 'NestJS', 'PostgreSQL'], postedDate: '12/04/2026' },
-    { id: 'VAC-003', title: 'Product Designer (UI/UX)', department: 'Design', location: 'Remote', type: 'Full-time', salary: 'Thỏa thuận', skills: ['Figma', 'Prototyping', 'User Research'], postedDate: '10/04/2026' }
+  isLoggedIn = false;
+  jobs: any[] = [];
+  isLoading = true;
+
+  private router = inject(Router);
+  private vacancyService = inject(VacancyService);
+
+  private mockData = [
+    {
+      id: 'V0001',
+      title: 'Senior Frontend Developer (Angular)',
+      description: 'Lead the development of our recruitment platform using Angular 17 and Tailwind CSS.',
+      department: { name: 'Engineering' },
+      createdAt: new Date().toISOString(),
+      closingDate: '2026-06-30',
+      numberOfOpenings: 2,
+      isFavorite: false
+    },
+    {
+      id: 'V0002',
+      title: 'Backend Developer (NestJS)',
+      description: 'Build scalable microservices and manage MongoDB databases for high-traffic applications.',
+      department: { name: 'Engineering' },
+      createdAt: new Date().toISOString(),
+      closingDate: '2026-07-15',
+      numberOfOpenings: 5,
+      isFavorite: true
+    },
+    {
+      id: 'V0003',
+      title: 'UI/UX Product Designer',
+      description: 'Design intuitive and beautiful user interfaces for our applicant tracking system.',
+      department: { name: 'Design' },
+      createdAt: new Date().toISOString(),
+      closingDate: '2026-05-20',
+      numberOfOpenings: 1,
+      isFavorite: false
+    }
   ];
 
-  isModalOpen = false;
-  selectedJobTitle = '';
-
-  constructor(private titleService: Title, private metaService: Meta) {}
-
   ngOnInit() {
-    this.titleService.setTitle('Cơ Hội Việc Làm | Tuyển Dụng Công Nghệ');
-    this.metaService.updateTag({ name: 'description', content: 'Khám phá các vị trí tuyển dụng hấp dẫn tại công ty.' });
+    this.fetchJobs();
   }
 
-  openApplyModal(jobTitle: string) {
-    this.selectedJobTitle = jobTitle;
-    this.isModalOpen = true;
+  fetchJobs() {
+    this.isLoading = true;
+
+    this.vacancyService.getAll({ status: 'Opened' }).subscribe({
+      next: (response: any) => {
+        const apiJobs = response?.data?.items || response?.data || [];
+
+        if (apiJobs && apiJobs.length > 0) {
+          this.jobs = apiJobs.map((job: any) => ({
+            ...job,
+            isFavorite: false
+          }));
+        } else {
+          this.jobs = [...this.mockData];
+        }
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('API connection failed, using fallback mock data:', err);
+        this.jobs = [...this.mockData];
+        this.isLoading = false;
+      }
+    });
   }
 
-  closeApplyModal() {
-    this.isModalOpen = false;
+  toggleFavorite(job: any) {
+    job.isFavorite = !job.isFavorite;
   }
 
-  submitApplication(event: Event) {
-    event.preventDefault();
-    alert('🎉 Nộp CV thành công! Dữ liệu đã được chuyển đến bộ phận HR để bóc tách AI.');
-    this.closeApplyModal();
+  viewDetails(job: any) {
+    alert('Opening details for: ' + job.title);
+  }
+
+  applyJob(job: any) {
+    if (!this.isLoggedIn) {
+      this.router.navigate(['/login']);
+    } else {
+      alert('Applied successfully for: ' + job.title);
+    }
   }
 }
