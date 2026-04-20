@@ -38,7 +38,7 @@ export class StaffManagementComponent implements OnInit {
   formData: CreateStaffAccountDto = {
     email: '',
     fullName: '',
-    role: 'HR',
+    role: UserRole.HR,
     departmentId: '',
     position: '',
     phone: '',
@@ -56,7 +56,8 @@ export class StaffManagementComponent implements OnInit {
 
   loadDepartments() {
     this.departmentService.getAll().subscribe({
-      next: (res) => this.departments.set(Array.isArray(res.data) ? res.data : []),
+      next: (res) =>
+        this.departments.set(Array.isArray(res.data) ? res.data : []),
       error: () => this.departments.set([]),
     });
   }
@@ -120,7 +121,7 @@ export class StaffManagementComponent implements OnInit {
     this.formData = {
       email: '',
       fullName: '',
-      role: 'HR',
+      role: UserRole.HR,
       departmentId: '',
       position: '',
       phone: '',
@@ -189,10 +190,14 @@ export class StaffManagementComponent implements OnInit {
   resendCredentials(user: UserAccount) {
     if (!confirm(`Send a fresh temporary password to ${user.email}?`)) return;
     this.adminService.resendTemporaryPassword(user.id).subscribe({
-      next: () => this.formSuccess.set(`New credentials have been emailed to ${user.email}.`),
+      next: () =>
+        this.formSuccess.set(
+          `New credentials have been emailed to ${user.email}.`,
+        ),
       error: (err) =>
         this.errorMsg.set(
-          err?.error?.message ?? 'Unable to resend credentials. Please try again.',
+          err?.error?.message ??
+            'Unable to resend credentials. Please try again.',
         ),
     });
   }
@@ -205,7 +210,8 @@ export class StaffManagementComponent implements OnInit {
       next: () => this.loadUsers(),
       error: (err) =>
         this.errorMsg.set(
-          err?.error?.message ?? 'Unable to update the account status. Please try again.',
+          err?.error?.message ??
+            'Unable to update the account status. Please try again.',
         ),
     });
   }

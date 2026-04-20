@@ -1,8 +1,8 @@
 import { IsEnum, IsNotEmpty } from 'class-validator';
-import { InterviewStatus } from '../enum/interview-status.enum';
+import { InterviewStatus } from 'src/common/enum';
 
 export class InterviewUpdateStatusDto {
-    @IsEnum(InterviewStatus)
-    @IsNotEmpty()
-    status: InterviewStatus;
+  @IsEnum(InterviewStatus)
+  @IsNotEmpty()
+  status!: InterviewStatus;
 }

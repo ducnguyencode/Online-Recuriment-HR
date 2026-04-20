@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { UserAccount } from '../../../core/models';
+import { UserAccount, UserRole } from '../../../core/models';
 
 interface NavItem {
   label: string;
@@ -18,7 +18,7 @@ interface NavItem {
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.component.html',
-  styleUrl: './sidebar.component.scss'
+  styleUrl: './sidebar.component.scss',
 })
 export class SidebarComponent {
   collapsed = signal(false);
@@ -30,7 +30,12 @@ export class SidebarComponent {
     { label: 'Applicants', icon: 'users', route: '/hr-portal/applicants', hrOnly: true },
     { label: 'Applications', icon: 'file-text', route: '/hr-portal/applications', hrOnly: true },
     { label: 'Interviews', icon: 'calendar', route: '/hr-portal/interviews' },
-    { label: 'Reports', icon: 'bar-chart-3', route: '/hr-portal/reports', hrOnly: true },
+    {
+      label: 'Reports',
+      icon: 'bar-chart-3',
+      route: '/hr-portal/reports',
+      hrOnly: true,
+    },
   ];
 
   systemItems: NavItem[] = [
@@ -41,13 +46,28 @@ export class SidebarComponent {
     { label: 'Help', icon: 'circle-help', route: '/hr-portal/help' },
   ];
 
-  readonly devRoles: { role: UserAccount['role']; label: string; email: string }[] = [
-    { role: 'Superadmin', label: 'Superadmin', email: 'admin@abc.com' },
-    { role: 'HR', label: 'HR Staff', email: 'an.nguyen@abc.com' },
-    { role: 'Interviewer', label: 'Interviewer', email: 'cuong.le@abc.com' },
+  readonly devRoles: {
+    role: UserAccount['role'];
+    label: string;
+    email: string;
+  }[] = [
+    {
+      role: UserRole.SUPER_ADMIN,
+      label: UserRole.SUPER_ADMIN,
+      email: 'admin@abc.com',
+    },
+    { role: UserRole.HR, label: UserRole.HR, email: 'an.nguyen@abc.com' },
+    {
+      role: UserRole.INTERVIEWER,
+      label: UserRole.INTERVIEWER,
+      email: 'cuong.le@abc.com',
+    },
   ];
 
-  constructor(public auth: AuthService, private router: Router) {}
+  constructor(
+    public auth: AuthService,
+    private router: Router,
+  ) {}
 
   get visibleMenuItems(): NavItem[] {
     return this.menuItems.filter(item => this.canSee(item));
@@ -64,11 +84,11 @@ export class SidebarComponent {
   }
 
   toggleCollapse() {
-    this.collapsed.update(v => !v);
+    this.collapsed.update((v) => !v);
   }
 
   toggleRoleMenu() {
-    this.showRoleMenu.update(v => !v);
+    this.showRoleMenu.update((v) => !v);
   }
 
   switchRole(role: UserAccount['role']) {

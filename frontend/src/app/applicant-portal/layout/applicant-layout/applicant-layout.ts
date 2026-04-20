@@ -1,25 +1,29 @@
-import { Component } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  OnInit,
+  Signal,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+import { UserAccount } from '../../../core/models';
 
 @Component({
   selector: 'app-applicant-layout',
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './applicant-layout.html',
-  styleUrls: ['./applicant-layout.scss']
+  styleUrls: ['./applicant-layout.scss'],
 })
-export class ApplicantLayoutComponent {
-  isLogin = true;
+export class ApplicantLayoutComponent implements OnInit {
+  auth = inject(AuthService);
 
-  mockUser = {
-    fullName: 'Nguyen Khang'
-  };
-
-  constructor(private router: Router) {}
-
+  constructor() {}
+  ngOnInit(): void {}
   logout() {
-    this.isLogin = false;
-    this.router.navigate(['/careers']);
+    this.auth.logout();
   }
 }

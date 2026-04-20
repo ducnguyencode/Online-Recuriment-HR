@@ -9,10 +9,10 @@ import { ApplicationService } from '../../../core/services/application.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import {
   Applicant,
+  ApplicantStatus,
   Application,
   CV,
   displayApplicantStatus,
-  formatDisplayId,
 } from '../../../core/models';
 
 @Component({
@@ -23,12 +23,8 @@ import {
   styleUrl: './applicant-list.component.scss',
 })
 export class ApplicantListComponent implements OnInit {
-  applicantStatus: Applicant['status'][] = [
-    'Not In Process',
-    'In Process',
-    'Hired',
-    'Banned',
-  ];
+  applicantStatus = ApplicantStatus;
+  applicantStatusList = Object.values(this.applicantStatus);
   applicants = signal<Applicant[]>([]);
   loading = signal(false);
   totalItems = signal(0);
@@ -94,7 +90,9 @@ export class ApplicantListComponent implements OnInit {
           const start = (this.currentPage() - 1) * this.pageSize;
           this.applicants.set(all.slice(start, start + this.pageSize));
           this.totalItems.set(all.length);
-          this.totalPages.set(Math.max(1, Math.ceil(all.length / this.pageSize)));
+          this.totalPages.set(
+            Math.max(1, Math.ceil(all.length / this.pageSize)),
+          );
           this.loading.set(false);
         },
       });
@@ -147,7 +145,11 @@ export class ApplicantListComponent implements OnInit {
   }
 
   saveApplicant() {
-    if (!this.formData.fullName.trim() || !this.formData.email.trim() || !this.formData.phone.trim()) {
+    if (
+      !this.formData.fullName.trim() ||
+      !this.formData.email.trim() ||
+      !this.formData.phone.trim()
+    ) {
       this.formError = 'Full name, email and phone are required.';
       return;
     }
@@ -160,13 +162,15 @@ export class ApplicantListComponent implements OnInit {
             this.closeFormDialog();
             this.loadApplicants();
           },
-          error: () => {
-            this.mockData.updateApplicant(
-              this.selectedApplicant()!.id,
-              this.formData as Partial<Applicant>,
-            );
-            this.closeFormDialog();
-            this.loadApplicants();
+          error: (err) => {
+            this.formError = err.error.message;
+
+            // this.mockData.updateApplicant(
+            //   this.selectedApplicant()!.id,
+            //   this.formData as Partial<Applicant>,
+            // );
+            // this.closeFormDialog();
+            // this.loadApplicants();
           },
         });
       return;
@@ -262,18 +266,6 @@ export class ApplicantListComponent implements OnInit {
       .toUpperCase();
   }
 
-  applicantDisplayId(id: string) {
-    return formatDisplayId('A', id);
-  }
-
-  applicationDisplayId(id?: string) {
-    return formatDisplayId('R', id);
-  }
-
-  vacancyDisplayId(id: string) {
-    return formatDisplayId('V', id);
-  }
-
   displayStatus(status?: string) {
     return displayApplicantStatus(status);
   }
@@ -288,9 +280,16 @@ export class ApplicantListComponent implements OnInit {
     const query = this.searchQuery.trim().toLowerCase();
     if (!query) return applicants;
     return applicants.filter((applicant) => {
-      const values = [applicant.code, applicant.id, applicant.fullName, applicant.email];
+      const values = [
+        applicant.code,
+        applicant.id,
+        applicant.fullName,
+        applicant.email,
+      ];
       return values.some((value) =>
-        String(value ?? '').toLowerCase().includes(query),
+        String(value ?? '')
+          .toLowerCase()
+          .includes(query),
       );
     });
   }

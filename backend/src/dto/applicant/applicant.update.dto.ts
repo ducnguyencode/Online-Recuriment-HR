@@ -1,6 +1,6 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsString } from 'class-validator';
 
-export class ApplicantCreateDto {
+export class ApplicantUpdateDto {
   @IsString()
   fullName!: string;
 
@@ -8,6 +8,5 @@ export class ApplicantCreateDto {
   email!: string;
 
   @IsString()
-  @IsOptional()
   phone!: string;
 }

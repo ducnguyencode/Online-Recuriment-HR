@@ -43,6 +43,7 @@ export class ApplicationListComponent implements OnInit {
   applicationStatus = Object.values(ApplicationStatus);
   applications = signal<Application[]>([]);
   vacancies = signal<Vacancy[]>([]);
+  applicants = signal<Applicant[]>([]);
   availableInterviewers = signal<Employee[]>([]);
   loading = signal(false);
   totalItems = signal(0);
@@ -96,7 +97,7 @@ export class ApplicationListComponent implements OnInit {
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
-  ) { }
+  ) {}
 
   ngOnInit() {
     this.loadVacancies();
@@ -104,25 +105,27 @@ export class ApplicationListComponent implements OnInit {
   }
 
   loadVacancies() {
-    this.vacancyService.getAll({ status: 'Opened', page: 1, limit: 100 }).subscribe({
-      next: (res) => {
-        const items = (res.data as any)?.items ?? res.data ?? [];
-        this.vacancies.set(items);
-      },
-      error: () => {
-        const raw = this.mockData.getVacancies({ status: 'Opened' });
-        this.vacancies.set(
-          raw.map((v) => ({
-            ...v,
-            id: String(v.id),
-            departmentId: String(v.departmentId),
-            ownedByEmployeeId: String(v.ownedByEmployeeId),
-            numberOfOpenings: (v as any).openings ?? v.numberOfOpenings ?? 1,
-            closingDate: (v as any).deadline ?? v.closingDate ?? '',
-          })) as unknown as Vacancy[],
-        );
-      },
-    });
+    this.vacancyService
+      .getAll({ status: 'Opened', page: 1, limit: 100 })
+      .subscribe({
+        next: (res) => {
+          const items = (res.data as any)?.items ?? res.data ?? [];
+          this.vacancies.set(items);
+        },
+        error: () => {
+          const raw = this.mockData.getVacancies({ status: 'Opened' });
+          this.vacancies.set(
+            raw.map((v) => ({
+              ...v,
+              id: String(v.id),
+              departmentId: String(v.departmentId),
+              ownedByEmployeeId: String(v.ownedByEmployeeId),
+              numberOfOpenings: (v as any).openings ?? v.numberOfOpenings ?? 1,
+              closingDate: (v as any).deadline ?? v.closingDate ?? '',
+            })) as unknown as Vacancy[],
+          );
+        },
+      });
   }
 
   loadApplications() {
@@ -168,7 +171,9 @@ export class ApplicationListComponent implements OnInit {
           })) as unknown as Application[];
           this.applications.set(items.slice(start, start + this.pageSize));
           this.totalItems.set(items.length);
-          this.totalPages.set(Math.max(1, Math.ceil(items.length / this.pageSize)));
+          this.totalPages.set(
+            Math.max(1, Math.ceil(items.length / this.pageSize)),
+          );
           this.loading.set(false);
         },
       });
@@ -250,14 +255,18 @@ export class ApplicationListComponent implements OnInit {
       .getAll({ search: this.attachSearchQuery, page: 1, limit: 10 })
       .subscribe({
         next: (res) => {
-          const items = ((res.data as any)?.items ?? res.data ?? []) as Applicant[];
+          const items = ((res.data as any)?.items ??
+            res.data ??
+            []) as Applicant[];
           this.attachSearchResults.set(
             items.filter((item) => canAttachVacancyToApplicant(item.status)),
           );
           this.attachSearching.set(false);
         },
         error: () => {
-          const all = this.mockData.getApplicants({ search: this.attachSearchQuery });
+          const all = this.mockData.getApplicants({
+            search: this.attachSearchQuery,
+          });
           this.attachSearchResults.set(
             all
               .filter((item) => canAttachVacancyToApplicant(item.status))
@@ -337,7 +346,10 @@ export class ApplicationListComponent implements OnInit {
   }
 
   canSchedule(app: Application): boolean {
-    return app.status === 'Pending' || app.status === 'Screening';
+    return (
+      app.status === ApplicationStatus.PENDING ||
+      app.status === ApplicationStatus.SCREENING
+    );
   }
 
   openInterviewDialog(app: Application, event: Event) {
@@ -446,8 +458,15 @@ export class ApplicationListComponent implements OnInit {
   }
 
   saveInterview() {
-    const { applicationId, title, description, date, startTime, endTime, platform } =
-      this.interviewData;
+    const {
+      applicationId,
+      title,
+      description,
+      date,
+      startTime,
+      endTime,
+      platform,
+    } = this.interviewData;
     const applicantId =
       this.interviewApplication()?.applicantId ??
       this.interviewApplication()?.applicant?.id;
@@ -518,9 +537,11 @@ export class ApplicationListComponent implements OnInit {
       applicationId,
       title,
       description: description || '',
-      panel: this.selectedPanelIds.map(id => ({
+      panel: this.selectedPanelIds.map((id) => ({
         employeeId: id,
-        role: this.availableInterviewers().find(e => e.id === id)?.position ?? 'Interviewer',
+        role:
+          this.availableInterviewers().find((e) => e.id === id)?.position ??
+          'Interviewer',
       })),
       startTime: startISO,
       endTime: endISO,
@@ -552,19 +573,23 @@ export class ApplicationListComponent implements OnInit {
     this.loading.set(true);
     this.interviewService.schedule(dto).subscribe({
       next: () => {
-        alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
+        alert(
+          'Interview scheduled successfully! Emails and Google Meet links are being sent.',
+        );
         this.closeInterviewDialog();
         this.loadApplications();
       },
       error: (err) => {
         console.error('Error:', err);
-        this.interviewError = err.error?.message || 'Conflict detected or HR/Interviewer is not available at this time.';
+        this.interviewError =
+          err.error?.message ||
+          'Conflict detected or HR/Interviewer is not available at this time.';
       },
     });
   }
 
   private getApplicantNameByAppId(appId: string): string {
-    const app = this.applications().find(a => a.id === appId);
+    const app = this.applications().find((a) => a.id === appId);
     return app?.applicant?.fullName ?? 'Applicant';
   }
 
@@ -595,30 +620,6 @@ export class ApplicationListComponent implements OnInit {
       .slice(-2)
       .join('')
       .toUpperCase();
-  }
-
-  applicantDisplayId(id?: string) {
-    return formatDisplayId('A', id);
-  }
-
-  vacancyDisplayId(id?: string) {
-    return formatDisplayId('V', id);
-  }
-
-  applicationDisplayId(id?: string) {
-    return formatDisplayId('R', id);
-  }
-
-  displayApplicationCode(app: Application) {
-    return app.code || this.applicationDisplayId(app.id);
-  }
-
-  displayApplicantCode(app: Application) {
-    return app.applicant?.code || this.applicantDisplayId(app.applicant?.id || app.applicantId);
-  }
-
-  displayVacancyCode(app: Application) {
-    return app.vacancy?.code || this.vacancyDisplayId(app.vacancy?.id || app.vacancyId);
   }
 
   displayApplicationDate(app: Application) {
@@ -692,13 +693,16 @@ export class ApplicationListComponent implements OnInit {
           this.availableInterviewers.set(this.getMockInterviewers());
           return;
         }
-        this.employeeService.getInterviewersByDepartment(resolvedDepartmentId).subscribe({
-          next: (employeeRes) =>
-            this.availableInterviewers.set(
-              Array.isArray(employeeRes.data) ? employeeRes.data : [],
-            ),
-          error: () => this.availableInterviewers.set(this.getMockInterviewers()),
-        });
+        this.employeeService
+          .getInterviewersByDepartment(resolvedDepartmentId)
+          .subscribe({
+            next: (employeeRes) =>
+              this.availableInterviewers.set(
+                Array.isArray(employeeRes.data) ? employeeRes.data : [],
+              ),
+            error: () =>
+              this.availableInterviewers.set(this.getMockInterviewers()),
+          });
       },
       error: () => this.availableInterviewers.set(this.getMockInterviewers()),
     });
@@ -728,7 +732,9 @@ export class ApplicationListComponent implements OnInit {
         app.vacancy?.title,
       ];
       return values.some((value) =>
-        String(value ?? '').toLowerCase().includes(query),
+        String(value ?? '')
+          .toLowerCase()
+          .includes(query),
       );
     });
   }

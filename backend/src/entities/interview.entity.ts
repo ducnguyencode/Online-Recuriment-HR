@@ -1,50 +1,60 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { Application } from './application.entity';
 import { InterviewerPanel } from './interviewer-panel.entity';
 
 @Entity('interviews')
 export class Interview {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
-    @Column({ length: 255 })
-    title: string;
+  @Column({ length: 255 })
+  title!: string;
 
-    @Column({ type: 'text', nullable: true })
-    description: string;
+  @Column({ type: 'text', nullable: true })
+  description!: string;
 
-    @Column({ name: 'application_id' })
-    applicationId: string;
+  @Column({ name: 'application_id' })
+  applicationId!: string;
 
-    @Column({ type: 'timestamptz' })
-    startTime: Date;
+  @Column({ type: 'timestamptz' })
+  startTime!: Date;
 
-    @Column({ type: 'timestamptz' })
-    endTime: Date;
+  @Column({ type: 'timestamptz' })
+  endTime!: Date;
 
-    @Column({ length: 50, default: 'GoogleMeet' })
-    meetPlatform: string;
+  @Column({ length: 50, default: 'GoogleMeet' })
+  meetPlatform!: string;
 
-    @Column({ nullable: true })
-    meetLink: string;
+  @Column({ nullable: true })
+  meetLink!: string;
 
-    @Column({ name: 'google_calendar_event_id', nullable: true })
-    googleCalendarEventId: string;
+  @Column({ name: 'google_calendar_event_id', nullable: true })
+  googleCalendarEventId!: string;
 
-    @Column({
-        type: 'enum',
-        enum: ['Scheduled', 'Completed', 'Cancelled', 'Postponed'],
-        default: 'Scheduled'
-    })
-    status: string;
+  @Column({
+    type: 'enum',
+    enum: ['Scheduled', 'Completed', 'Cancelled', 'Postponed'],
+    default: 'Scheduled',
+  })
+  status!: string;
 
-    @Column({ nullable: true })
-    finalResult: string; // Pass/Fail
+  @Column({ nullable: true })
+  finalResult!: string; // Pass/Fail
 
-    @ManyToOne(() => Application)
-    @JoinColumn({ name: 'application_id' })
-    application: Application;
+  @ManyToOne(() => Application)
+  @JoinColumn({ name: 'application_id' })
+  application!: Application;
 
-    @OneToMany(() => InterviewerPanel, panel => panel.interview, { cascade: true })
-    panels: InterviewerPanel[];
+  @OneToMany(() => InterviewerPanel, (panel) => panel.interview, {
+    cascade: true,
+  })
+  @JoinColumn({ name: 'interviewers_panel_id' })
+  panels!: InterviewerPanel[];
 }

@@ -31,8 +31,22 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { join } from 'path';
 import { InAppNotification } from './entities/notification.entity';
-import { EmailCronService } from './cron/email.cron';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CustomValidator } from './common/validator/custom.validator';
+import { UserService } from './services/user.service';
+import { AuthService } from './services/auth.service';
+import { AuthController } from './controller/auth.controller';
+import { JwtStrategy } from './common/jwt.strategy';
+import { User } from './entities/user.entity';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { BootstrapService } from './services/bootstrap.service';
+import { Seed } from './database/seed';
+import { Employee } from './entities/employee.entity';
+import { MailService } from './services/mail.service';
+import { NotificationsService } from './notification/notification.service';
+import { InterviewerPanel } from './entities/interviewer-panel.entity';
+import { InterviewerAvailability } from './entities/interviewer-availability.entity';
 
 @Module({
   imports: [
@@ -44,7 +58,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
     MailerModule.forRootAsync({
       imports: [ConfigModule], // Import này để lấy được các biến .env
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         transport: {
           host: configService.get('SMTP_HOST'), // Ví dụ: smtp.gmail.com
           port: configService.get('SMTP_PORT'),
@@ -74,7 +88,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         redis: {
           host: configService.get('REDIS_HOST'),
           port: configService.get('REDIS_PORT'),
@@ -97,12 +111,35 @@ import { ScheduleModule } from '@nestjs/schedule';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
+
         autoLoadEntities: true,
-        synchronize: true, // Lưu ý: Tắt khi lên môi trường thực tế (Production)
+        synchronize: true,
+
+        // dropSchema: true,
       }),
     }),
-    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV, Interview, InAppNotification]),
-
+    TypeOrmModule.forFeature([
+      Vacancy,
+      Department,
+      Application,
+      Applicant,
+      CV,
+      User,
+      Employee,
+      Interview,
+      InterviewerPanel,
+      InterviewerAvailability,
+      InAppNotification,
+    ]),
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET') || 'secret',
+        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') || '1d' },
+      }),
+    }),
   ],
   controllers: [
     VacancyController,
@@ -112,6 +149,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ApplicationController,
     DevToolsController,
     InterviewController,
+    AuthController,
   ],
   providers: [
     VacanciesService,
@@ -122,10 +160,17 @@ import { ScheduleModule } from '@nestjs/schedule';
     AiService,
     NotificationGateway,
     EmailQueueService,
-    EmailCronService,
     GoogleMeetService,
     InterviewService,
     InterviewListener,
+    CustomValidator,
+    UserService,
+    AuthService,
+    BootstrapService,
+    JwtStrategy,
+    Seed,
+    MailService,
+    NotificationsService,
   ],
 })
-export class AppModule { }
+export class AppModule {}

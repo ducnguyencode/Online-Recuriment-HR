@@ -1,4 +1,10 @@
-import { Component, signal, OnInit, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  signal,
+  OnInit,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -13,12 +19,9 @@ import {
   Application,
   Vacancy,
   Department,
-  VacancyStatus,
-  canChangeVacancyStatus,
-  formatDisplayId,
-  isVacancyClosedStatus,
-  isVacancyOpenStatus,
   isVacancyOwner,
+  VacancyStatus,
+  ApplicationStatus,
 } from '../../../core/models';
 
 @Component({
@@ -29,6 +32,7 @@ import {
   styleUrl: './vacancy-list.component.scss',
 })
 export class VacancyListComponent implements OnInit {
+  VacancyStatus = VacancyStatus;
   vacancies = signal<Vacancy[]>([]);
   departments = signal<Department[]>([]);
   loading = signal(false);
@@ -53,6 +57,7 @@ export class VacancyListComponent implements OnInit {
   showDetailDialog = signal(false);
   isEditing = signal(false);
   selectedVacancy = signal<Vacancy | null>(null);
+  minDate: string = '';
 
   formData: CreateVacancyDto = {
     title: '',
@@ -83,12 +88,15 @@ export class VacancyListComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    this.minDate = tomorrow.toISOString().split('T')[0];
     this.loadDepartments();
     this.loadVacancies();
   }
 
   get currentUserId(): string {
-    return this.auth.currentUser()?.employeeId ?? '';
+    return this.auth.currentUser()?.id ?? '';
   }
 
   // ── Business rule helpers ────────────────────────────────────────────────
@@ -97,36 +105,43 @@ export class VacancyListComponent implements OnInit {
     return isVacancyOwner(v, this.currentUserId);
   }
 
-  hasOwnerData(v: Vacancy): boolean {
-    return !!(v.ownedByEmployeeId || v.owner?.fullName);
+  isSuperadmin(): boolean {
+    return this.auth.isSuperadmin();
+  }
+
+  isClosedOrSuspended(v: Vacancy): boolean {
+    return [VacancyStatus.CLOSED, VacancyStatus.SUSPENDED].includes(v.status);
   }
 
   canEdit(v: Vacancy): boolean {
     return (
-      this.hasOwnerData(v) &&
-      isVacancyOwner(v, this.currentUserId) &&
-      !isVacancyClosedStatus(v.status)
+      (isVacancyOwner(v, this.currentUserId) && !this.isClosedOrSuspended(v)) ||
+      this.isSuperadmin()
     );
   }
 
   canChangeStatus(v: Vacancy): boolean {
     return (
-      this.hasOwnerData(v) &&
-      isVacancyOwner(v, this.currentUserId) && canChangeVacancyStatus(v.status)
+      (isVacancyOwner(v, this.currentUserId) && !this.isClosedOrSuspended(v)) ||
+      this.isSuperadmin()
     );
   }
 
   editTitle(v: Vacancy): string {
-    if (!this.hasOwnerData(v)) return 'Owner data is unavailable';
-    if (isVacancyClosedStatus(v.status)) return 'Cannot edit a closed vacancy';
+    if (this.isClosedOrSuspended(v))
+      return 'Cannot edit a closed or suspended vacancy';
     if (!this.isOwner(v)) return 'Only the vacancy owner can edit';
     return 'Edit vacancy';
   }
 
   /** Per spec: Opened → Closed | Suspended. Suspended → Opened | Closed. Closed → nothing */
   allowedStatuses(v: Vacancy): VacancyStatus[] {
-    if (isVacancyOpenStatus(v.status)) return ['Suspended', 'Closed'];
-    if (v.status === 'Suspended') return ['Opened', 'Closed'];
+    if (v.status === VacancyStatus.OPENED)
+      return [VacancyStatus.SUSPENDED, VacancyStatus.CLOSED];
+    if (v.status === VacancyStatus.SUSPENDED)
+      return [VacancyStatus.OPENED, VacancyStatus.CLOSED];
+    if (v.status === VacancyStatus.CLOSED && this.isSuperadmin())
+      return [VacancyStatus.OPENED];
     return [];
   }
 
@@ -190,24 +205,29 @@ export class VacancyListComponent implements OnInit {
           // Fallback to mock while backend is being built
           const raw = this.applyLocalSearch(
             this.mockData.getVacancies({
-            status: this.filterStatus || undefined,
-            search: this.searchQuery || undefined,
-            departmentId: this.filterDepartment || undefined,
+              status: this.filterStatus || undefined,
+              search: this.searchQuery || undefined,
+              departmentId: this.filterDepartment || undefined,
             }),
           );
           const start = (this.currentPage() - 1) * this.pageSize;
           this.vacancies.set(
-            raw.map((v) => ({
-              ...v,
-              id: String(v.id),
-              departmentId: String(v.departmentId),
-              ownedByEmployeeId: String(v.ownedByEmployeeId),
-              numberOfOpenings: (v as any).openings ?? v.numberOfOpenings ?? 1,
-              closingDate: (v as any).deadline ?? v.closingDate ?? '',
-            })).slice(start, start + this.pageSize) as any,
+            raw
+              .map((v) => ({
+                ...v,
+                id: String(v.id),
+                departmentId: String(v.departmentId),
+                ownedByEmployeeId: String(v.ownedByEmployeeId),
+                numberOfOpenings:
+                  (v as any).openings ?? v.numberOfOpenings ?? 1,
+                closingDate: (v as any).deadline ?? v.closingDate ?? '',
+              }))
+              .slice(start, start + this.pageSize) as any,
           );
           this.totalItems.set(raw.length);
-          this.totalPages.set(Math.max(1, Math.ceil(raw.length / this.pageSize)));
+          this.totalPages.set(
+            Math.max(1, Math.ceil(raw.length / this.pageSize)),
+          );
           this.loading.set(false);
         },
       });
@@ -224,7 +244,9 @@ export class VacancyListComponent implements OnInit {
         vacancy.department?.name,
       ];
       return values.some((value) =>
-        String(value ?? '').toLowerCase().includes(query),
+        String(value ?? '')
+          .toLowerCase()
+          .includes(query),
       );
     });
   }
@@ -320,16 +342,18 @@ export class VacancyListComponent implements OnInit {
           this.closeDialogs();
           this.loadVacancies();
         },
-        error: () => {
-          // Mock fallback
-          this.mockData.updateVacancy(this.selectedVacancy()!.id, {
-            title: dto.title,
-            description: dto.description,
-            numberOfOpenings: dto.numberOfOpenings,
-            closingDate: dto.closingDate,
-          });
-          this.closeDialogs();
-          this.loadVacancies();
+        error: (err) => {
+          this.formError = err.error.message;
+
+          // // Mock fallback
+          // this.mockData.updateVacancy(this.selectedVacancy()!.id, {
+          //   title: dto.title,
+          //   description: dto.description,
+          //   numberOfOpenings: dto.numberOfOpenings,
+          //   closingDate: dto.closingDate,
+          // });
+          // this.closeDialogs();
+          // this.loadVacancies();
         },
       });
     } else {
@@ -370,29 +394,11 @@ export class VacancyListComponent implements OnInit {
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
-      Open: 'badge-success',
       Opened: 'badge-success',
       Suspended: 'badge-warning',
-      Close: 'badge-danger',
       Closed: 'badge-danger',
     };
     return map[status] ?? 'badge-neutral';
-  }
-
-  ownerDisplay(v: Vacancy): string {
-    return v.owner?.fullName ?? 'Unavailable';
-  }
-
-  applicantDisplayId(id?: string) {
-    return formatDisplayId('A', id);
-  }
-
-  isOpenStatus(status?: string) {
-    return isVacancyOpenStatus(status);
-  }
-
-  isClosedStatus(status?: string) {
-    return isVacancyClosedStatus(status);
   }
 
   displayedResultsCount(): number {
@@ -419,7 +425,9 @@ export class VacancyListComponent implements OnInit {
         vacancy.department?.name,
       ];
       return values.some((value) =>
-        String(value ?? '').toLowerCase().includes(query),
+        String(value ?? '')
+          .toLowerCase()
+          .includes(query),
       );
     });
   }
@@ -436,7 +444,7 @@ export class VacancyListComponent implements OnInit {
         },
         error: () => {
           const items = this.mockData
-            .getApplications({ vacancyId, status: 'Selected' })
+            .getApplications({ vacancyId, status: ApplicationStatus.SELECTED })
             .map((item) => ({
               ...item,
               id: String(item.id),
@@ -469,7 +477,10 @@ export class VacancyListComponent implements OnInit {
 
   applyExpandedContent() {
     if (this.editorEl) {
-      this.formData = { ...this.formData, description: this.editorEl.nativeElement.innerHTML };
+      this.formData = {
+        ...this.formData,
+        description: this.editorEl.nativeElement.innerHTML,
+      };
     }
     this.closeExpandedEditor();
   }

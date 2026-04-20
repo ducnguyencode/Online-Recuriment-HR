@@ -1,31 +1,43 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Department } from './department.entity';
+import { User } from './user.entity';
 
 @Entity('employees')
+@Index('UQ_employee_user', ['user'], { unique: true })
 export class Employee {
-    @PrimaryGeneratedColumn('uuid')
-    id: string; // Tương đương EmployeeID
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-    @Column({ name: 'employee_code', unique: true })
-    employeeCode: string;
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `'E' || LPAD(id::text, 4, '0')`,
+  })
+  code!: string;
 
-    @Column({ length: 255 })
-    fullName: string;
+  @OneToOne(() => User, (u) => u.employee)
+  @JoinColumn({ name: 'userId' })
+  user!: User;
 
-    @Column({ unique: true })
-    email: string;
+  @ManyToOne(() => Department, (d) => d.id, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'departmentId' })
+  department!: Department;
 
-    @Column({ length: 20, nullable: true })
-    phone: string;
+  @CreateDateColumn()
+  createdAt!: Date;
 
-    @Column({ name: 'department_id', nullable: true })
-    departmentId: string;
-
-    @Column({ length: 255, nullable: true })
-    jobTitle: string;
-
-    @Column({ default: true })
-    isActive: boolean;
-
-    @CreateDateColumn({ type: 'timestamptz' })
-    createdAt: Date;
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

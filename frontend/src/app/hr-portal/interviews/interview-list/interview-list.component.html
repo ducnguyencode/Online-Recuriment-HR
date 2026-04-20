@@ -2,18 +2,35 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Interviews</h1>
-      <p class="page-subtitle">Track and manage all scheduled interview sessions</p>
+      <p class="page-subtitle">
+        Track and manage all scheduled interview sessions
+      </p>
     </div>
-    <a class="btn-primary schedule-link" routerLink="/hr-portal/applications">Schedule From Applications</a>
+    <a class="btn-primary schedule-link" routerLink="/hr-portal/applications"
+      >Schedule From Applications</a
+    >
   </div>
 
-
   <div class="filter-bar">
-    <input class="form-input filter-search" [(ngModel)]="searchTerm"
-      placeholder="Search by applicant ID, vacancy ID, name, title..." />
+    <input
+      class="form-input filter-search"
+      [(ngModel)]="searchTerm"
+      placeholder="Search by applicant ID, vacancy ID, name, title..."
+    />
     <div class="header-filters">
-      <input class="form-input" type="date" [(ngModel)]="filterDate" (change)="loadData()" style="width:170px" />
-      <select class="form-select" [(ngModel)]="filterStatus" (change)="loadData()" style="width:180px">
+      <input
+        class="form-input"
+        type="date"
+        [(ngModel)]="filterDate"
+        (change)="loadData()"
+        style="width: 170px"
+      />
+      <select
+        class="form-select"
+        [(ngModel)]="filterStatus"
+        (change)="loadData()"
+        style="width: 180px"
+      >
         <option value="">All Statuses</option>
         <option value="Scheduled">Scheduled</option>
         <option value="Completed">Completed</option>
@@ -27,305 +44,484 @@
   <!-- Interview Timeline -->
   <div class="interview-timeline">
     @for (item of filteredInterviews(); track item.id) {
-    <div class="timeline-item" [class.completed]="item.status === 'Completed'"
-      [class.cancelled]="item.status === 'Cancelled'" (click)="openDetail(item)">
+      <div
+        class="timeline-item"
+        [class.completed]="item.status === InterviewStatus.COMPLETED"
+        [class.cancelled]="item.status === InterviewStatus.CANCELLED"
+        (click)="openDetail(item)"
+      >
+        <!-- Date Column -->
+        <div class="timeline-date-col">
+          <div class="timeline-date">{{ item.interviewDate | date: "dd" }}</div>
+          <div class="timeline-month">
+            {{ item.interviewDate | date: "MMM" }}
+          </div>
+          <div class="timeline-day">{{ item.interviewDate | date: "EEE" }}</div>
+        </div>
 
-      <!-- Date Column -->
-      <div class="timeline-date-col">
-        <div class="timeline-date">{{ item.interviewDate | date:'dd' }}</div>
-        <div class="timeline-month">{{ item.interviewDate | date:'MMM' }}</div>
-        <div class="timeline-day">{{ item.interviewDate | date:'EEE' }}</div>
-      </div>
+        <!-- Connector -->
+        <div class="timeline-connector">
+          <div
+            class="connector-dot"
+            [style.border-color]="getConnectorColor(item.status)"
+          ></div>
+          <div class="connector-line"></div>
+        </div>
 
-      <!-- Connector -->
-      <div class="timeline-connector">
-        <div class="connector-dot" [style.border-color]="getConnectorColor(item.status)"></div>
-        <div class="connector-line"></div>
-      </div>
-
-      <!-- Card -->
-      <div class="timeline-card">
-        <div class="tc-header">
-          <div class="tc-left">
-            <div class="tc-avatar">{{ getInitials(getApplicantName(item)) }}</div>
-            <div>
-              <h4 class="tc-name">{{ getApplicantName(item) }}</h4>
-              <p class="tc-vacancy">{{ getVacancyTitle(item) }}</p>
+        <!-- Card -->
+        <div class="timeline-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <div class="tc-avatar">
+                {{ getInitials(getApplicantName(item)) }}
+              </div>
+              <div>
+                <h4 class="tc-name">{{ getApplicantName(item) }}</h4>
+                <p class="tc-vacancy">{{ getVacancyTitle(item) }}</p>
+              </div>
             </div>
+            <span class="badge" [ngClass]="getStatusClass(item.status)">{{
+              item.status
+            }}</span>
           </div>
-          <span class="badge" [ngClass]="getStatusClass(item.status)">{{ item.status }}</span>
-        </div>
 
-        <div class="tc-details">
-          <div class="tc-detail-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            {{ item.startTime }} – {{ item.endTime }}
+          <div class="tc-details">
+            <div class="tc-detail-item">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              {{ item.startTime }} – {{ item.endTime }}
+            </div>
+            <div class="tc-detail-item">
+              <span>{{ getPlatformIcon(item.platform) }}</span>
+              {{ item.platform }}
+            </div>
+            <div class="tc-detail-item">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              {{ item.panel.length }} interviewer(s)
+            </div>
+            @if (item.googleMeetLink) {
+              <div class="tc-detail-item">
+                <span style="color: #1a73e8">📹</span>
+                <a
+                  [href]="item.googleMeetLink"
+                  target="_blank"
+                  class="meet-quick-link"
+                >
+                  Join Google Meet
+                </a>
+              </div>
+            }
           </div>
-          <div class="tc-detail-item">
-            <span>{{ getPlatformIcon(item.platform) }}</span> {{ item.platform }}
-          </div>
-          <div class="tc-detail-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            {{ item.panel.length }} interviewer(s)
-          </div>
-          @if (item.googleMeetLink) {
-          <div class="tc-detail-item">
-            <span style="color: #1a73e8;">📹</span>
-            <a [href]="item.googleMeetLink" target="_blank" class="meet-quick-link">
-              Join Google Meet
-            </a>
-          </div>
-          }
-        </div>
 
-        <!-- Panel vote summary -->
-        @if (item.panel.length > 0) {
-        <div class="tc-vote-summary">
-          {{ getPanelVoteSummary(item.panel) }}
-        </div>
-        }
+          <!-- Panel vote summary -->
+          @if (item.panel.length > 0) {
+            <div class="tc-vote-summary">
+              {{ getPanelVoteSummary(item.panel) }}
+            </div>
+          }
 
-        <!-- Action buttons -->
-        <div class="tc-actions" (click)="$event.stopPropagation()">
-          @if (item.status === 'Scheduled') {
-          @if (canReschedule()) {
-          <button class="btn-secondary btn-sm" (click)="openPostponeDialog(item, $event)">
-            Reschedule
-          </button>
-          }
-          @if (canSubmitResult()) {
-          <button class="btn-primary btn-sm" (click)="openResultDialog(item, $event)">
-            Submit Result
-          </button>
-          }
-          @if (canCancel()) {
-          <button class="btn-danger btn-sm" (click)="cancelInterview(item, $event)">
-            Cancel
-          </button>
-          }
-          }
+          <!-- Action buttons -->
+          <div class="tc-actions" (click)="$event.stopPropagation()">
+            @if (item.status === "Scheduled") {
+              @if (canReschedule()) {
+                <button
+                  class="btn-secondary btn-sm"
+                  (click)="openPostponeDialog(item, $event)"
+                >
+                  Reschedule
+                </button>
+              }
+              @if (canSubmitResult()) {
+                <button
+                  class="btn-primary btn-sm"
+                  (click)="openResultDialog(item, $event)"
+                >
+                  Submit Result
+                </button>
+              }
+              @if (canCancel()) {
+                <button
+                  class="btn-danger btn-sm"
+                  (click)="cancelInterview(item, $event)"
+                >
+                  Cancel
+                </button>
+              }
+            }
+          </div>
         </div>
       </div>
-    </div>
     } @empty {
-    <div class="empty-state">
-      <div class="empty-icon">📅</div>
-      <p>No interviews found</p>
-    </div>
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <p>No interviews found</p>
+      </div>
     }
   </div>
 </div>
 
 <!-- ====== DETAIL DIALOG ====== -->
 @if (showDetail() && selectedInterview()) {
-<div class="modal-backdrop" (click)="closeDetail()">
-  <div class="modal-content modal-md" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3 class="modal-title">Interview Details</h3>
-      <button class="btn-ghost btn-icon" (click)="closeDetail()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2">
-          <path d="M18 6 6 18" />
-          <path d="m6 6 12 12" />
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <!-- Applicant info -->
-      <div class="detail-top">
-        <div class="detail-avatar-lg">{{ getInitials(getApplicantName(selectedInterview()!)) }}</div>
-        <div>
-          <h3 class="detail-name">{{ getApplicantName(selectedInterview()!) }}</h3>
-          <p class="detail-email">{{ selectedInterview()!.application?.applicant?.email }}</p>
-          <span class="badge" [ngClass]="getStatusClass(selectedInterview()!.status)" style="margin-top:4px">
-            {{ selectedInterview()!.status }}
-          </span>
-        </div>
+  <div class="modal-backdrop" (click)="closeDetail()">
+    <div class="modal-content modal-md" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Interview Details</h3>
+        <button class="btn-ghost btn-icon" (click)="closeDetail()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
       </div>
-
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Application ID</span>
-          <span class="detail-value">{{ applicationDisplayId(selectedInterview()!.applicationId) }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Applicant ID</span>
-          <span class="detail-value">{{ applicantDisplayId(selectedInterview()!.application?.applicantId) }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Position</span>
-          <span class="detail-value">{{ getVacancyTitle(selectedInterview()!) }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Vacancy ID</span>
-          <span class="detail-value">{{ vacancyDisplayId(selectedInterview()!.application?.vacancyId) }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Date</span>
-          <span class="detail-value">{{ selectedInterview()!.interviewDate | date:'MM/dd/yyyy (EEEE)' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Time</span>
-          <span class="detail-value">{{ selectedInterview()!.startTime }} – {{ selectedInterview()!.endTime }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Platform</span>
-          <span class="detail-value">{{ getPlatformIcon(selectedInterview()!.platform) }} {{
-            selectedInterview()!.platform }}</span>
-        </div>
-      </div>
-
-      @if (selectedInterview()!.meetLink) {
-      <div class="meet-link-box">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-        </svg>
-        <a [href]="selectedInterview()!.meetLink" target="_blank">{{ selectedInterview()!.meetLink }}</a>
-      </div>
-      }
-
-      <!-- Interview Panel -->
-      <div class="cv-section" style="margin-top:20px">
-        <h4 class="section-title">Interview Panel</h4>
-        <div class="panel-detail-list">
-          @for (member of selectedInterview()!.panel; track member.employeeId) {
-          <div class="panel-detail-item">
-            <div class="interviewer-avatar">{{ getInitials(member.fullName ?? member.employee?.fullName) }}</div>
-            <div class="panel-detail-info">
-              <span class="panel-name">{{ member.fullName ?? member.employee?.fullName ?? member.employeeId }}</span>
-              <span class="panel-role">{{ member.role ?? 'Interviewer' }}</span>
-            </div>
-            <span class="vote-tag" [ngClass]="getVoteClass(member.vote)">
-              @if (member.vote === 'Pass') { ✅ Pass }
-              @else if (member.vote === 'Fail') { ❌ Fail }
-              @else { ⏳ Pending }
+      <div class="modal-body">
+        <!-- Applicant info -->
+        <div class="detail-top">
+          <div class="detail-avatar-lg">
+            {{ getInitials(getApplicantName(selectedInterview()!)) }}
+          </div>
+          <div>
+            <h3 class="detail-name">
+              {{ getApplicantName(selectedInterview()!) }}
+            </h3>
+            <p class="detail-email">
+              {{ selectedInterview()!.application?.applicant?.email }}
+            </p>
+            <span
+              class="badge"
+              [ngClass]="getStatusClass(selectedInterview()!.status)"
+              style="margin-top: 4px"
+            >
+              {{ selectedInterview()!.status }}
             </span>
           </div>
-          @if (member.feedback) {
-          <p class="panel-feedback">"{{ member.feedback }}"</p>
-          }
-          }
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Application ID</span>
+            <span class="detail-value">{{
+              applicationDisplayId(selectedInterview()!.applicationId)
+            }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Applicant ID</span>
+            <span class="detail-value">{{
+              applicantDisplayId(selectedInterview()!.application?.applicantId)
+            }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Position</span>
+            <span class="detail-value">{{
+              getVacancyTitle(selectedInterview()!)
+            }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Vacancy ID</span>
+            <span class="detail-value">{{
+              vacancyDisplayId(selectedInterview()!.application?.vacancyId)
+            }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Date</span>
+            <span class="detail-value">{{
+              selectedInterview()!.interviewDate | date: "MM/dd/yyyy (EEEE)"
+            }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Time</span>
+            <span class="detail-value"
+              >{{ selectedInterview()!.startTime }} –
+              {{ selectedInterview()!.endTime }}</span
+            >
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Platform</span>
+            <span class="detail-value"
+              >{{ getPlatformIcon(selectedInterview()!.platform) }}
+              {{ selectedInterview()!.platform }}</span
+            >
+          </div>
+        </div>
+
+        @if (selectedInterview()!.meetLink) {
+          <div class="meet-link-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+              />
+              <path
+                d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+              />
+            </svg>
+            <a [href]="selectedInterview()!.meetLink" target="_blank">{{
+              selectedInterview()!.meetLink
+            }}</a>
+          </div>
+        }
+
+        <!-- Interview Panel -->
+        <div class="cv-section" style="margin-top: 20px">
+          <h4 class="section-title">Interview Panel</h4>
+          <div class="panel-detail-list">
+            @for (
+              member of selectedInterview()!.panel;
+              track member.employeeId
+            ) {
+              <div class="panel-detail-item">
+                <div class="interviewer-avatar">
+                  {{
+                    getInitials(member.fullName ?? member.employee?.fullName)
+                  }}
+                </div>
+                <div class="panel-detail-info">
+                  <span class="panel-name">{{
+                    member.fullName ??
+                      member.employee?.fullName ??
+                      member.employeeId
+                  }}</span>
+                  <span class="panel-role">{{
+                    member.role ?? "Interviewer"
+                  }}</span>
+                </div>
+                <span class="vote-tag" [ngClass]="getVoteClass(member.vote)">
+                  @if (member.vote === "Pass") {
+                    ✅ Pass
+                  } @else if (member.vote === "Fail") {
+                    ❌ Fail
+                  } @else {
+                    ⏳ Pending
+                  }
+                </span>
+              </div>
+              @if (member.feedback) {
+                <p class="panel-feedback">"{{ member.feedback }}"</p>
+              }
+            }
+          </div>
         </div>
       </div>
-    </div>
-    <div class="modal-footer">
-      @if (selectedInterview()!.status === 'Scheduled') {
-      @if (canReschedule()) {
-      <button class="btn-secondary" (click)="openPostponeDialog(selectedInterview()!, $event); closeDetail()">
-        Reschedule
-      </button>
-      }
-      @if (canSubmitResult()) {
-      <button class="btn-primary" (click)="openResultDialog(selectedInterview()!, $event); closeDetail()">
-        Submit Result
-      </button>
-      }
-      }
-      <button class="btn-secondary" (click)="closeDetail()">Close</button>
+      <div class="modal-footer">
+        @if (selectedInterview()!.status === "Scheduled") {
+          @if (canReschedule()) {
+            <button
+              class="btn-secondary"
+              (click)="
+                openPostponeDialog(selectedInterview()!, $event); closeDetail()
+              "
+            >
+              Reschedule
+            </button>
+          }
+          @if (canSubmitResult()) {
+            <button
+              class="btn-primary"
+              (click)="
+                openResultDialog(selectedInterview()!, $event); closeDetail()
+              "
+            >
+              Submit Result
+            </button>
+          }
+        }
+        <button class="btn-secondary" (click)="closeDetail()">Close</button>
+      </div>
     </div>
   </div>
-</div>
 }
 
 <!-- ====== RESCHEDULE DIALOG ====== -->
 @if (showPostponeDialog()) {
-<div class="modal-backdrop" (click)="closePostponeDialog()">
-  <div class="modal-content modal-md" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3 class="modal-title">Reschedule Interview</h3>
-      <button class="btn-ghost btn-icon" (click)="closePostponeDialog()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2">
-          <path d="M18 6 6 18" />
-          <path d="m6 6 12 12" />
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      @if (postponeError) {
-      <div class="form-error-banner">{{ postponeError }}</div>
-      }
-      <div class="form-row">
-        <div class="form-group" style="flex:1">
-          <label class="form-label">Interview Date <span class="required">*</span></label>
-          <input type="date" class="form-input" [(ngModel)]="postponeData.interviewDate" />
+  <div class="modal-backdrop" (click)="closePostponeDialog()">
+    <div class="modal-content modal-md" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Reschedule Interview</h3>
+        <button class="btn-ghost btn-icon" (click)="closePostponeDialog()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        @if (postponeError) {
+          <div class="form-error-banner">{{ postponeError }}</div>
+        }
+        <div class="form-row">
+          <div class="form-group" style="flex: 1">
+            <label class="form-label"
+              >Interview Date <span class="required">*</span></label
+            >
+            <input
+              type="date"
+              class="form-input"
+              [(ngModel)]="postponeData.interviewDate"
+            />
+          </div>
+          <div class="form-group" style="width: 130px">
+            <label class="form-label"
+              >Start Time <span class="required">*</span></label
+            >
+            <input
+              type="time"
+              class="form-input"
+              [(ngModel)]="postponeData.startTime"
+            />
+          </div>
+          <div class="form-group" style="width: 130px">
+            <label class="form-label"
+              >End Time <span class="required">*</span></label
+            >
+            <input
+              type="time"
+              class="form-input"
+              [(ngModel)]="postponeData.endTime"
+            />
+          </div>
         </div>
-        <div class="form-group" style="width:130px">
-          <label class="form-label">Start Time <span class="required">*</span></label>
-          <input type="time" class="form-input" [(ngModel)]="postponeData.startTime" />
-        </div>
-        <div class="form-group" style="width:130px">
-          <label class="form-label">End Time <span class="required">*</span></label>
-          <input type="time" class="form-input" [(ngModel)]="postponeData.endTime" />
+        <div class="form-group">
+          <label class="form-label">Reason</label>
+          <textarea
+            class="form-input"
+            rows="3"
+            [(ngModel)]="postponeData.reason"
+            placeholder="Optional reason for rescheduling"
+          ></textarea>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Reason</label>
-        <textarea class="form-input" rows="3" [(ngModel)]="postponeData.reason"
-          placeholder="Optional reason for rescheduling"></textarea>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closePostponeDialog()">
+          Cancel
+        </button>
+        <button class="btn-primary" (click)="savePostpone()">
+          Save Changes
+        </button>
       </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" (click)="closePostponeDialog()">Cancel</button>
-      <button class="btn-primary" (click)="savePostpone()">Save Changes</button>
     </div>
   </div>
-</div>
 }
 
 <!-- ====== SUBMIT RESULT DIALOG ====== -->
 @if (showResultDialog()) {
-<div class="modal-backdrop" (click)="closeResultDialog()">
-  <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3 class="modal-title">Submit Interview Result</h3>
-      <button class="btn-ghost btn-icon" (click)="closeResultDialog()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2">
-          <path d="M18 6 6 18" />
-          <path d="m6 6 12 12" />
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      @if (resultError) {
-      <div class="form-error-banner">{{ resultError }}</div>
-      }
-      <div class="form-group">
-        <label class="form-label">Overall Vote <span class="required">*</span></label>
-        <div class="vote-choice-row">
-          <label class="vote-choice" [class.selected-pass]="resultData.vote === 'Pass'">
-            <input type="radio" name="vote" value="Pass" [(ngModel)]="resultData.vote" />
-            ✅ Pass — Recommend
-          </label>
-          <label class="vote-choice" [class.selected-fail]="resultData.vote === 'Fail'">
-            <input type="radio" name="vote" value="Fail" [(ngModel)]="resultData.vote" />
-            ❌ Fail — Not Recommend
-          </label>
+  <div class="modal-backdrop" (click)="closeResultDialog()">
+    <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Submit Interview Result</h3>
+        <button class="btn-ghost btn-icon" (click)="closeResultDialog()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        @if (resultError) {
+          <div class="form-error-banner">{{ resultError }}</div>
+        }
+        <div class="form-group">
+          <label class="form-label"
+            >Overall Vote <span class="required">*</span></label
+          >
+          <div class="vote-choice-row">
+            <label
+              class="vote-choice"
+              [class.selected-pass]="resultData.vote === 'Pass'"
+            >
+              <input
+                type="radio"
+                name="vote"
+                value="Pass"
+                [(ngModel)]="resultData.vote"
+              />
+              ✅ Pass — Recommend
+            </label>
+            <label
+              class="vote-choice"
+              [class.selected-fail]="resultData.vote === 'Fail'"
+            >
+              <input
+                type="radio"
+                name="vote"
+                value="Fail"
+                [(ngModel)]="resultData.vote"
+              />
+              ❌ Fail — Not Recommend
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label"
+            >Feedback <span class="required">*</span></label
+          >
+          <textarea
+            class="form-input"
+            rows="4"
+            placeholder="Write your evaluation notes..."
+            [(ngModel)]="resultData.feedback"
+            style="resize: vertical"
+          ></textarea>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Feedback <span class="required">*</span></label>
-        <textarea class="form-input" rows="4" placeholder="Write your evaluation notes..."
-          [(ngModel)]="resultData.feedback" style="resize:vertical"></textarea>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeResultDialog()">
+          Cancel
+        </button>
+        <button class="btn-primary" (click)="submitResult()">Submit</button>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeResultDialog()">Cancel</button>
-      <button class="btn-primary" (click)="submitResult()">Submit</button>
-    </div>
   </div>
-</div>
 }

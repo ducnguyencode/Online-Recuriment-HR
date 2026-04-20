@@ -5,7 +5,12 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { InterviewService } from '../../../core/services/interview.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
-import { Interview, InterviewerPanel, InterviewStatus, formatDisplayId } from '../../../core/models';
+import {
+  Interview,
+  InterviewerPanel,
+  InterviewStatus,
+  formatDisplayId,
+} from '../../../core/models';
 
 @Component({
   selector: 'app-interview-list',
@@ -15,6 +20,7 @@ import { Interview, InterviewerPanel, InterviewStatus, formatDisplayId } from '.
   styleUrl: './interview-list.component.scss',
 })
 export class InterviewListComponent implements OnInit {
+  InterviewStatus = InterviewStatus;
   interviews = signal<Interview[]>([]);
   loading = signal(false);
 
@@ -35,7 +41,12 @@ export class InterviewListComponent implements OnInit {
   // Postpone dialog
   showPostponeDialog = signal(false);
   postponeInterviewId = '';
-  postponeData = { interviewDate: '', startTime: '09:00', endTime: '10:00', reason: '' };
+  postponeData = {
+    interviewDate: '',
+    startTime: '09:00',
+    endTime: '10:00',
+    reason: '',
+  };
   postponeError = '';
 
   constructor(
@@ -56,22 +67,23 @@ export class InterviewListComponent implements OnInit {
       ...(this.searchTerm.trim() ? { search: this.searchTerm.trim() } : {}),
     };
     this.interviewService.getAll(params).subscribe({
-      next: res => {
+      next: (res) => {
         const items: Interview[] = (res.data as any)?.items ?? [];
         this.interviews.set(items);
         this.loading.set(false);
       },
       error: () => {
         const raw = this.mockData.getInterviews() as any[];
-        const mapped: Interview[] = raw.map(r => this.mapMockInterview(r));
-        const filtered = mapped.filter(i => {
+        const mapped: Interview[] = raw.map((r) => this.mapMockInterview(r));
+        const filtered = mapped.filter((i) => {
           if (this.filterStatus && i.status !== this.filterStatus) return false;
-          if (this.filterDate && i.interviewDate !== this.filterDate) return false;
+          if (this.filterDate && i.interviewDate !== this.filterDate)
+            return false;
           return true;
         });
         this.interviews.set(filtered);
         this.loading.set(false);
-      }
+      },
     });
   }
 
@@ -80,7 +92,7 @@ export class InterviewListComponent implements OnInit {
     let application = r.application;
     if (!application) {
       const apps = this.mockData.getApplications();
-      const found = apps.find(a => String(a.id) === String(r.applicationId));
+      const found = apps.find((a) => String(a.id) === String(r.applicationId));
       if (found) {
         application = {
           ...found,
@@ -126,7 +138,7 @@ export class InterviewListComponent implements OnInit {
 
   filteredInterviews(): Interview[] {
     const term = this.searchTerm.trim().toLowerCase();
-    return this.interviews().filter(i => {
+    return this.interviews().filter((i) => {
       if (this.filterStatus && i.status !== this.filterStatus) return false;
       if (this.filterDate && i.interviewDate !== this.filterDate) return false;
       if (!term) return true;
@@ -146,7 +158,7 @@ export class InterviewListComponent implements OnInit {
         i.vacancy?.title,
       ];
 
-      return values.some(value => (value ?? '').toLowerCase().includes(term));
+      return values.some((value) => (value ?? '').toLowerCase().includes(term));
     });
   }
 
@@ -300,30 +312,36 @@ export class InterviewListComponent implements OnInit {
       return;
     }
 
-    this.interviewService.submitResult(this.resultInterviewId, {
-      vote: this.resultData.vote as 'Pass' | 'Fail',
-      feedback: this.resultData.feedback,
-    }).subscribe({
-      next: () => {
-        this.closeResultDialog();
-        this.loadData();
-      },
-      error: () => {
-        // Mock fallback: update locally
-        this.interviews.update(list =>
-          list.map(i => i.id !== this.resultInterviewId ? i : {
-            ...i,
-            status: 'Completed' as InterviewStatus,
-            panel: i.panel.map(p => ({
-              ...p,
-              vote: this.resultData.vote as any,
-              feedback: this.resultData.feedback,
-            })),
-          })
-        );
-        this.closeResultDialog();
-      }
-    });
+    this.interviewService
+      .submitResult(this.resultInterviewId, {
+        vote: this.resultData.vote as 'Pass' | 'Fail',
+        feedback: this.resultData.feedback,
+      })
+      .subscribe({
+        next: () => {
+          this.closeResultDialog();
+          this.loadData();
+        },
+        error: () => {
+          // Mock fallback: update locally
+          this.interviews.update((list) =>
+            list.map((i) =>
+              i.id !== this.resultInterviewId
+                ? i
+                : {
+                    ...i,
+                    status: 'Completed' as InterviewStatus,
+                    panel: i.panel.map((p) => ({
+                      ...p,
+                      vote: this.resultData.vote as any,
+                      feedback: this.resultData.feedback,
+                    })),
+                  },
+            ),
+          );
+          this.closeResultDialog();
+        },
+      });
   }
 
   // ── Cancel / Postpone ───────────────────────────────────────────────────
@@ -335,10 +353,14 @@ export class InterviewListComponent implements OnInit {
     this.interviewService.updateStatus(item.id, 'Cancelled').subscribe({
       next: () => this.loadData(),
       error: () => {
-        this.interviews.update(list =>
-          list.map(i => i.id !== item.id ? i : { ...i, status: 'Cancelled' as InterviewStatus })
+        this.interviews.update((list) =>
+          list.map((i) =>
+            i.id !== item.id
+              ? i
+              : { ...i, status: 'Cancelled' as InterviewStatus },
+          ),
         );
-      }
+      },
     });
   }
 
@@ -396,9 +418,9 @@ export class InterviewListComponent implements OnInit {
   }
 
   getPanelVoteSummary(panel: InterviewerPanel[]): string {
-    const pass = panel.filter(p => p.vote === 'Pass').length;
-    const fail = panel.filter(p => p.vote === 'Fail').length;
-    const pending = panel.filter(p => p.vote === 'Pending').length;
+    const pass = panel.filter((p) => p.vote === 'Pass').length;
+    const fail = panel.filter((p) => p.vote === 'Fail').length;
+    const pending = panel.filter((p) => p.vote === 'Pending').length;
     const parts: string[] = [];
     if (pass > 0) parts.push(`${pass} Pass`);
     if (fail > 0) parts.push(`${fail} Fail`);
@@ -408,10 +430,10 @@ export class InterviewListComponent implements OnInit {
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
-      'Scheduled': 'badge-info',
-      'Completed': 'badge-success',
-      'Cancelled': 'badge-danger',
-      'Postponed': 'badge-warning',
+      Scheduled: 'badge-info',
+      Completed: 'badge-success',
+      Cancelled: 'badge-danger',
+      Postponed: 'badge-warning',
     };
     return map[status] ?? 'badge-neutral';
   }
@@ -423,13 +445,22 @@ export class InterviewListComponent implements OnInit {
   }
 
   getPlatformIcon(platform: string): string {
-    const map: Record<string, string> = { 'Google Meet': '📹', 'Zoom': '💻', 'On-site': '🏢' };
+    const map: Record<string, string> = {
+      'Google Meet': '📹',
+      Zoom: '💻',
+      'On-site': '🏢',
+    };
     return map[platform] ?? '📹';
   }
 
   getInitials(name: string | undefined): string {
     if (!name) return '?';
-    return name.split(' ').map(n => n.charAt(0)).slice(-2).join('').toUpperCase();
+    return name
+      .split(' ')
+      .map((n) => n.charAt(0))
+      .slice(-2)
+      .join('')
+      .toUpperCase();
   }
 
   getConnectorColor(status: string): string {

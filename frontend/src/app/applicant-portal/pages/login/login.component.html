@@ -1,96 +1,215 @@
-<div class="min-h-[calc(100vh-64px)] bg-slate-50 flex items-center justify-center p-4 py-12 animate-in fade-in duration-500">
-  <div class="w-full max-w-md bg-white border border-slate-200 rounded-[24px] p-8 shadow-xl shadow-slate-200/50">
-
+<div
+  class="min-h-[calc(100vh-64px)] bg-slate-50 flex items-center justify-center p-4 py-12 animate-in fade-in duration-500"
+>
+  <div
+    class="w-full max-w-md bg-white border border-slate-200 rounded-[24px] p-8 shadow-xl shadow-slate-200/50"
+  >
     <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 text-white font-black text-xl rounded-2xl shadow-sm mb-4">
+      <div
+        class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 text-white font-black text-xl rounded-2xl shadow-sm mb-4"
+      >
         HR
       </div>
       <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
-        @if (currentView === 'login') { Welcome Back }
-        @if (currentView === 'register') { Create an Account }
-        @if (currentView === 'forgot') { Reset Password }
+        @switch (currentView) {
+          @case (AuthView.FORGOT) {
+            Reset Password
+          }
+          @case (AuthView.REGISTER) {
+            Create an Account
+          }
+          @case (AuthView.VERIFY_EMAIL) {
+            Verify your email
+          }
+          @default {
+            Welcom Back
+          }
+        }
       </h2>
       <p class="text-sm text-slate-500 mt-2">
-        @if (currentView === 'login') { Enter your details to access your account. }
-        @if (currentView === 'register') { Join us and find your dream job today. }
-        @if (currentView === 'forgot') { We'll send you instructions to reset your password. }
+        @switch (currentView) {
+          @case (AuthView.FORGOT) {
+            We'll send you instructions to reset your password.
+          }
+          @case (AuthView.REGISTER) {
+            Join us and find your dream job today.
+          }
+          @case (AuthView.VERIFY_EMAIL) {
+            Verify your email
+          }
+          @default {
+            Enter your details to access your account.
+          }
+        }
       </p>
     </div>
 
-    @if (currentView === 'login') {
+    @if (currentView === AuthView.LOGIN) {
       <div class="flex p-1 mb-8 bg-slate-100 rounded-xl">
         <button
-          (click)="setRole('applicant')"
-          [class.bg-white]="selectedRole === 'applicant'"
-          [class.text-blue-600]="selectedRole === 'applicant'"
-          [class.shadow-sm]="selectedRole === 'applicant'"
-          [class.text-slate-500]="selectedRole !== 'applicant'"
-          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all">
+          (click)="setRole(UserRoleLogin.APPLICANT)"
+          [class.bg-white]="selectedRole === UserRoleLogin.APPLICANT"
+          [class.text-blue-600]="selectedRole === UserRoleLogin.APPLICANT"
+          [class.shadow-sm]="selectedRole === UserRoleLogin.APPLICANT"
+          [class.text-slate-500]="selectedRole !== UserRoleLogin.APPLICANT"
+          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all"
+        >
           Applicant
         </button>
         <button
-          (click)="setRole('hr')"
-          [class.bg-white]="selectedRole === 'hr'"
-          [class.text-blue-600]="selectedRole === 'hr'"
-          [class.shadow-sm]="selectedRole === 'hr'"
-          [class.text-slate-500]="selectedRole !== 'hr'"
-          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all">
+          (click)="setRole(UserRoleLogin.HR)"
+          [class.bg-white]="selectedRole === UserRoleLogin.HR"
+          [class.text-blue-600]="selectedRole === UserRoleLogin.HR"
+          [class.shadow-sm]="selectedRole === UserRoleLogin.HR"
+          [class.text-slate-500]="selectedRole !== UserRoleLogin.HR"
+          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all"
+        >
           HR / Employer
         </button>
       </div>
     }
 
-    <form class="space-y-4" (submit)="$event.preventDefault()">
-
-      @if (currentView === 'register') {
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Full Name</label>
-          <input type="text" placeholder="Nguyen Van A" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
-        </div>
-      }
-
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
-        <input type="email" placeholder="you@example.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
-      </div>
-
-      @if (currentView !== 'forgot') {
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
-            @if (currentView === 'login') {
-              <a href="javascript:void(0)" (click)="switchView('forgot')" class="text-xs font-bold text-blue-500 hover:text-blue-700 transition">Forgot?</a>
-            }
+    @if (formError) {
+      <div class="form-error-banner">{{ formError }}</div>
+    }
+    <div class="space-y-4">
+      @if (currentView !== AuthView.VERIFY_EMAIL) {
+        @if (currentView === AuthView.REGISTER) {
+          <div>
+            <label
+              class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2"
+              >Full Name</label
+            >
+            <input
+              type="text"
+              [(ngModel)]="form.fullName"
+              placeholder="Nguyen Van A"
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium"
+            />
           </div>
-          <input type="password" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
-        </div>
-      }
 
-      @if (currentView === 'register') {
+          <div>
+            <label
+              class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2"
+              >Phone</label
+            >
+            <input
+              type="text"
+              [(ngModel)]="form.phone"
+              placeholder="090 1234 567"
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium"
+            />
+          </div>
+        }
+
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Confirm Password</label>
-          <input type="password" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
+          <label
+            class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2"
+            >Email Address</label
+          >
+          <input
+            type="email"
+            [(ngModel)]="form.email"
+            placeholder="you@example.com"
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium"
+          />
+        </div>
+
+        @if (currentView !== AuthView.FORGOT) {
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label
+                class="block text-xs font-bold text-slate-700 uppercase tracking-wider"
+                >Password</label
+              >
+              @if (currentView === AuthView.LOGIN) {
+                <a
+                  href="javascript:void(0)"
+                  (click)="switchView(AuthView.FORGOT)"
+                  class="text-xs font-bold text-blue-500 hover:text-blue-700 transition"
+                  >Forgot?</a
+                >
+              }
+            </div>
+            <input
+              type="password"
+              [(ngModel)]="form.password"
+              placeholder="••••••••"
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium"
+            />
+          </div>
+        }
+
+        @if (currentView === AuthView.REGISTER) {
+          <div>
+            <label
+              class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2"
+              >Confirm Password</label
+            >
+            <input
+              type="password"
+              placeholder="••••••••"
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium"
+            />
+          </div>
+        }
+      } @else {
+        <div class="mb-2">
+          Account activation linksent to your email address.
+          <span class="font-semibold">{{
+            verify_email || "johndoe@gmail.com"
+          }}</span>
+          , Please follow thee link inside to continue.
         </div>
       }
 
-      <button class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg">
-        @if (currentView === 'login') { Sign In as {{ selectedRole === 'applicant' ? 'Applicant' : 'HR' }} }
-        @if (currentView === 'register') { Create Account }
-        @if (currentView === 'forgot') { Send Reset Link }
+      <button
+        class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+        (click)="submit()"
+      >
+        @switch (currentView) {
+          @case (AuthView.FORGOT) {
+            Send Reset Link
+          }
+          @case (AuthView.REGISTER) {
+            Create Account
+          }
+          @case (AuthView.VERIFY_EMAIL) {
+            Skip for now
+          }
+          @default {
+            Sign In as
+            {{
+              selectedRole === UserRoleLogin.APPLICANT
+                ? UserRoleLogin.APPLICANT
+                : UserRoleLogin.HR
+            }}
+          }
+        }
       </button>
-
-    </form>
-
-    <div class="mt-8 text-center text-sm font-medium text-slate-500">
-      @if (currentView === 'login') {
-        Don't have an account?
-        <a href="javascript:void(0)" (click)="switchView('register')" class="text-blue-600 font-bold hover:underline">Sign up now</a>
-      }
-      @if (currentView === 'register' || currentView === 'forgot') {
-        Back to
-        <a href="javascript:void(0)" (click)="switchView('login')" class="text-blue-600 font-bold hover:underline">Sign in</a>
-      }
     </div>
 
+    <div class="mt-8 text-center text-sm font-medium text-slate-500">
+      @if (currentView === AuthView.LOGIN) {
+        Don't have an account?
+        <a
+          href="javascript:void(0)"
+          (click)="switchView(AuthView.REGISTER)"
+          class="text-blue-600 font-bold hover:underline"
+          >Sign up now</a
+        >
+      }
+      @if (
+        currentView === AuthView.REGISTER || currentView === AuthView.FORGOT
+      ) {
+        Back to
+        <a
+          href="javascript:void(0)"
+          (click)="switchView(AuthView.LOGIN)"
+          class="text-blue-600 font-bold hover:underline"
+          >Sign in</a
+        >
+      }
+    </div>
   </div>
 </div>

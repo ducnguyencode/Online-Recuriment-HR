@@ -5,29 +5,37 @@ import {
   HttpStatus,
   Param,
   Patch,
-  Post,
+  Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApplicantCreateDto } from 'src/dto/applicant/applicant.create.dto';
+import { ApplicantStatusUpdateDto } from 'src/dto/applicant/applicant-status.update.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
+import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
 import { Applicant } from 'src/entities/applicant.entity';
-import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
 import { ApiResponse } from 'src/helper/api-response';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantService } from 'src/services/applicant.service';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
 @Controller('applicant')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ApplicantController {
   constructor(private applicantServie: ApplicantService) {}
 
-  @Post('create')
-  async create(
-    @Body() applicantCreateDto: ApplicantCreateDto,
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() applicantUpdateDto: ApplicantUpdateDto,
   ): Promise<ApiResponse<Applicant>> {
-    const data = await this.applicantServie.create(applicantCreateDto);
+    const data = await this.applicantServie.update(
+      Number(id),
+      applicantUpdateDto,
+    );
     return {
       statusCode: HttpStatus.OK,
-      message: 'Success create a applicant',
+      message: 'Success update an applicant',
       data,
     };
   }
@@ -47,9 +55,12 @@ export class ApplicantController {
   @Patch(':id/status')
   async changeStatus(
     @Param('id') id: string,
-    @Body('status') status: ApplicantStatus,
+    @Body() applicantStatusUpdateDto: ApplicantStatusUpdateDto,
   ) {
-    const data = await this.applicantServie.changeStatus(Number(id), status);
+    const data = await this.applicantServie.changeStatus(
+      Number(id),
+      applicantStatusUpdateDto.status,
+    );
     return {
       statusCode: HttpStatus.OK,
       message: 'Success change applicant status',
