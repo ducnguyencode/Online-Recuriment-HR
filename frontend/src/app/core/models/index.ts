@@ -2,11 +2,16 @@
 
 export type UserRole = 'HR' | 'Interviewer' | 'Applicant' | 'Superadmin';
 
-export type VacancyStatus = 'Opened' | 'Suspended' | 'Closed';
+export type VacancyStatus =
+  | 'Open'
+  | 'Opened'
+  | 'Suspended'
+  | 'Close'
+  | 'Closed';
 
-/** Per spec: Not in Process → In Process (on first attach) → Hired (on Selected) | Banned (manual) */
+/** Backend currently uses `Not In Process`; keep frontend aligned to avoid status mismatches. */
 export type ApplicantStatus =
-  | 'Not in Process'
+  | 'Not In Process'
   | 'In Process'
   | 'Hired'
   | 'Banned';
@@ -126,7 +131,7 @@ export interface AiPreview {
 
 export interface Application {
   id: string; // UUID
-  code: string;
+  code?: string;
   applicantId: string;
   applicant?: Applicant;
   vacancyId: string;
@@ -135,8 +140,9 @@ export interface Application {
   cv?: CV;
   status: ApplicationStatus;
   aiPreview?: AiPreview;
+  aiMatchScore?: number;
   appliedAt?: string;
-  createdAt: string;
+  createdAt?: string;
   updatedAt: string;
 }
 
@@ -153,6 +159,8 @@ export interface Interview {
   id: string; // UUID
   applicationId: string;
   application?: Application;
+  applicant?: Applicant;
+  vacancy?: Vacancy;
   interviewDate: string;
   startTime: string;
   endTime: string;
@@ -220,6 +228,8 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages?: number;
+  totalItems?: number;
+  totalPage?: number;
 }
 
 // ==================== DASHBOARD ====================
@@ -237,12 +247,12 @@ export interface DashboardStats {
 
 /** Per spec: once Closed, cannot change status */
 export function canChangeVacancyStatus(current: VacancyStatus): boolean {
-  return current !== 'Closed';
+  return current !== 'Closed' && current !== 'Close';
 }
 
 /** Per spec: cannot attach applicant to Closed or Suspended vacancy */
 export function canAttachToVacancy(vacancyStatus: VacancyStatus): boolean {
-  return vacancyStatus === 'Opened';
+  return vacancyStatus === 'Opened' || vacancyStatus === 'Open';
 }
 
 /** Per spec: cannot attach more vacancies if applicant is Hired or Banned */
@@ -250,6 +260,20 @@ export function canAttachVacancyToApplicant(
   applicantStatus: ApplicantStatus,
 ): boolean {
   return applicantStatus !== 'Hired' && applicantStatus !== 'Banned';
+}
+
+export function displayApplicantStatus(status?: string): string {
+  if (!status) return '—';
+  if (status === 'Not In Process') return 'Not in Process';
+  return status;
+}
+
+export function isVacancyOpenStatus(status?: string): boolean {
+  return status === 'Open' || status === 'Opened';
+}
+
+export function isVacancyClosedStatus(status?: string): boolean {
+  return status === 'Close' || status === 'Closed';
 }
 
 /** Per spec: HR can only edit/close vacancies they own */

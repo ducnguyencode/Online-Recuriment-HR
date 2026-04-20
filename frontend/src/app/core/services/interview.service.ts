@@ -18,6 +18,7 @@ export interface InterviewFilters {
   date?: string;
   applicantId?: string;
   vacancyId?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -40,6 +41,7 @@ export class InterviewService {
     if (filters.date)        params = params.set('date', filters.date);
     if (filters.applicantId) params = params.set('applicantId', filters.applicantId);
     if (filters.vacancyId)   params = params.set('vacancyId', filters.vacancyId);
+    if (filters.search)      params = params.set('search', filters.search);
     if (filters.page)        params = params.set('page', filters.page.toString());
     if (filters.limit)       params = params.set('limit', filters.limit.toString());
     return this.http.get<ApiResponse<PaginatedResponse<Interview>>>(this.base, { params });
