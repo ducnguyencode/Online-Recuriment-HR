@@ -1,36 +1,50 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Application } from './application.entity';
+import { InterviewerPanel } from './interviewer-panel.entity';
 
 @Entity('interviews')
 export class Interview {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-    @Column()
+    @Column({ length: 255 })
     title: string;
 
     @Column({ type: 'text', nullable: true })
     description: string;
 
-    @Column({ type: 'timestamp' })
+    @Column({ name: 'application_id' })
+    applicationId: string;
+
+    @Column({ type: 'timestamptz' })
     startTime: Date;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamptz' })
     endTime: Date;
 
-    @Column({ nullable: true })
-    googleMeetLink: string; // Đây là "long mạch" của chúng ta
+    @Column({ length: 50, default: 'GoogleMeet' })
+    meetPlatform: string;
 
     @Column({ nullable: true })
-    googleCalendarEventId: string; // Để sau này muốn xóa/sửa lịch trên Google
+    meetLink: string;
 
-    @ManyToOne(() => Application, (a) => a.interviews)
-    @JoinColumn({ name: 'applicationId' })
+    @Column({ name: 'google_calendar_event_id', nullable: true })
+    googleCalendarEventId: string;
+
+    @Column({
+        type: 'enum',
+        enum: ['Scheduled', 'Completed', 'Cancelled', 'Postponed'],
+        default: 'Scheduled'
+    })
+    status: string;
+
+    @Column({ nullable: true })
+    finalResult: string; // Pass/Fail
+
+    @ManyToOne(() => Application)
+    @JoinColumn({ name: 'application_id' })
     application: Application;
 
-    @Column()
-    applicationId: number;
-
-    @CreateDateColumn()
-    createdAt: Date;
+    @OneToMany(() => InterviewerPanel, panel => panel.interview, { cascade: true })
+    panels: InterviewerPanel[];
 }

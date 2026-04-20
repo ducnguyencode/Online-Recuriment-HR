@@ -94,7 +94,7 @@ export class ApplicationListComponent implements OnInit {
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadVacancies();
@@ -494,42 +494,73 @@ export class ApplicationListComponent implements OnInit {
       }
     }
 
+    const startISO = `${date}T${startTime}:00`;
+    const endISO = `${date}T${endTime}:00`;
+
+    // const dto: ScheduleInterviewDto = {
+    //   applicationId,
+    //   panel: this.selectedPanelIds.map((id) => ({
+    //     employeeId: id,
+    //     role:
+    //       this.availableInterviewers().find((emp) => emp.id === id)?.position ??
+    //       'Interviewer',
+    //   })),
+    //   interviewDate: date,
+    //   startTime,
+    //   endTime,
+    //   platform,
+    // };
     const dto: ScheduleInterviewDto = {
       applicationId,
+      title: `Interview Applicant: ${this.getApplicantNameByAppId(applicationId)}`,
+      description: `Interview was created from the recruitment management system.`,
       panel: this.selectedPanelIds.map((id) => ({
         employeeId: id,
-        role:
-          this.availableInterviewers().find((emp) => emp.id === id)?.position ??
-          'Interviewer',
+        role: this.availableInterviewers().find((emp) => emp.id === id)?.position ?? 'Interviewer',
       })),
-      interviewDate: date,
-      startTime,
-      endTime,
+      startTime: startISO,
+      endTime: endISO,
       platform,
     };
 
+    // this.interviewService.schedule(dto).subscribe({
+    //   next: () => {
+    //     this.closeInterviewDialog();
+    //     this.loadApplications();
+    //   },
+    //   error: () => {
+    //     const duration =
+    //       (new Date(`2000-01-01T${endTime}`).getTime() -
+    //         new Date(`2000-01-01T${startTime}`).getTime()) /
+    //       60000;
+    //     this.mockData.addInterview({
+    //       applicationId,
+    //       date,
+    //       time: startTime,
+    //       duration,
+    //       platform,
+    //       interviewers: this.selectedPanelIds,
+    //     });
+    //     this.closeInterviewDialog();
+    //     this.loadApplications();
+    //   },
+    // });
     this.interviewService.schedule(dto).subscribe({
       next: () => {
+        alert('Scheduled successfully! The system is sending an invitation and Meet link to the applicant.');
         this.closeInterviewDialog();
         this.loadApplications();
       },
-      error: () => {
-        const duration =
-          (new Date(`2000-01-01T${endTime}`).getTime() -
-            new Date(`2000-01-01T${startTime}`).getTime()) /
-          60000;
-        this.mockData.addInterview({
-          applicationId,
-          date,
-          time: startTime,
-          duration,
-          platform,
-          interviewers: this.selectedPanelIds,
-        });
-        this.closeInterviewDialog();
-        this.loadApplications();
+      error: (err) => {
+        console.error('Error:', err);
+        this.interviewError = err.error?.message || 'Error occurred while calling the Google Meet API.';
       },
     });
+  }
+
+  private getApplicantNameByAppId(appId: string): string {
+    const app = this.applications().find(a => a.id === appId);
+    return app?.applicant?.fullName ?? 'Applicant';
   }
 
   getStatusClass(status: string): string {

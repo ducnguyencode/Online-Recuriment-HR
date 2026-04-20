@@ -7,9 +7,11 @@ import { ApiResponse, PaginatedResponse, Interview } from '../models';
 export interface ScheduleInterviewDto {
   applicationId: string;
   panel: { employeeId: string; role: string }[];
-  interviewDate: string;
+  // interviewDate: string;
   startTime: string;
   endTime: string;
+  title: string;
+  description: string;
   platform: 'Google Meet' | 'Zoom' | 'On-site';
 }
 
@@ -33,17 +35,17 @@ export interface AvailabilityFilters {
 export class InterviewService {
   private readonly base = `${environment.apiUrl}/interviews`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getAll(filters: InterviewFilters = {}): Observable<ApiResponse<PaginatedResponse<Interview>>> {
     let params = new HttpParams();
-    if (filters.status)      params = params.set('status', filters.status);
-    if (filters.date)        params = params.set('date', filters.date);
+    if (filters.status) params = params.set('status', filters.status);
+    if (filters.date) params = params.set('date', filters.date);
     if (filters.applicantId) params = params.set('applicantId', filters.applicantId);
-    if (filters.vacancyId)   params = params.set('vacancyId', filters.vacancyId);
-    if (filters.search)      params = params.set('search', filters.search);
-    if (filters.page)        params = params.set('page', filters.page.toString());
-    if (filters.limit)       params = params.set('limit', filters.limit.toString());
+    if (filters.vacancyId) params = params.set('vacancyId', filters.vacancyId);
+    if (filters.search) params = params.set('search', filters.search);
+    if (filters.page) params = params.set('page', filters.page.toString());
+    if (filters.limit) params = params.set('limit', filters.limit.toString());
     return this.http.get<ApiResponse<PaginatedResponse<Interview>>>(this.base, { params });
   }
 
@@ -51,12 +53,12 @@ export class InterviewService {
     return this.http.get<ApiResponse<Interview>>(`${this.base}/${id}`);
   }
 
-  schedule(dto: ScheduleInterviewDto): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${this.base}/schedule`, dto);
+  schedule(dto: any): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.base}/create`, dto);
   }
 
-  postpone(id: string, dto: { interviewDate: string; startTime: string; endTime: string; reason?: string }): Observable<ApiResponse<Interview>> {
-    return this.http.put<ApiResponse<Interview>>(`${this.base}/${id}`, dto);
+  reschedule(id: string, dto: any): Observable<ApiResponse<Interview>> {
+    return this.http.patch<ApiResponse<Interview>>(`${this.base}/${id}/reschedule`, dto);
   }
 
   cancel(id: string): Observable<ApiResponse<void>> {

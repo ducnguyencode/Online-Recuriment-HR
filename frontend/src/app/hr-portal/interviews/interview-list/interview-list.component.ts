@@ -42,7 +42,7 @@ export class InterviewListComponent implements OnInit {
     private auth: AuthService,
     private interviewService: InterviewService,
     private mockData: MockDataService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadData();
@@ -94,6 +94,9 @@ export class InterviewListComponent implements OnInit {
       id: String(r.id),
       applicationId: String(r.applicationId),
       application: application as any,
+      title: r.title ?? 'Interview with ${r.applicantName}',
+      description: r.description ?? '',
+      googleMeetLink: r.googleMeetLink ?? r.meetLink,
       interviewDate: (r.date ?? r.interviewDate ?? '').substring(0, 10),
       startTime: r.startTime ?? r.time ?? '',
       endTime: r.endTime ?? '',
@@ -103,8 +106,8 @@ export class InterviewListComponent implements OnInit {
       panel: Array.isArray(r.panel)
         ? r.panel
         : (Array.isArray(r.interviewers)
-            ? r.interviewers.map((name: string) => ({ employeeId: name, fullName: name, role: 'Interviewer', vote: 'Pending' as any }))
-            : []),
+          ? r.interviewers.map((name: string) => ({ employeeId: name, fullName: name, role: 'Interviewer', vote: 'Pending' as any }))
+          : []),
       createdAt: r.createdAt ?? '',
       updatedAt: r.updatedAt ?? '',
     };
@@ -236,24 +239,48 @@ export class InterviewListComponent implements OnInit {
       }
     }
 
-    this.interviewService.postpone(this.postponeInterviewId, { interviewDate, startTime, endTime, reason }).subscribe({
+    // 2. Chuyển đổi Ngày + Giờ thành định dạng ISO để Google Calendar hiểu được
+    // Kết hợp: "2026-04-20" + "T" + "14:00" -> "2026-04-20T14:00:00"
+    const startISO = `${interviewDate}T${startTime}:00`;
+    const endISO = `${interviewDate}T${endTime}:00`;
+
+    // 3. Chuẩn bị Payload khớp với Backend NestJS
+    const payload = {
+      startTime: startISO,
+      endTime: endISO,
+      title: `Phỏng vấn: ${this.getApplicantName(this.selectedInterview()!)} (Updated)`,
+      description: reason || 'Lịch phỏng vấn đã được thay đổi.'
+    };
+
+    this.interviewService.reschedule(this.postponeInterviewId, payload).subscribe({
       next: () => {
         this.closePostponeDialog();
         this.loadData();
       },
-      error: () => {
-        this.interviews.update(list =>
-          list.map(i => i.id !== this.postponeInterviewId ? i : {
-            ...i,
-            interviewDate,
-            startTime,
-            endTime,
-            status: 'Postponed' as InterviewStatus,
-          })
-        );
-        this.closePostponeDialog();
+      error: (err) => {
+        console.error('Lỗi khi dời lịch:', err);
+        this.postponeError = 'Could not reschedule. Please check your connection.';
       }
     });
+
+    // this.interviewService.reschedule(this.postponeInterviewId, { interviewDate, startTime, endTime, reason }).subscribe({
+    //   next: () => {
+    //     this.closePostponeDialog();
+    //     this.loadData();
+    //   },
+    //   error: () => {
+    //     this.interviews.update(list =>
+    //       list.map(i => i.id !== this.postponeInterviewId ? i : {
+    //         ...i,
+    //         interviewDate,
+    //         startTime,
+    //         endTime,
+    //         status: 'Postponed' as InterviewStatus,
+    //       })
+    //     );
+    //     this.closePostponeDialog();
+    //   }
+    // });
   }
 
   submitResult() {
@@ -366,8 +393,8 @@ export class InterviewListComponent implements OnInit {
     const fail = panel.filter(p => p.vote === 'Fail').length;
     const pending = panel.filter(p => p.vote === 'Pending').length;
     const parts: string[] = [];
-    if (pass > 0)    parts.push(`${pass} Pass`);
-    if (fail > 0)    parts.push(`${fail} Fail`);
+    if (pass > 0) parts.push(`${pass} Pass`);
+    if (fail > 0) parts.push(`${fail} Fail`);
     if (pending > 0) parts.push(`${pending} Pending`);
     return parts.join(' · ') || 'No votes';
   }
@@ -383,8 +410,8 @@ export class InterviewListComponent implements OnInit {
   }
 
   getVoteClass(vote: string | undefined): string {
-    if (vote === 'Pass')    return 'vote-pass';
-    if (vote === 'Fail')    return 'vote-fail';
+    if (vote === 'Pass') return 'vote-pass';
+    if (vote === 'Fail') return 'vote-fail';
     return 'vote-pending';
   }
 
@@ -399,10 +426,10 @@ export class InterviewListComponent implements OnInit {
   }
 
   getConnectorColor(status: string): string {
-    if (status === 'Scheduled')  return '#3B82F6';
-    if (status === 'Completed')  return '#22C55E';
-    if (status === 'Cancelled')  return '#EF4444';
-    if (status === 'Postponed')  return '#F59E0B';
+    if (status === 'Scheduled') return '#3B82F6';
+    if (status === 'Completed') return '#22C55E';
+    if (status === 'Cancelled') return '#EF4444';
+    if (status === 'Postponed') return '#F59E0B';
     return '#94A3B8';
   }
 }
