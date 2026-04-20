@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { HrLayoutComponent } from './layout/hr-layout.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
-import { hrGuard } from '../core/guards/auth.guard';
+import { hrGuard, superadminGuard } from '../core/guards/auth.guard';
 
 export const hrPortalRoutes: Routes = [
   {
@@ -25,11 +25,6 @@ export const hrPortalRoutes: Routes = [
         loadComponent: () => import('./applications/application-list/application-list.component').then(m => m.ApplicationListComponent),
       },
       {
-        path: 'applications/kanban',
-        canActivate: [hrGuard],
-        loadComponent: () => import('./applications/kanban-board/kanban-board.component').then(m => m.KanbanBoardComponent),
-      },
-      {
         path: 'interviews',
         loadComponent: () => import('./interviews/interview-list/interview-list.component').then(m => m.InterviewListComponent),
       },
@@ -47,6 +42,14 @@ export const hrPortalRoutes: Routes = [
         path: 'audit',
         canActivate: [hrGuard],
         loadComponent: () => import('./audit-log/audit-log.component').then(m => m.AuditLogComponent),
+      },
+      {
+        path: 'admin/staff',
+        canActivate: [superadminGuard],
+        loadComponent: () =>
+          import('./admin/staff-management/staff-management.component').then(
+            m => m.StaffManagementComponent,
+          ),
       },
       {
         path: 'notifications',

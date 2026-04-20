@@ -32,3 +32,14 @@ export const hrGuard: CanActivateFn = () => {
   router.navigate(['/hr-portal']);
   return false;
 };
+
+export const superadminGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  if (auth.isLoggedIn() && auth.isSuperadmin()) {
+    return true;
+  }
+  router.navigate(['/hr-portal']);
+  return false;
+};
