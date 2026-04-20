@@ -1,29 +1,61 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-
-type AuthView = 'login' | 'register' | 'forgot';
-type UserRole = 'applicant' | 'hr';
+import { RouterModule, Router } from '@angular/router';
+import { AuthService, LoginResponse } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
-export class LoginComponent {
-  currentView: AuthView = 'login';
-  selectedRole: UserRole = 'applicant';
+export class LoginComponent implements OnInit {
+  loginForm!: FormGroup;
+  isLoading = false;
+  errorMessage: string | null = null;
 
-  switchView(view: AuthView) {
-    this.currentView = view;
-    if (view === 'register') {
-      this.selectedRole = 'applicant';
-    }
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+
+  ngOnInit(): void {
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]]
+    });
   }
 
-  setRole(role: UserRole) {
-    this.selectedRole = role;
+  get f() { return this.loginForm.controls; }
+
+  onSubmit(): void {
+    this.errorMessage = null;
+
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    this.isLoading = true;
+    this.authService.login(this.loginForm.value).subscribe({
+      next: (response: LoginResponse) => {
+        // Based on Nhựt's Postman data, even for applicants, the role should be checked.
+        if (response.data.user.role !== 'APPLICANT') {
+          this.errorMessage = 'This login is for Applicants only. HR please use the HR Portal.';
+          this.isLoading = false;
+          this.authService.logout(); // Clear token immediately if wrong role
+          return;
+        }
+
+        // Redirect successfully to Careers page
+        this.router.navigate(['/careers']);
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this.errorMessage = error.error?.message || 'Login failed. Please check your credentials.';
+        this.isLoading = false;
+      }
+    });
   }
 }

@@ -1,96 +1,60 @@
-<div class="min-h-[calc(100vh-64px)] bg-slate-50 flex items-center justify-center p-4 py-12 animate-in fade-in duration-500">
-  <div class="w-full max-w-md bg-white border border-slate-200 rounded-[24px] p-8 shadow-xl shadow-slate-200/50">
+<div class="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-6 lg:px-8 font-sans animate-in fade-in duration-300">
 
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 text-white font-black text-xl rounded-2xl shadow-sm mb-4">
-        HR
-      </div>
-      <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
-        @if (currentView === 'login') { Welcome Back }
-        @if (currentView === 'register') { Create an Account }
-        @if (currentView === 'forgot') { Reset Password }
-      </h2>
-      <p class="text-sm text-slate-500 mt-2">
-        @if (currentView === 'login') { Enter your details to access your account. }
-        @if (currentView === 'register') { Join us and find your dream job today. }
-        @if (currentView === 'forgot') { We'll send you instructions to reset your password. }
-      </p>
-    </div>
+  <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
+    <a routerLink="/" class="text-3xl font-extrabold text-blue-600 tracking-tight">Recruit<span class="text-slate-900">Hub</span></a>
+    <h2 class="mt-8 text-3xl font-extrabold text-slate-900 tracking-tight">Applicant Sign In</h2>
+    <p class="mt-2 text-sm text-slate-500 font-medium">Welcome back! Please enter your details to continue.</p>
+  </div>
 
-    @if (currentView === 'login') {
-      <div class="flex p-1 mb-8 bg-slate-100 rounded-xl">
-        <button
-          (click)="setRole('applicant')"
-          [class.bg-white]="selectedRole === 'applicant'"
-          [class.text-blue-600]="selectedRole === 'applicant'"
-          [class.shadow-sm]="selectedRole === 'applicant'"
-          [class.text-slate-500]="selectedRole !== 'applicant'"
-          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all">
-          Applicant
+  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-white p-10 rounded-[28px] border border-slate-200 shadow-sm">
+
+      @if (errorMessage) {
+        <div class="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 mb-6 text-sm font-semibold flex items-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          {{ errorMessage }}
+        </div>
+      }
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
+
+        <div>
+          <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-3">Email Address</label>
+          <input id="email" type="email" formControlName="email"
+            class="w-full px-5 py-3.5 rounded-xl border transition-all duration-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            [ngClass]="f['email'].touched && f['email'].errors ? 'border-red-200 focus:border-red-500' : 'border-slate-200 focus:border-blue-500 hover:bg-slate-50'"
+            placeholder="e.g., student@university.edu">
+          @if (f['email'].touched && f['email'].errors) {
+            <div class="text-red-500 text-xs mt-2 font-semibold">Please enter a valid email address.</div>
+          }
+        </div>
+
+        <div>
+          <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-3">Password</label>
+          <input id="password" type="password" formControlName="password"
+            class="w-full px-5 py-3.5 rounded-xl border transition-all duration-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            [ngClass]="f['password'].touched && f['password'].errors ? 'border-red-200 focus:border-red-500' : 'border-slate-200 focus:border-blue-500 hover:bg-slate-50'">
+          @if (f['password'].touched && f['password'].errors) {
+            <div class="text-red-500 text-xs mt-2 font-semibold">Password must be at least 6 characters.</div>
+          }
+        </div>
+
+        <button type="submit" [disabled]="isLoading"
+          class="w-full flex justify-center items-center py-4 px-8 border border-transparent rounded-2xl shadow-lg text-sm font-bold text-white bg-slate-900 hover:bg-blue-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 disabled:opacity-50 disabled:bg-slate-500">
+          @if (isLoading) {
+            <svg class="w-5 h-5 mr-3 animate-spin" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          }
+          Sign In as Applicant
         </button>
-        <button
-          (click)="setRole('hr')"
-          [class.bg-white]="selectedRole === 'hr'"
-          [class.text-blue-600]="selectedRole === 'hr'"
-          [class.shadow-sm]="selectedRole === 'hr'"
-          [class.text-slate-500]="selectedRole !== 'hr'"
-          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all">
-          HR / Employer
-        </button>
+      </form>
+
+      <div class="mt-8 pt-8 border-t border-slate-100 text-center">
+        <p class="text-sm text-slate-500 font-medium">Don't have an account?</p>
+        <a routerLink="/register" class="mt-2 inline-block text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">Create one now</a>
       </div>
-    }
-
-    <form class="space-y-4" (submit)="$event.preventDefault()">
-
-      @if (currentView === 'register') {
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Full Name</label>
-          <input type="text" placeholder="Nguyen Van A" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
-        </div>
-      }
-
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
-        <input type="email" placeholder="you@example.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
-      </div>
-
-      @if (currentView !== 'forgot') {
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
-            @if (currentView === 'login') {
-              <a href="javascript:void(0)" (click)="switchView('forgot')" class="text-xs font-bold text-blue-500 hover:text-blue-700 transition">Forgot?</a>
-            }
-          </div>
-          <input type="password" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
-        </div>
-      }
-
-      @if (currentView === 'register') {
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Confirm Password</label>
-          <input type="password" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium">
-        </div>
-      }
-
-      <button class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg">
-        @if (currentView === 'login') { Sign In as {{ selectedRole === 'applicant' ? 'Applicant' : 'HR' }} }
-        @if (currentView === 'register') { Create Account }
-        @if (currentView === 'forgot') { Send Reset Link }
-      </button>
-
-    </form>
-
-    <div class="mt-8 text-center text-sm font-medium text-slate-500">
-      @if (currentView === 'login') {
-        Don't have an account?
-        <a href="javascript:void(0)" (click)="switchView('register')" class="text-blue-600 font-bold hover:underline">Sign up now</a>
-      }
-      @if (currentView === 'register' || currentView === 'forgot') {
-        Back to
-        <a href="javascript:void(0)" (click)="switchView('login')" class="text-blue-600 font-bold hover:underline">Sign in</a>
-      }
     </div>
-
   </div>
 </div>

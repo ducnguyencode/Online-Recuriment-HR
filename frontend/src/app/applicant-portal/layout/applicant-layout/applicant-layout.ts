@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 
@@ -9,17 +9,33 @@ import { RouterModule, Router } from '@angular/router';
   templateUrl: './applicant-layout.html',
   styleUrls: ['./applicant-layout.scss']
 })
-export class ApplicantLayoutComponent {
-  isLogin = true;
+export class ApplicantLayoutComponent implements OnInit {
+  isLoggedIn = false;
+  userFullName = '';
 
-  mockUser = {
-    fullName: 'Nguyen Khang'
-  };
+  private router = inject(Router);
 
-  constructor(private router: Router) {}
+  ngOnInit() {
+    this.updateAuthStatus();
+  }
 
-  logout() {
-    this.isLogin = false;
-    this.router.navigate(['/careers']);
+  updateAuthStatus() {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        this.isLoggedIn = true;
+        this.userFullName = user.fullName || 'Applicant User';
+      } catch (e) {
+        this.isLoggedIn = false;
+      }
+    }
+  }
+
+  onLogout() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+    this.isLoggedIn = false;
+    this.router.navigate(['/login']);
   }
 }
