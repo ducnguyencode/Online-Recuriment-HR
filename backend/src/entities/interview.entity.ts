@@ -55,5 +55,6 @@ export class Interview {
   @OneToMany(() => InterviewerPanel, (panel) => panel.interview, {
     cascade: true,
   })
+  @JoinColumn({ name: 'interviewers_panel_id' })
   panels!: InterviewerPanel[];
 }

@@ -46,4 +46,6 @@ export class Applicant {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+    email: any;
+    fullName: any;
 }

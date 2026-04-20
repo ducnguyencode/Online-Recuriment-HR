@@ -31,7 +31,6 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { join } from 'path';
 import { InAppNotification } from './entities/notification.entity';
-import { EmailCronService } from './cron/email.cron';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomValidator } from './common/validator/custom.validator';
 import { UserService } from './services/user.service';
@@ -45,6 +44,9 @@ import { BootstrapService } from './services/bootstrap.service';
 import { Seed } from './database/seed';
 import { Employee } from './entities/employee.entity';
 import { MailService } from './services/mail.service';
+import { NotificationsService } from './notification/notification.service';
+import { InterviewerPanel } from './entities/interviewer-panel.entity';
+import { InterviewerAvailability } from './entities/interviewer-availability.entity';
 
 @Module({
   imports: [
@@ -56,7 +58,7 @@ import { MailService } from './services/mail.service';
 
     MailerModule.forRootAsync({
       imports: [ConfigModule], // Import này để lấy được các biến .env
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         transport: {
           host: configService.get('SMTP_HOST'), // Ví dụ: smtp.gmail.com
           port: configService.get('SMTP_PORT'),
@@ -124,6 +126,10 @@ import { MailService } from './services/mail.service';
       CV,
       User,
       Employee,
+      Interview,
+      InterviewerPanel,
+      InterviewerAvailability,
+      InAppNotification,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -134,15 +140,6 @@ import { MailService } from './services/mail.service';
         signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') || '1d' },
       }),
     }),
-    TypeOrmModule.forFeature([
-      Vacancy,
-      Department,
-      Application,
-      Applicant,
-      CV,
-      Interview,
-      InAppNotification,
-    ]),
   ],
   controllers: [
     VacancyController,
@@ -163,7 +160,6 @@ import { MailService } from './services/mail.service';
     AiService,
     NotificationGateway,
     EmailQueueService,
-    EmailCronService,
     GoogleMeetService,
     InterviewService,
     InterviewListener,
@@ -174,6 +170,7 @@ import { MailService } from './services/mail.service';
     JwtStrategy,
     Seed,
     MailService,
+    NotificationsService,
   ],
 })
 export class AppModule {}
