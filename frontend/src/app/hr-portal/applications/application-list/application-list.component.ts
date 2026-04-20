@@ -70,6 +70,8 @@ export class ApplicationListComponent implements OnInit {
   selectedPanelIds: string[] = [];
   interviewData = {
     applicationId: '',
+    title: '',
+    description: '',
     date: '',
     startTime: '09:00',
     endTime: '10:00',
@@ -343,6 +345,8 @@ export class ApplicationListComponent implements OnInit {
     this.interviewApplication.set(app);
     this.interviewData = {
       applicationId: app.id,
+      title: `Interview: ${app.applicant?.fullName} - ${app.vacancy?.title}`,
+      description: '',
       date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
       startTime: '09:00',
       endTime: '10:00',
@@ -442,7 +446,7 @@ export class ApplicationListComponent implements OnInit {
   }
 
   saveInterview() {
-    const { applicationId, date, startTime, endTime, platform } =
+    const { applicationId, title, description, date, startTime, endTime, platform } =
       this.interviewData;
     const applicantId =
       this.interviewApplication()?.applicantId ??
@@ -512,11 +516,11 @@ export class ApplicationListComponent implements OnInit {
     // };
     const dto: ScheduleInterviewDto = {
       applicationId,
-      title: `Interview Applicant: ${this.getApplicantNameByAppId(applicationId)}`,
-      description: `Interview was created from the recruitment management system.`,
-      panel: this.selectedPanelIds.map((id) => ({
+      title,
+      description: description || '',
+      panel: this.selectedPanelIds.map(id => ({
         employeeId: id,
-        role: this.availableInterviewers().find((emp) => emp.id === id)?.position ?? 'Interviewer',
+        role: this.availableInterviewers().find(e => e.id === id)?.position ?? 'Interviewer',
       })),
       startTime: startISO,
       endTime: endISO,
@@ -545,15 +549,16 @@ export class ApplicationListComponent implements OnInit {
     //     this.loadApplications();
     //   },
     // });
+    this.loading.set(true);
     this.interviewService.schedule(dto).subscribe({
       next: () => {
-        alert('Scheduled successfully! The system is sending an invitation and Meet link to the applicant.');
+        alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
         this.closeInterviewDialog();
         this.loadApplications();
       },
       error: (err) => {
         console.error('Error:', err);
-        this.interviewError = err.error?.message || 'Error occurred while calling the Google Meet API.';
+        this.interviewError = err.error?.message || 'Conflict detected or HR/Interviewer is not available at this time.';
       },
     });
   }

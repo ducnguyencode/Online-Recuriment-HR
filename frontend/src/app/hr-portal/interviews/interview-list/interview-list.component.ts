@@ -90,6 +90,17 @@ export class InterviewListComponent implements OnInit {
         };
       }
     }
+
+    // Backend returns ISO strings. We need to parse them for the UI to display properly
+    const startObj = new Date(r.startTime);
+    const endObj = new Date(r.endTime);
+
+    // Format HH:mm for the UI display
+    const formatTime = (dateObj: Date) => {
+      if (isNaN(dateObj.getTime())) return '';
+      return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+
     return {
       id: String(r.id),
       applicationId: String(r.applicationId),
@@ -239,17 +250,14 @@ export class InterviewListComponent implements OnInit {
       }
     }
 
-    // 2. Chuyển đổi Ngày + Giờ thành định dạng ISO để Google Calendar hiểu được
-    // Kết hợp: "2026-04-20" + "T" + "14:00" -> "2026-04-20T14:00:00"
     const startISO = `${interviewDate}T${startTime}:00`;
     const endISO = `${interviewDate}T${endTime}:00`;
 
-    // 3. Chuẩn bị Payload khớp với Backend NestJS
     const payload = {
+      title: this.selectedInterview()?.title || 'Rescheduled Interview',
+      description: reason,
       startTime: startISO,
-      endTime: endISO,
-      title: `Phỏng vấn: ${this.getApplicantName(this.selectedInterview()!)} (Updated)`,
-      description: reason || 'Lịch phỏng vấn đã được thay đổi.'
+      endTime: endISO
     };
 
     this.interviewService.reschedule(this.postponeInterviewId, payload).subscribe({
@@ -258,8 +266,7 @@ export class InterviewListComponent implements OnInit {
         this.loadData();
       },
       error: (err) => {
-        console.error('Lỗi khi dời lịch:', err);
-        this.postponeError = 'Could not reschedule. Please check your connection.';
+        this.postponeError = 'Could not reschedule. Please check your connection or HR availability.';
       }
     });
 
@@ -325,7 +332,7 @@ export class InterviewListComponent implements OnInit {
     event.stopPropagation();
     if (!this.canCancel()) return;
     if (!confirm('Cancel this interview?')) return;
-    this.interviewService.cancel(item.id).subscribe({
+    this.interviewService.updateStatus(item.id, 'Cancelled').subscribe({
       next: () => this.loadData(),
       error: () => {
         this.interviews.update(list =>

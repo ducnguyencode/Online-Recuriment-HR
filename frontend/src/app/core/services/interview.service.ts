@@ -15,6 +15,13 @@ export interface ScheduleInterviewDto {
   platform: 'Google Meet' | 'Zoom' | 'On-site';
 }
 
+export interface InterviewRescheduleDto {
+  title: string;
+  description?: string;
+  startTime: string; // ISO 8601 string
+  endTime: string;   // ISO 8601 string
+}
+
 export interface InterviewFilters {
   status?: string;
   date?: string;
@@ -53,16 +60,16 @@ export class InterviewService {
     return this.http.get<ApiResponse<Interview>>(`${this.base}/${id}`);
   }
 
-  schedule(dto: any): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${this.base}/create`, dto);
+  schedule(dto: ScheduleInterviewDto): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.base}`, dto);
   }
 
-  reschedule(id: string, dto: any): Observable<ApiResponse<Interview>> {
+  reschedule(id: string, dto: InterviewRescheduleDto): Observable<ApiResponse<Interview>> {
     return this.http.patch<ApiResponse<Interview>>(`${this.base}/${id}/reschedule`, dto);
   }
 
-  cancel(id: string): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.base}/${id}`);
+  updateStatus(id: string, status: string): Observable<ApiResponse<Interview>> {
+    return this.http.patch<ApiResponse<Interview>>(`${this.base}/${id}/status`, { status });
   }
 
   submitResult(id: string, dto: { vote: 'Pass' | 'Fail'; feedback: string }): Observable<ApiResponse<any>> {

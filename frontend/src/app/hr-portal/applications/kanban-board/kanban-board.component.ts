@@ -43,6 +43,8 @@ export class KanbanBoardComponent implements OnInit {
 
   interviewData = {
     applicationId: '',
+    title: '',
+    description: '',
     date: '',
     startTime: '09:00',
     endTime: '10:00',
@@ -147,6 +149,8 @@ export class KanbanBoardComponent implements OnInit {
     event.stopPropagation();
     this.interviewData = {
       applicationId: app.id,
+      title: ``,
+      description: `Interview was created from the recruitment management system.`,
       date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // tomorrow min
       startTime: '09:00', endTime: '10:00',
       platform: 'Google Meet',
