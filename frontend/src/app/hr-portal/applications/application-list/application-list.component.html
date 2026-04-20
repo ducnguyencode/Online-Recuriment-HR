@@ -11,9 +11,6 @@
       <button class="btn-primary" (click)="openAttachDialog()">
         Attach Applicant
       </button>
-      <a class="btn-primary" routerLink="/hr-portal/applications/kanban"
-        >Open Kanban Board</a
-      >
     </div>
   </div>
 
@@ -36,12 +33,13 @@
         class="form-input search-input"
         placeholder="Search by application ID, applicant ID, vacancy ID, name, title..."
         [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
       />
     </div>
     <select
       class="form-select filter-select"
       [(ngModel)]="selectedVacancyId"
-      (change)="loadApplications()"
+      (change)="onSearchChange()"
     >
       <option value="">All Vacancies</option>
       @for (v of vacancies(); track v.id) {
@@ -51,18 +49,16 @@
     <select
       class="form-select filter-select"
       [(ngModel)]="filterStatus"
-      (change)="loadApplications()"
+      (change)="onSearchChange()"
     >
       <option value="">All Statuses</option>
       @for (status of applicationStatus; track status) {
-        <option value="status">{{ status }}</option>
+        <option [value]="status">{{ status }}</option>
       }
     </select>
     <button class="btn-secondary" (click)="clearFilters()">Reset</button>
-    <span class="result-count"
-      >{{ filteredApplications().length }} records</span
-    >
-    @if (totalPages > 1) {
+    <span class="result-count">{{ displayedResultsCount() }} records</span>
+    @if (totalPages() > 1) {
       <div class="pagination">
         <button
           class="btn-ghost btn-sm"
@@ -71,10 +67,10 @@
         >
           ←
         </button>
-        <span class="page-info">{{ currentPage() }} / {{ totalPages }}</span>
+        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
         <button
           class="btn-ghost btn-sm"
-          [disabled]="currentPage() === totalPages"
+          [disabled]="currentPage() === totalPages()"
           (click)="goToPage(currentPage() + 1)"
         >
           →
@@ -208,11 +204,11 @@
           </div>
           <div>
             <h3 class="modal-title">
-              {{ selectedApplication()!.applicant?.fullName }}
+              {{ selectedApplication()!.applicant!.user!.fullName }}
             </h3>
             <p class="modal-subtitle">
-              {{ selectedApplication()!.applicant?.email }} ·
-              {{ selectedApplication()!.applicant?.phone }}
+              {{ selectedApplication()!.applicant!.user!.email }} ·
+              {{ selectedApplication()!.applicant!.user!.phone }}
             </p>
           </div>
         </div>
@@ -315,6 +311,28 @@
 }
 
 @if (showInterviewDialog()) {
+  <div class="form-group">
+    <label class="form-label"
+      >Interview Title <span class="required">*</span></label
+    >
+    <input
+      type="text"
+      class="form-input"
+      placeholder="e.g., Technical Interview - Phase 1"
+      [(ngModel)]="interviewData.title"
+    />
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Description / Notes</label>
+    <textarea
+      class="form-input"
+      rows="2"
+      placeholder="Optional notes for candidate and interviewers"
+      [(ngModel)]="interviewData.description"
+    ></textarea>
+  </div>
+
   <div class="modal-backdrop" (click)="closeInterviewDialog()">
     <div class="modal-content modal-md" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -493,7 +511,7 @@
                   attachSelectedApplicant()!.user!.fullName
                 }}</span>
                 <span class="attach-meta"
-                  >{{ applicantDisplayId(attachSelectedApplicant()!.code) }} ·
+                  >{{ attachSelectedApplicant()!.code }} ·
                   {{ attachSelectedApplicant()!.user!.email }}</span
                 >
               </div>
@@ -511,6 +529,14 @@
                 (input)="onAttachSearch()"
                 autocomplete="off"
               />
+              @if (attachSearching()) {
+                <p
+                  class="form-hint"
+                  style="color: var(--shell-text-soft); margin-top: 8px"
+                >
+                  Searching applicants...
+                </p>
+              }
               @if (attachSearchResults().length > 0) {
                 <div class="attach-results">
                   @for (item of attachSearchResults(); track item.id) {

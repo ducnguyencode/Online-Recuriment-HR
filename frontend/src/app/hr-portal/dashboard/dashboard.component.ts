@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -15,8 +15,9 @@ import { ApplicationService } from '../../core/services/application.service';
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit {
-  isHR = false;
-  isSuperadmin = false;
+  readonly isHR = computed(() => this.auth.isHR() || this.auth.isSuperadmin());
+  readonly isSuperadmin = computed(() => this.auth.isSuperadmin());
+
   stats = signal({
     openVacancies: 0,
     applicantsInProcess: 0,
@@ -27,29 +28,7 @@ export class DashboardComponent implements OnInit {
   });
 
   recentVacancies = signal<any[]>([]);
-  upcomingInterviews = signal<any[]>([
-    {
-      applicant: 'Hoàng Minh Tuấn',
-      vacancy: 'Senior Frontend Developer',
-      date: '11/04/2026',
-      time: '09:00',
-      platform: 'Google Meet',
-    },
-    {
-      applicant: 'Đặng Văn Khoa',
-      vacancy: 'Marketing Manager',
-      date: '12/04/2026',
-      time: '14:00',
-      platform: 'Zoom',
-    },
-    {
-      applicant: 'Trần Văn Nam',
-      vacancy: 'Backend Engineer',
-      date: '13/04/2026',
-      time: '10:30',
-      platform: 'Google Meet',
-    },
-  ]);
+  upcomingInterviews = signal<any[]>([]);
   recentApplications = signal<any[]>([]);
 
   constructor(
@@ -60,9 +39,6 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.isHR = this.auth.isHR();
-    this.isSuperadmin = this.auth.isSuperadmin();
-
     // Load data from MockDataService
     this.stats.set(this.mockData.getDashboardStats());
 
@@ -96,7 +72,7 @@ export class DashboardComponent implements OnInit {
             applicant: a.applicant?.fullName || '',
             vacancy: a.vacancy?.title || '',
             status: a.status,
-            time: this.timeAgo(a.createdAt),
+            time: this.timeAgo(a.createdAt || ''),
           })),
         );
       },

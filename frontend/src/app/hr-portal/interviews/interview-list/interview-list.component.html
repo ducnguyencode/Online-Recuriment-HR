@@ -46,8 +46,8 @@
     @for (item of filteredInterviews(); track item.id) {
       <div
         class="timeline-item"
-        [class.completed]="item.status === interviewStatus.COMPLETED"
-        [class.cancelled]="item.status === interviewStatus.CANCELLED"
+        [class.completed]="item.status === InterviewStatus.COMPLETED"
+        [class.cancelled]="item.status === InterviewStatus.CANCELLED"
         (click)="openDetail(item)"
       >
         <!-- Date Column -->
@@ -122,6 +122,18 @@
               </svg>
               {{ item.panel.length }} interviewer(s)
             </div>
+            @if (item.googleMeetLink) {
+              <div class="tc-detail-item">
+                <span style="color: #1a73e8">📹</span>
+                <a
+                  [href]="item.googleMeetLink"
+                  target="_blank"
+                  class="meet-quick-link"
+                >
+                  Join Google Meet
+                </a>
+              </div>
+            }
           </div>
 
           <!-- Panel vote summary -->

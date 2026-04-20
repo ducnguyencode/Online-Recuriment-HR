@@ -20,7 +20,7 @@ import {
   styleUrl: './interview-list.component.scss',
 })
 export class InterviewListComponent implements OnInit {
-  interviewStatus = InterviewStatus;
+  InterviewStatus = InterviewStatus;
   interviews = signal<Interview[]>([]);
   loading = signal(false);
 
@@ -53,7 +53,7 @@ export class InterviewListComponent implements OnInit {
     private auth: AuthService,
     private interviewService: InterviewService,
     private mockData: MockDataService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadData();
@@ -64,6 +64,7 @@ export class InterviewListComponent implements OnInit {
     const params = {
       ...(this.filterStatus ? { status: this.filterStatus } : {}),
       ...(this.filterDate ? { date: this.filterDate } : {}),
+      ...(this.searchTerm.trim() ? { search: this.searchTerm.trim() } : {}),
     };
     this.interviewService.getAll(params).subscribe({
       next: (res) => {
@@ -101,10 +102,24 @@ export class InterviewListComponent implements OnInit {
         };
       }
     }
+
+    // Backend returns ISO strings. We need to parse them for the UI to display properly
+    const startObj = new Date(r.startTime);
+    const endObj = new Date(r.endTime);
+
+    // Format HH:mm for the UI display
+    const formatTime = (dateObj: Date) => {
+      if (isNaN(dateObj.getTime())) return '';
+      return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+
     return {
       id: String(r.id),
       applicationId: String(r.applicationId),
       application: application as any,
+      title: r.title ?? 'Interview with ${r.applicantName}',
+      description: r.description ?? '',
+      googleMeetLink: r.googleMeetLink ?? r.meetLink,
       interviewDate: (r.date ?? r.interviewDate ?? '').substring(0, 10),
       startTime: r.startTime ?? r.time ?? '',
       endTime: r.endTime ?? '',
@@ -113,14 +128,9 @@ export class InterviewListComponent implements OnInit {
       status: r.status ?? 'Scheduled',
       panel: Array.isArray(r.panel)
         ? r.panel
-        : Array.isArray(r.interviewers)
-          ? r.interviewers.map((name: string) => ({
-              employeeId: name,
-              fullName: name,
-              role: 'Interviewer',
-              vote: 'Pending' as any,
-            }))
-          : [],
+        : (Array.isArray(r.interviewers)
+          ? r.interviewers.map((name: string) => ({ employeeId: name, fullName: name, role: 'Interviewer', vote: 'Pending' as any }))
+          : []),
       createdAt: r.createdAt ?? '',
       updatedAt: r.updatedAt ?? '',
     };
@@ -136,10 +146,16 @@ export class InterviewListComponent implements OnInit {
       const values = [
         i.id,
         i.applicationId,
+        i.applicant?.id,
+        i.vacancy?.id,
         i.application?.applicantId,
         i.application?.vacancyId,
+        i.applicant?.code,
+        i.vacancy?.code,
         i.application?.applicant?.fullName,
         i.application?.vacancy?.title,
+        i.applicant?.fullName,
+        i.vacancy?.title,
       ];
 
       return values.some((value) => (value ?? '').toLowerCase().includes(term));
@@ -149,6 +165,10 @@ export class InterviewListComponent implements OnInit {
   openDetail(item: Interview) {
     this.selectedInterview.set(item);
     this.showDetail.set(true);
+  }
+
+  onSearchChange() {
+    this.loadData();
   }
 
   closeDetail() {
@@ -195,6 +215,9 @@ export class InterviewListComponent implements OnInit {
 
   savePostpone() {
     const { interviewDate, startTime, endTime, reason } = this.postponeData;
+    const interview = this.interviews().find(
+      (item) => item.id === this.postponeInterviewId,
+    );
     if (!interviewDate || !startTime || !endTime) {
       this.postponeError = 'Date, start time and end time are required.';
       return;
@@ -207,36 +230,76 @@ export class InterviewListComponent implements OnInit {
       this.postponeError = 'End time must be after start time.';
       return;
     }
-
-    this.interviewService
-      .postpone(this.postponeInterviewId, {
+    if (interview) {
+      const panelIds = interview.panel.map((item) => item.employeeId);
+      const interviewerConflicts = this.mockData.getInterviewerConflicts(
+        panelIds,
         interviewDate,
         startTime,
         endTime,
-        reason,
-      })
-      .subscribe({
-        next: () => {
-          this.closePostponeDialog();
-          this.loadData();
-        },
-        error: () => {
-          this.interviews.update((list) =>
-            list.map((i) =>
-              i.id !== this.postponeInterviewId
-                ? i
-                : {
-                    ...i,
-                    interviewDate,
-                    startTime,
-                    endTime,
-                    status: 'Postponed' as InterviewStatus,
-                  },
-            ),
-          );
-          this.closePostponeDialog();
-        },
-      });
+        this.postponeInterviewId,
+      );
+      if (interviewerConflicts.length > 0) {
+        this.postponeError = `Conflict: ${interviewerConflicts.join(', ')} already has another interview at this time.`;
+        return;
+      }
+
+      const applicantId =
+        interview.application?.applicantId ?? interview.applicant?.id;
+      if (applicantId) {
+        const applicantConflicts = this.mockData.getApplicantInterviewConflicts(
+          applicantId,
+          interviewDate,
+          startTime,
+          endTime,
+          this.postponeInterviewId,
+        );
+        if (applicantConflicts.length > 0) {
+          this.postponeError =
+            'This applicant already has another interview at the selected time.';
+          return;
+        }
+      }
+    }
+
+    const startISO = `${interviewDate}T${startTime}:00`;
+    const endISO = `${interviewDate}T${endTime}:00`;
+
+    const payload = {
+      title: this.selectedInterview()?.title || 'Rescheduled Interview',
+      description: reason,
+      startTime: startISO,
+      endTime: endISO
+    };
+
+    this.interviewService.reschedule(this.postponeInterviewId, payload).subscribe({
+      next: () => {
+        this.closePostponeDialog();
+        this.loadData();
+      },
+      error: (err) => {
+        this.postponeError = 'Could not reschedule. Please check your connection or HR availability.';
+      }
+    });
+
+    // this.interviewService.reschedule(this.postponeInterviewId, { interviewDate, startTime, endTime, reason }).subscribe({
+    //   next: () => {
+    //     this.closePostponeDialog();
+    //     this.loadData();
+    //   },
+    //   error: () => {
+    //     this.interviews.update(list =>
+    //       list.map(i => i.id !== this.postponeInterviewId ? i : {
+    //         ...i,
+    //         interviewDate,
+    //         startTime,
+    //         endTime,
+    //         status: 'Postponed' as InterviewStatus,
+    //       })
+    //     );
+    //     this.closePostponeDialog();
+    //   }
+    // });
   }
 
   submitResult() {
@@ -287,7 +350,7 @@ export class InterviewListComponent implements OnInit {
     event.stopPropagation();
     if (!this.canCancel()) return;
     if (!confirm('Cancel this interview?')) return;
-    this.interviewService.cancel(item.id).subscribe({
+    this.interviewService.updateStatus(item.id, 'Cancelled').subscribe({
       next: () => this.loadData(),
       error: () => {
         this.interviews.update((list) =>
@@ -304,7 +367,7 @@ export class InterviewListComponent implements OnInit {
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   getApplicantName(item: Interview): string {
-    return item.application?.applicant?.fullName ?? '—';
+    return item.application?.applicant?.fullName ?? item.applicant?.fullName ?? '—';
   }
 
   applicantDisplayId(id?: string) {
@@ -332,7 +395,19 @@ export class InterviewListComponent implements OnInit {
   }
 
   getVacancyTitle(item: Interview): string {
-    return item.application?.vacancy?.title ?? '—';
+    return item.application?.vacancy?.title ?? item.vacancy?.title ?? '—';
+  }
+
+  getApplicantEmail(item: Interview): string {
+    return item.application?.applicant?.email ?? item.applicant?.email ?? '—';
+  }
+
+  getApplicantId(item: Interview): string | undefined {
+    return item.application?.applicantId ?? item.applicant?.id;
+  }
+
+  getVacancyId(item: Interview): string | undefined {
+    return item.application?.vacancyId ?? item.vacancy?.id;
   }
 
   clearFilters() {

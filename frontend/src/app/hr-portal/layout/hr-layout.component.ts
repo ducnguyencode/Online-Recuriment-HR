@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-hr-layout',
@@ -300,6 +301,26 @@ import { AuthService } from '../../core/services/auth.service';
     `,
   ],
 })
-export class HrLayoutComponent {
-  constructor(public authService: AuthService) {}
+export class HrLayoutComponent implements OnInit {
+  showNotifDropdown = signal(false);
+  constructor(
+    public authService: AuthService,
+    public notifService: NotificationService,
+  ) {}
+
+  ngOnInit(): void {
+    this.notifService.getAll().subscribe();
+  }
+
+  toggleNotifications() {
+    this.showNotifDropdown.update((v) => !v);
+  }
+
+  markAsRead(id: string, linkUrl?: string) {
+    this.notifService.markRead(id).subscribe();
+  }
+
+  markAllAsRead() {
+    this.notifService.markAllRead().subscribe();
+  }
 }

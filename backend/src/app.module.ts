@@ -18,11 +18,21 @@ import { ApplicationController } from './controller/application.controller';
 import { AiService } from './services/ai.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { NotificationGateway } from './gateways/notification.gateway';
+import { NotificationGateway } from './notification/notification.gateway';
 import { BullModule } from '@nestjs/bull';
 import { EmailQueueService } from './services/email-queue.service';
-import { EmailProcessor } from './processors/email.processor';
 import { DevToolsController } from './controller/dev-tools.controller';
+import { GoogleMeetService } from './services/google-meet.service';
+import { InterviewController } from './controller/interview.controller';
+import { InterviewService } from './services/interview.service';
+import { Interview } from './entities/interview.entity';
+import { InterviewListener } from './listeners/interview.listener';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
+import { join } from 'path';
+import { InAppNotification } from './entities/notification.entity';
+import { EmailCronService } from './cron/email.cron';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CustomValidator } from './common/validator/custom.validator';
 import { UserService } from './services/user.service';
 import { AuthService } from './services/auth.service';
@@ -40,6 +50,34 @@ import { MailService } from './services/mail.service';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+
+    ScheduleModule.forRoot(),
+
+    MailerModule.forRootAsync({
+      imports: [ConfigModule], // Import này để lấy được các biến .env
+      useFactory: async (configService: ConfigService) => ({
+        transport: {
+          host: configService.get('SMTP_HOST'), // Ví dụ: smtp.gmail.com
+          port: configService.get('SMTP_PORT'),
+          auth: {
+            user: configService.get('SMTP_USER'),
+            pass: configService.get('SMTP_PASS'),
+          },
+        },
+        defaults: {
+          from: '"HR Recruitment" <noreply@example.com>',
+        },
+        template: {
+          // Lưu ý: join(__dirname, 'mail', 'templates') nếu thư mục mail nằm trong src
+          dir: join(__dirname, 'mail', 'templates'),
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+      inject: [ConfigService],
     }),
 
     EventEmitterModule.forRoot(),
@@ -96,6 +134,15 @@ import { MailService } from './services/mail.service';
         signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') || '1d' },
       }),
     }),
+    TypeOrmModule.forFeature([
+      Vacancy,
+      Department,
+      Application,
+      Applicant,
+      CV,
+      Interview,
+      InAppNotification,
+    ]),
   ],
   controllers: [
     VacancyController,
@@ -104,6 +151,7 @@ import { MailService } from './services/mail.service';
     CvController,
     ApplicationController,
     DevToolsController,
+    InterviewController,
     AuthController,
   ],
   providers: [
@@ -115,7 +163,10 @@ import { MailService } from './services/mail.service';
     AiService,
     NotificationGateway,
     EmailQueueService,
-    EmailProcessor,
+    EmailCronService,
+    GoogleMeetService,
+    InterviewService,
+    InterviewListener,
     CustomValidator,
     UserService,
     AuthService,

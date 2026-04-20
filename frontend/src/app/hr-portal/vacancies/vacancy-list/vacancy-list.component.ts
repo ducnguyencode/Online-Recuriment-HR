@@ -12,13 +12,16 @@ import {
   VacancyService,
   CreateVacancyDto,
 } from '../../../core/services/vacancy.service';
+import { ApplicationService } from '../../../core/services/application.service';
 import { DepartmentService } from '../../../core/services/department.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import {
+  Application,
   Vacancy,
   Department,
   isVacancyOwner,
   VacancyStatus,
+  ApplicationStatus,
 } from '../../../core/models';
 
 @Component({
@@ -29,10 +32,17 @@ import {
   styleUrl: './vacancy-list.component.scss',
 })
 export class VacancyListComponent implements OnInit {
+  VacancyStatus = VacancyStatus;
   vacancies = signal<Vacancy[]>([]);
   departments = signal<Department[]>([]);
   loading = signal(false);
   errorMsg = signal('');
+  totalItems = signal(0);
+  totalPages = signal(1);
+  currentPage = signal(1);
+  readonly pageSize = 12;
+  selectedApplicants = signal<Application[]>([]);
+  selectedApplicantsLoading = signal(false);
 
   // View mode: table | card
   viewMode: 'table' | 'card' = 'table';
@@ -72,6 +82,7 @@ export class VacancyListComponent implements OnInit {
   constructor(
     private auth: AuthService,
     private vacancyService: VacancyService,
+    private applicationService: ApplicationService,
     private departmentService: DepartmentService,
     private mockData: MockDataService, // fallback when backend not ready
   ) {}
@@ -170,37 +181,78 @@ export class VacancyListComponent implements OnInit {
       .getAll({
         status: this.filterStatus || undefined,
         departmentId: this.filterDepartment || undefined,
-        search: this.searchQuery || undefined,
+        search: this.useBackendSearch() ? this.searchQuery : undefined,
+        page: this.currentPage(),
+        limit: this.pageSize,
       })
       .subscribe({
         next: (res) => {
           const items = (res.data as any)?.items ?? res.data ?? [];
+          const totalItems =
+            (res.data as any)?.totalItems ??
+            (res.data as any)?.total ??
+            items.length;
+          const totalPages =
+            (res.data as any)?.totalPage ??
+            (res.data as any)?.totalPages ??
+            Math.max(1, Math.ceil(totalItems / this.pageSize));
           this.vacancies.set(items);
+          this.totalItems.set(totalItems);
+          this.totalPages.set(totalPages);
           this.loading.set(false);
         },
         error: () => {
           // Fallback to mock while backend is being built
-          const raw = this.mockData.getVacancies({
-            status: this.filterStatus || undefined,
-            search: this.searchQuery || undefined,
-            departmentId: this.filterDepartment || undefined,
-          });
+          const raw = this.applyLocalSearch(
+            this.mockData.getVacancies({
+              status: this.filterStatus || undefined,
+              search: this.searchQuery || undefined,
+              departmentId: this.filterDepartment || undefined,
+            }),
+          );
+          const start = (this.currentPage() - 1) * this.pageSize;
           this.vacancies.set(
-            raw.map((v) => ({
-              ...v,
-              id: String(v.id),
-              departmentId: String(v.departmentId),
-              ownedByEmployeeId: String(v.ownedByEmployeeId),
-              numberOfOpenings: (v as any).openings ?? v.numberOfOpenings ?? 1,
-              closingDate: (v as any).deadline ?? v.closingDate ?? '',
-            })) as any,
+            raw
+              .map((v) => ({
+                ...v,
+                id: String(v.id),
+                departmentId: String(v.departmentId),
+                ownedByEmployeeId: String(v.ownedByEmployeeId),
+                numberOfOpenings:
+                  (v as any).openings ?? v.numberOfOpenings ?? 1,
+                closingDate: (v as any).deadline ?? v.closingDate ?? '',
+              }))
+              .slice(start, start + this.pageSize) as any,
+          );
+          this.totalItems.set(raw.length);
+          this.totalPages.set(
+            Math.max(1, Math.ceil(raw.length / this.pageSize)),
           );
           this.loading.set(false);
         },
       });
   }
 
+  visibleVacancies(): Vacancy[] {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) return this.vacancies();
+    return this.vacancies().filter((vacancy) => {
+      const values = [
+        vacancy.code,
+        vacancy.title,
+        vacancy.description,
+        vacancy.department?.name,
+      ];
+      return values.some((value) =>
+        String(value ?? '')
+          .toLowerCase()
+          .includes(query),
+      );
+    });
+  }
+
   onSearch() {
+    this.currentPage.set(1);
     this.loadVacancies();
   }
 
@@ -208,6 +260,12 @@ export class VacancyListComponent implements OnInit {
     this.searchQuery = '';
     this.filterStatus = '';
     this.filterDepartment = '';
+    this.currentPage.set(1);
+    this.loadVacancies();
+  }
+
+  goToPage(page: number) {
+    this.currentPage.set(Math.max(1, Math.min(page, this.totalPages())));
     this.loadVacancies();
   }
 
@@ -244,6 +302,7 @@ export class VacancyListComponent implements OnInit {
 
   openDetail(v: Vacancy) {
     this.selectedVacancy.set(v);
+    this.loadSelectedApplicants(v.id);
     this.showDetailDialog.set(true);
   }
 
@@ -251,6 +310,8 @@ export class VacancyListComponent implements OnInit {
     this.showFormDialog.set(false);
     this.showDetailDialog.set(false);
     this.selectedVacancy.set(null);
+    this.selectedApplicants.set([]);
+    this.selectedApplicantsLoading.set(false);
     this.formError = '';
   }
 
@@ -338,6 +399,62 @@ export class VacancyListComponent implements OnInit {
       Closed: 'badge-danger',
     };
     return map[status] ?? 'badge-neutral';
+  }
+
+  displayedResultsCount(): number {
+    if (this.searchQuery.trim() && !this.useBackendSearch()) {
+      return this.visibleVacancies().length;
+    }
+    return this.totalItems();
+  }
+
+  private useBackendSearch(): boolean {
+    const query = this.searchQuery.trim();
+    if (!query) return false;
+    return !/^v\d+/i.test(query);
+  }
+
+  private applyLocalSearch(vacancies: Vacancy[]): Vacancy[] {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) return vacancies;
+    return vacancies.filter((vacancy) => {
+      const values = [
+        vacancy.code,
+        vacancy.title,
+        vacancy.description,
+        vacancy.department?.name,
+      ];
+      return values.some((value) =>
+        String(value ?? '')
+          .toLowerCase()
+          .includes(query),
+      );
+    });
+  }
+
+  private loadSelectedApplicants(vacancyId: string) {
+    this.selectedApplicantsLoading.set(true);
+    this.applicationService
+      .getAll({ vacancyId, status: 'Selected', page: 1, limit: 50 })
+      .subscribe({
+        next: (res) => {
+          const items = ((res.data as any)?.items ?? []) as Application[];
+          this.selectedApplicants.set(items);
+          this.selectedApplicantsLoading.set(false);
+        },
+        error: () => {
+          const items = this.mockData
+            .getApplications({ vacancyId, status: ApplicationStatus.SELECTED })
+            .map((item) => ({
+              ...item,
+              id: String(item.id),
+              applicantId: String(item.applicantId),
+              vacancyId: String(item.vacancyId),
+            })) as Application[];
+          this.selectedApplicants.set(items);
+          this.selectedApplicantsLoading.set(false);
+        },
+      });
   }
 
   // ── Expanded description editor ─────────────────────────────────────────

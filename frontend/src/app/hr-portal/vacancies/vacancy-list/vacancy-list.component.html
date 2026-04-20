@@ -28,7 +28,7 @@
       <input
         type="text"
         class="form-input search-input"
-        placeholder="Search vacancies..."
+        placeholder="Search by vacancy title or code..."
         [(ngModel)]="searchQuery"
         (input)="onSearch()"
       />
@@ -70,7 +70,7 @@
         Clear
       </button>
     }
-    <span class="result-count">{{ vacancies().length }} results</span>
+    <span class="result-count">{{ displayedResultsCount() }} results</span>
 
     <!-- View Toggle -->
     <div class="view-toggle">
@@ -136,14 +136,14 @@
           </tr>
         </thead>
         <tbody>
-          @for (v of vacancies(); track v.id) {
+          @for (v of visibleVacancies(); track v.id) {
             <tr class="table-row" (click)="openDetail(v)">
               <td>
                 <div class="vacancy-title">{{ v.title }}</div>
                 <div class="vacancy-desc">
                   {{ v.code }} · {{ v.description | slice: 0 : 70 }}...
                 </div>
-                @if (isNearDeadline(v) && v.status === "Opened") {
+                @if (isNearDeadline(v) && v.status == VacancyStatus.OPENED) {
                   <span
                     class="badge badge-danger"
                     style="font-size: 10px; margin-top: 4px"
@@ -252,7 +252,7 @@
                       }
                     </button>
                   }
-                } @else if (v.status === "Closed") {
+                } @else if (v.status == VacancyStatus.CLOSED) {
                   <span
                     class="locked-badge"
                     title="Closed vacancies cannot be reopened"
@@ -272,12 +272,34 @@
         </tbody>
       </table>
     </div>
+    @if (totalPages() > 1) {
+      <div
+        class="pagination"
+        style="margin-top: 16px; justify-content: flex-end"
+      >
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)"
+        >
+          ←
+        </button>
+        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(currentPage() + 1)"
+        >
+          →
+        </button>
+      </div>
+    }
   }
 
   <!-- ── CARD VIEW ── -->
   @if (viewMode === "card" && !loading()) {
     <div class="vacancy-grid">
-      @for (v of vacancies(); track v.id) {
+      @for (v of visibleVacancies(); track v.id) {
         <div class="vacancy-card" (click)="openDetail(v)">
           <div class="vc-header">
             <div class="vc-dept-tag">{{ v.department?.name ?? "No Dept" }}</div>
@@ -346,7 +368,7 @@
                   → {{ s }}
                 </button>
               }
-            } @else if (v.status === "Closed") {
+            } @else if (v.status == VacancyStatus.CLOSED) {
               <span class="locked-badge">🔒 Closed</span>
             }
           </div>
@@ -358,6 +380,28 @@
         </div>
       }
     </div>
+    @if (totalPages() > 1) {
+      <div
+        class="pagination"
+        style="margin-top: 16px; justify-content: flex-end"
+      >
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)"
+        >
+          ←
+        </button>
+        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(currentPage() + 1)"
+        >
+          →
+        </button>
+      </div>
+    }
   }
 </div>
 
@@ -562,6 +606,42 @@
           ></div>
         </div>
 
+        <div class="detail-description">
+          <h4 class="detail-section-title">Selected Applicants</h4>
+          @if (selectedApplicantsLoading()) {
+            <div class="info-banner info-banner-info">
+              Loading selected applicants...
+            </div>
+          } @else if (selectedApplicants().length > 0) {
+            <div class="card table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Applicant</th>
+                    <th>Applicant ID</th>
+                    <th>Selected Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of selectedApplicants(); track item.id) {
+                    <tr>
+                      <td>{{ item.applicant?.fullName || "—" }}</td>
+                      <td class="mono-id">
+                        {{ item.applicant?.code }}
+                      </td>
+                      <td>{{ item.updatedAt | date: "MM/dd/yyyy HH:mm" }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="info-banner info-banner-info">
+              No applicants have been marked as selected for this vacancy yet.
+            </div>
+          }
+        </div>
+
         <!-- Closed vacancy lock notice -->
         @if (isClosedOrSuspended(selectedVacancy()!) && !isSuperadmin()) {
           <div class="info-banner info-banner-warning">
@@ -579,6 +659,12 @@
             make changes.
           </div>
         }
+        <!-- @if (!hasOwnerData(selectedVacancy()!)) {
+          <div class="info-banner info-banner-info">
+            ℹ️ Owner data is not available in the current API response, so
+            owner-specific rules cannot be enforced from the UI yet.
+          </div>
+        } -->
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeDialogs()">Close</button>

@@ -34,11 +34,11 @@ import { CommonModule } from '@angular/common';
         </section>
 
         <section class="card help-card">
-          <h2 class="help-title">Applications & Kanban</h2>
+          <h2 class="help-title">Applications</h2>
           <ul class="help-list">
             <li>Attach applicants to vacancies in the Applications page.</li>
-            <li>Use Kanban Board to move candidates between pipeline stages.</li>
-            <li>Use the Application record to schedule interviews.</li>
+            <li>Track candidate status directly from the Applicant-Vacancy record.</li>
+            <li>Use the Application record to schedule interviews and review AI CV data.</li>
           </ul>
         </section>
 

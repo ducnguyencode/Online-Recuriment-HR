@@ -1,6 +1,15 @@
 # === Tài liệu nội bộ - KHÔNG đẩy lên GitHub ===
 design.md
 api-contract.md
+chucnangthem.md
+code-erd-mermaid.md
+debai.md
+erd.md
+HR_Recruitment_Online_Wiki_Documentation.html
+onlinerecuriment process for HR.DOCX
+ProjectSpecification.doc
+Tai_Lieu_HR_Recruitment_Online.html
+taskteam.md
 
 # === OS files ===
 .DS_Store
@@ -26,3 +35,6 @@ tmp/
 .env
 .env.local
 .env.*.local
+
+# Local uploaded CV test files
+backend/uploads/cv/

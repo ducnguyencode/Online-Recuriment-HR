@@ -31,13 +31,13 @@
         class="form-input search-input"
         placeholder="Search by applicant ID, name, email..."
         [(ngModel)]="searchQuery"
-        (input)="loadApplicants()"
+        (input)="onSearchChange()"
       />
     </div>
     <select
       class="form-select filter-select"
       [(ngModel)]="filterStatus"
-      (change)="loadApplicants()"
+      (change)="onSearchChange()"
     >
       <option value="">All Statuses</option>
       @for (status of applicantStatusList; track status) {
@@ -49,8 +49,8 @@
         Reset
       </button>
     }
-    <span class="result-count">{{ applicants().length }} applicants</span>
-    @if (totalPages > 1) {
+    <span class="result-count">{{ totalItems() }} applicants</span>
+    @if (totalPages() > 1) {
       <div class="pagination">
         <button
           class="btn-ghost btn-sm"
@@ -59,10 +59,10 @@
         >
           ←
         </button>
-        <span class="page-info">{{ currentPage() }} / {{ totalPages }}</span>
+        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
         <button
           class="btn-ghost btn-sm"
-          [disabled]="currentPage() === totalPages"
+          [disabled]="currentPage() === totalPages()"
           (click)="goToPage(currentPage() + 1)"
         >
           →
@@ -80,9 +80,8 @@
           <tr>
             <th>Applicant</th>
             <th>Contact</th>
+            <th>Created Date</th>
             <th>Status</th>
-            <th>Applications</th>
-            <th>Latest Vacancy</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -109,18 +108,14 @@
                 </div>
               </td>
               <td>
+                {{ applicant.createdAt | date: "MM/dd/yyyy" }}
+              </td>
+              <td>
                 <span
                   class="badge"
                   [ngClass]="getStatusClass(applicant.status)"
-                  >{{ applicant.status }}</span
+                  >{{ displayStatus(applicant.status) }}</span
                 >
-              </td>
-              <td>{{ applicant.applications?.length || 0 }}</td>
-              <td class="latest-vacancy">
-                {{
-                  applicant.applications?.[0]?.vacancy?.title ??
-                    "No vacancy attached"
-                }}
               </td>
               <td class="cell-actions" (click)="$event.stopPropagation()">
                 <button
@@ -144,7 +139,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="6" class="empty-state">
+              <td colspan="5" class="empty-state">
                 <div class="empty-icon">👤</div>
                 <p>No applicants found</p>
               </td>
@@ -197,7 +192,7 @@
             <span
               class="badge"
               [ngClass]="getStatusClass(selectedApplicant()!.status)"
-              >{{ selectedApplicant()!.status }}</span
+              >{{ displayStatus(selectedApplicant()!.status) }}</span
             >
           </div>
           <div class="detail-item">
@@ -266,7 +261,9 @@
                   track item.id
                 ) {
                   <tr>
-                    <td class="mono-id">{{ item.id }}</td>
+                    <td class="mono-id">
+                      {{ item.code }}
+                    </td>
                     <td>
                       <div class="id-stack">
                         <span class="person-name">{{
@@ -282,7 +279,12 @@
                         >{{ item.status }}</span
                       >
                     </td>
-                    <td>{{ item.createdAt | date: "MM/dd/yyyy HH:mm" }}</td>
+                    <td>
+                      {{
+                        item.appliedAt || item.createdAt || item.updatedAt
+                          | date: "MM/dd/yyyy HH:mm"
+                      }}
+                    </td>
                   </tr>
                 } @empty {
                   <tr>

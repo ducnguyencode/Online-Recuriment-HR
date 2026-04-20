@@ -47,7 +47,7 @@ export enum InterviewResult {
 
 export enum InterviewStatus {
   SCHEDULED = 'Scheduled',
-  COMPLETED = 'Complete',
+  COMPLETED = 'Completed',
   CANCELLED = 'Cancelled',
   POSTPONED = 'Postponed',
 }
@@ -155,7 +155,7 @@ export interface AiPreview {
 
 export interface Application {
   id: string; // UUID
-  code: string;
+  code?: string;
   applicantId: string;
   applicant?: Applicant;
   vacancyId: string;
@@ -164,8 +164,9 @@ export interface Application {
   cv?: CV;
   status: ApplicationStatus;
   aiPreview?: AiPreview;
+  aiMatchScore?: number;
   appliedAt?: string;
-  createdAt: string;
+  createdAt?: string;
   updatedAt: string;
 }
 
@@ -182,6 +183,12 @@ export interface Interview {
   id: string; // UUID
   applicationId: string;
   application?: Application;
+  applicant?: Applicant;
+  vacancy?: Vacancy;
+  title: string;
+  description?: string;
+  googleMeetLink?: string;
+  googleCalendarEventId?: string;
   interviewDate: string;
   startTime: string;
   endTime: string;
@@ -249,6 +256,8 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages?: number;
+  totalItems?: number;
+  totalPage?: number;
 }
 
 // ==================== DASHBOARD ====================
@@ -266,12 +275,12 @@ export interface DashboardStats {
 
 /** Per spec: once Closed, cannot change status */
 export function canChangeVacancyStatus(current: VacancyStatus): boolean {
-  return current !== 'Closed';
+  return current !== VacancyStatus.CLOSED;
 }
 
 /** Per spec: cannot attach applicant to Closed or Suspended vacancy */
 export function canAttachToVacancy(vacancyStatus: VacancyStatus): boolean {
-  return vacancyStatus === 'Opened';
+  return vacancyStatus === VacancyStatus.OPENED;
 }
 
 /** Per spec: cannot attach more vacancies if applicant is Hired or Banned */
@@ -279,6 +288,21 @@ export function canAttachVacancyToApplicant(
   applicantStatus: ApplicantStatus,
 ): boolean {
   return applicantStatus !== 'Hired' && applicantStatus !== 'Banned';
+}
+
+export function displayApplicantStatus(status?: string): string {
+  if (!status) return '—';
+  if (status === ApplicantStatus.NOT_IN_PROCESS)
+    return ApplicantStatus.NOT_IN_PROCESS;
+  return status;
+}
+
+export function isVacancyOpenStatus(status?: string): boolean {
+  return status === VacancyStatus.OPENED;
+}
+
+export function isVacancyClosedStatus(status?: string): boolean {
+  return status === VacancyStatus.CLOSED;
 }
 
 /** Per spec: HR can only edit/close vacancies they own */

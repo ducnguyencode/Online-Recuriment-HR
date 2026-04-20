@@ -579,8 +579,11 @@ export class MockDataService {
       const q = params.search.toLowerCase();
       result = result.filter(
         (v) =>
+          v.code.toLowerCase().includes(q) ||
+          v.id.toLowerCase().includes(q) ||
           v.title.toLowerCase().includes(q) ||
-          v.description.toLowerCase().includes(q),
+          v.description.toLowerCase().includes(q) ||
+          (v.department?.name ?? '').toLowerCase().includes(q),
       );
     }
     return result;
@@ -645,7 +648,11 @@ export class MockDataService {
   }): Application[] {
     let result = this.applications.map((app) => ({
       ...app,
-      applicant: this.applicants.find((a) => a.id === app.applicantId),
+      applicant: this.applicants.find(
+        (a) =>
+          this.normalizeApplicantRef(a.id) ===
+          this.normalizeApplicantRef(app.applicantId),
+      ),
       vacancy: this.vacancies.find((v) => v.id === app.vacancyId),
       cv: this.cvs.find((c) => c.id === app.cvId),
     }));
@@ -666,14 +673,18 @@ export class MockDataService {
       const q = params.search.toLowerCase();
       result = result.filter((applicant) => {
         const applicantApplications = this.getApplications().filter(
-          (app) => app.applicantId === applicant.id,
+          (app) =>
+            this.normalizeApplicantRef(app.applicantId) ===
+            this.normalizeApplicantRef(applicant.id),
         );
         return (
+          applicant.code.toLowerCase().includes(q) ||
           applicant.id.toLowerCase().includes(q) ||
           applicant.fullName.toLowerCase().includes(q) ||
           applicant.email.toLowerCase().includes(q) ||
           applicantApplications.some(
             (app) =>
+              (app.vacancy?.code ?? '').toLowerCase().includes(q) ||
               app.vacancyId.toLowerCase().includes(q) ||
               (app.vacancy?.title ?? '').toLowerCase().includes(q),
           )
@@ -685,12 +696,17 @@ export class MockDataService {
 
   getApplicantApplications(applicantId: string): Application[] {
     return this.getApplications().filter(
-      (item) => item.applicantId === applicantId,
+      (item) =>
+        this.normalizeApplicantRef(item.applicantId) ===
+        this.normalizeApplicantRef(applicantId),
     );
   }
 
   getApplicantById(id: string): Applicant | undefined {
-    return this.applicants.find((applicant) => applicant.id === id);
+    return this.applicants.find(
+      (applicant) =>
+        this.normalizeApplicantRef(applicant.id) === this.normalizeApplicantRef(id),
+    );
   }
 
   addApplicant(data: {
@@ -733,7 +749,11 @@ export class MockDataService {
   }
 
   getCvByApplicantId(applicantId: string): CV | undefined {
-    return this.cvs.find((cv) => cv.applicantId === applicantId);
+    return this.cvs.find(
+      (cv) =>
+        this.normalizeApplicantRef(cv.applicantId) ===
+        this.normalizeApplicantRef(applicantId),
+    );
   }
 
   attachApplicantToVacancy(data: {
@@ -913,7 +933,9 @@ export class MockDataService {
     return this.interviews
       .map((inv) => {
         const app = this.getApplications().find(
-          (a) => a.id === inv.applicationId,
+          (a) =>
+            this.normalizeApplicationRef(a.id) ===
+            this.normalizeApplicationRef(inv.applicationId),
         );
         // Use stored date/startTime/endTime directly — avoid UTC timezone shift
         const date = inv.date ?? inv.scheduledAt?.substring(0, 10) ?? '';
@@ -1000,6 +1022,39 @@ export class MockDataService {
       );
   }
 
+  getApplicantInterviewConflicts(
+    applicantId: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    excludeInterviewId?: string,
+  ): string[] {
+    const applicationIds = this.applications
+      .filter(
+        (application) =>
+          this.normalizeApplicantRef(application.applicantId) ===
+          this.normalizeApplicantRef(applicantId),
+      )
+      .map((application) => application.id);
+
+    return this.interviews
+      .filter((inv) => {
+        if (excludeInterviewId && inv.id === excludeInterviewId) return false;
+        if (inv.date !== date) return false;
+        if (
+          !applicationIds.some(
+            (applicationId) =>
+              this.normalizeApplicationRef(applicationId) ===
+              this.normalizeApplicationRef(inv.applicationId),
+          )
+        ) {
+          return false;
+        }
+        return startTime < inv.endTime && endTime > inv.startTime;
+      })
+      .map((inv) => inv.id);
+  }
+
   // ====== AVAILABILITY ======
   getAvailability(employeeId: string, startDate: string, endDate: string) {
     return this.interviewerAvailability.filter(
@@ -1082,6 +1137,14 @@ export class MockDataService {
     const h = Math.floor(minutes / 60) % 24;
     const m = minutes % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  private normalizeApplicantRef(value: string): string {
+    return value.replace(/^appl-/, '');
+  }
+
+  private normalizeApplicationRef(value: string): string {
+    return value.replace(/^appl-id-/, '');
   }
 
   private futureDate(days: number): string {

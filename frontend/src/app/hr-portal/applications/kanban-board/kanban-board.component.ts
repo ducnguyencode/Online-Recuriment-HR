@@ -2,28 +2,13 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import {
-  CdkDragDrop,
-  CdkDrag,
-  CdkDropList,
-  moveItemInArray,
-  transferArrayItem,
-} from '@angular/cdk/drag-drop';
+import { CdkDragDrop, CdkDrag, CdkDropList, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { catchError, forkJoin, of } from 'rxjs';
 import { ApplicationService } from '../../../core/services/application.service';
-import {
-  InterviewService,
-  ScheduleInterviewDto,
-} from '../../../core/services/interview.service';
+import { InterviewService, ScheduleInterviewDto } from '../../../core/services/interview.service';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
-import {
-  Application,
-  Vacancy,
-  Employee,
-  ApplicationStatus,
-  canAttachToVacancy,
-} from '../../../core/models';
+import { Application, Vacancy, Employee, ApplicationStatus, canAttachToVacancy } from '../../../core/models';
 
 interface KanbanColumn {
   id: string;
@@ -36,14 +21,7 @@ interface KanbanColumn {
 @Component({
   selector: 'app-kanban-board',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    CdkDropList,
-    CdkDrag,
-    DatePipe,
-    RouterLink,
-  ],
+  imports: [CommonModule, FormsModule, CdkDropList, CdkDrag, DatePipe, RouterLink],
   templateUrl: './kanban-board.component.html',
   styleUrl: './kanban-board.component.scss',
 })
@@ -65,40 +43,29 @@ export class KanbanBoardComponent implements OnInit {
 
   interviewData = {
     applicationId: '',
+    title: '',
+    description: '',
     date: '',
     startTime: '09:00',
     endTime: '10:00',
     platform: 'Google Meet' as 'Google Meet' | 'Zoom' | 'On-site',
   };
   interviewError = '';
-  availabilityPreview = signal<
-    Record<
-      string,
-      { availableDate: string; startTime: string; endTime: string }[]
-    >
-  >({});
+  availabilityPreview = signal<Record<string, { availableDate: string; startTime: string; endTime: string }[]>>({});
 
-  connectedLists = [
-    'pending',
-    'screening',
-    'interview',
-    'selected',
-    'rejected',
-  ];
+  connectedLists = ['pending', 'screening', 'interview', 'selected', 'rejected'];
 
   constructor(
     private appService: ApplicationService,
     private interviewService: InterviewService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     const raw = this.mockData.getVacancies({ status: 'Opened' });
-    const vacs = raw.map((v) => ({
-      ...v,
-      id: String(v.id),
-      departmentId: String(v.departmentId),
+    const vacs = raw.map(v => ({
+      ...v, id: String(v.id), departmentId: String(v.departmentId),
       ownedByEmployeeId: String(v.ownedByEmployeeId),
       numberOfOpenings: (v as any).openings ?? 1,
       closingDate: (v as any).deadline ?? '',
@@ -111,129 +78,70 @@ export class KanbanBoardComponent implements OnInit {
   }
 
   get selectedVacancy(): Vacancy | undefined {
-    return this.vacancies().find((v) => v.id === this.selectedVacancyId());
+    return this.vacancies().find(v => v.id === this.selectedVacancyId());
   }
 
-  onVacancyChange() {
-    this.loadKanban();
-  }
+  onVacancyChange() { this.loadKanban(); }
 
   loadKanban() {
     this.loading.set(true);
     const vacId = this.selectedVacancyId() || undefined;
 
     this.appService.getAll({ vacancyId: vacId }).subscribe({
-      next: (res) => {
+      next: res => {
         const items: Application[] = (res.data as any)?.items ?? [];
         this.buildColumns(items);
         this.loading.set(false);
       },
       error: () => {
-        const raw = this.mockData.getApplications(
-          vacId ? { vacancyId: vacId } : {},
-        );
-        const items = raw.map((a) => ({
-          ...a,
-          id: String(a.id),
-          applicantId: String(a.applicantId),
+        const raw = this.mockData.getApplications(vacId ? { vacancyId: vacId } : {});
+        const items = raw.map(a => ({
+          ...a, id: String(a.id), applicantId: String(a.applicantId),
           vacancyId: String(a.vacancyId),
         })) as unknown as Application[];
         this.buildColumns(items);
         this.loading.set(false);
-      },
+      }
     });
   }
 
   private buildColumns(apps: Application[]) {
     this.columns.set([
-      {
-        id: 'pending',
-        title: ApplicationStatus.PENDING,
-        status: ApplicationStatus.PENDING,
-        color: '#94A3B8',
-        items: apps.filter((a) => a.status === ApplicationStatus.PENDING),
-      },
-      {
-        id: 'screening',
-        title: ApplicationStatus.SCREENING,
-        status: ApplicationStatus.SCREENING,
-        color: '#F59E0B',
-        items: apps.filter((a) => a.status === ApplicationStatus.SCREENING),
-      },
-      {
-        id: 'interview',
-        title: ApplicationStatus.INTERVIEW_SCHEDULED,
-        status: ApplicationStatus.INTERVIEW_SCHEDULED,
-        color: '#3B82F6',
-        items: apps.filter(
-          (a) => a.status === ApplicationStatus.INTERVIEW_SCHEDULED,
-        ),
-      },
-      {
-        id: 'selected',
-        title: ApplicationStatus.SELECTED,
-        status: ApplicationStatus.SELECTED,
-        color: '#22C55E',
-        items: apps.filter((a) => a.status === ApplicationStatus.SELECTED),
-      },
-      {
-        id: 'rejected',
-        title: ApplicationStatus.REJECTED,
-        status: ApplicationStatus.REJECTED,
-        color: '#EF4444',
-        items: apps.filter((a) => a.status === ApplicationStatus.REJECTED),
-      },
+      { id: 'pending', title: 'Pending', status: 'Pending', color: '#94A3B8', items: apps.filter(a => a.status === 'Pending') },
+      { id: 'screening', title: 'Screening', status: 'Screening', color: '#F59E0B', items: apps.filter(a => a.status === 'Screening') },
+      { id: 'interview', title: 'Interview Scheduled', status: 'Interview Scheduled', color: '#3B82F6', items: apps.filter(a => a.status === 'Interview Scheduled') },
+      { id: 'selected', title: 'Selected', status: 'Selected', color: '#22C55E', items: apps.filter(a => a.status === 'Selected') },
+      { id: 'rejected', title: 'Rejected', status: 'Rejected', color: '#EF4444', items: apps.filter(a => a.status === 'Rejected') },
     ]);
   }
 
   onDrop(event: CdkDragDrop<Application[]>, targetColumn: KanbanColumn) {
     if (event.previousContainer === event.container) {
-      moveItemInArray(
-        event.container.data,
-        event.previousIndex,
-        event.currentIndex,
-      );
+      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       return;
     }
 
     // Business rule: cannot move to Selected if vacancy is Closed/Suspended
-    if (
-      targetColumn.status === ApplicationStatus.SELECTED &&
-      this.selectedVacancy
-    ) {
+    if (targetColumn.status === 'Selected' && this.selectedVacancy) {
       if (!canAttachToVacancy(this.selectedVacancy.status)) {
-        alert(
-          'Cannot select applicant — vacancy is ' + this.selectedVacancy.status,
-        );
+        alert('Cannot select applicant — vacancy is ' + this.selectedVacancy.status);
         return;
       }
     }
 
-    transferArrayItem(
-      event.previousContainer.data,
-      event.container.data,
-      event.previousIndex,
-      event.currentIndex,
-    );
+    transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex);
     const movedApp = event.container.data[event.currentIndex];
 
     // Update status on the local object so template bindings re-evaluate immediately
     movedApp.status = targetColumn.status;
 
     this.appService.changeStatus(movedApp.id, targetColumn.status).subscribe({
-      error: () =>
-        this.mockData.updateApplicationStatus(movedApp.id, targetColumn.status),
+      error: () => this.mockData.updateApplicationStatus(movedApp.id, targetColumn.status)
     });
   }
 
-  openCVDetail(app: Application) {
-    this.selectedApp.set(app);
-    this.showCVDetail.set(true);
-  }
-  closeCVDetail() {
-    this.showCVDetail.set(false);
-    this.selectedApp.set(null);
-  }
+  openCVDetail(app: Application) { this.selectedApp.set(app); this.showCVDetail.set(true); }
+  closeCVDetail() { this.showCVDetail.set(false); this.selectedApp.set(null); }
 
   // ── Schedule Interview ─────────────────────────────────────────────────────
 
@@ -241,9 +149,10 @@ export class KanbanBoardComponent implements OnInit {
     event.stopPropagation();
     this.interviewData = {
       applicationId: app.id,
+      title: ``,
+      description: `Interview was created from the recruitment management system.`,
       date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // tomorrow min
-      startTime: '09:00',
-      endTime: '10:00',
+      startTime: '09:00', endTime: '10:00',
       platform: 'Google Meet',
     };
     this.selectedPanelIds = [];
@@ -251,15 +160,11 @@ export class KanbanBoardComponent implements OnInit {
     this.availabilityPreview.set({});
 
     // Load interviewers from same department as the vacancy (per spec)
-    const deptId =
-      app.vacancy?.departmentId ?? this.selectedVacancy?.departmentId ?? '';
+    const deptId = app.vacancy?.departmentId ?? this.selectedVacancy?.departmentId ?? '';
     if (deptId) {
       this.employeeService.getInterviewersByDepartment(deptId).subscribe({
-        next: (res) =>
-          this.availableInterviewers.set(
-            Array.isArray(res.data) ? res.data : [],
-          ),
-        error: () => this.availableInterviewers.set(this.getMockInterviewers()),
+        next: res => this.availableInterviewers.set(Array.isArray(res.data) ? res.data : []),
+        error: () => this.availableInterviewers.set(this.getMockInterviewers())
       });
     } else {
       this.availableInterviewers.set(this.getMockInterviewers());
@@ -268,11 +173,7 @@ export class KanbanBoardComponent implements OnInit {
     this.showInterviewDialog.set(true);
   }
 
-  closeInterviewDialog() {
-    this.showInterviewDialog.set(false);
-    this.interviewError = '';
-    this.availabilityPreview.set({});
-  }
+  closeInterviewDialog() { this.showInterviewDialog.set(false); this.interviewError = ''; this.availabilityPreview.set({}); }
 
   togglePanelMember(employeeId: string) {
     const idx = this.selectedPanelIds.indexOf(employeeId);
@@ -295,59 +196,37 @@ export class KanbanBoardComponent implements OnInit {
       return;
     }
 
-    const requests = this.selectedPanelIds.map((employeeId) =>
-      this.interviewService
-        .getAvailability({
-          employeeId,
-          startDate: this.interviewData.date,
-          endDate: this.interviewData.date,
-        })
-        .pipe(
-          catchError(() =>
-            of({
-              data: this.mockData.getAvailability(
-                employeeId,
-                this.interviewData.date,
-                this.interviewData.date,
-              ),
-            } as any),
-          ),
-        ),
+    const requests = this.selectedPanelIds.map(employeeId =>
+      this.interviewService.getAvailability({
+        employeeId,
+        startDate: this.interviewData.date,
+        endDate: this.interviewData.date,
+      }).pipe(
+        catchError(() => of({ data: this.mockData.getAvailability(employeeId, this.interviewData.date, this.interviewData.date) } as any))
+      )
     );
 
-    forkJoin(requests).subscribe((results) => {
-      const preview: Record<
-        string,
-        { availableDate: string; startTime: string; endTime: string }[]
-      > = {};
+    forkJoin(requests).subscribe(results => {
+      const preview: Record<string, { availableDate: string; startTime: string; endTime: string }[]> = {};
       results.forEach((result, index) => {
-        preview[this.selectedPanelIds[index]] = (result.data ?? []).map(
-          (slot: any) => ({
-            availableDate: slot.availableDate,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-          }),
-        );
+        preview[this.selectedPanelIds[index]] = (result.data ?? []).map((slot: any) => ({
+          availableDate: slot.availableDate,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        }));
       });
       this.availabilityPreview.set(preview);
     });
   }
 
   getEmployeeName(employeeId: string): string {
-    return (
-      this.availableInterviewers().find((item) => item.id === employeeId)
-        ?.fullName ?? employeeId
-    );
+    return this.availableInterviewers().find(item => item.id === employeeId)?.fullName ?? employeeId;
   }
 
   hasValidAvailability(): boolean {
-    return this.selectedPanelIds.every((employeeId) => {
+    return this.selectedPanelIds.every(employeeId => {
       const slots = this.availabilityPreview()[employeeId] ?? [];
-      return slots.some(
-        (slot) =>
-          this.interviewData.startTime >= slot.startTime &&
-          this.interviewData.endTime <= slot.endTime,
-      );
+      return slots.some(slot => this.interviewData.startTime >= slot.startTime && this.interviewData.endTime <= slot.endTime);
     });
   }
 
@@ -359,78 +238,80 @@ export class KanbanBoardComponent implements OnInit {
   }
 
   saveInterview() {
-    const { applicationId, date, startTime, endTime, platform } =
-      this.interviewData;
+    const { applicationId, date, startTime, endTime, platform } = this.interviewData;
 
     if (!date || !startTime || !endTime) {
       this.interviewError = 'Date, start time and end time are required.';
-      this.scrollDialogToTop();
-      return;
+      this.scrollDialogToTop(); return;
     }
     if (new Date(date + 'T00:00:00') <= new Date()) {
       this.interviewError = 'Interview date must be in the future.';
-      this.scrollDialogToTop();
-      return;
+      this.scrollDialogToTop(); return;
     }
     if (startTime >= endTime) {
       this.interviewError = 'End time must be after start time.';
-      this.scrollDialogToTop();
-      return;
+      this.scrollDialogToTop(); return;
     }
     if (this.selectedPanelIds.length === 0) {
       this.interviewError = 'Select at least one interviewer from the panel.';
-      this.scrollDialogToTop();
-      return;
+      this.scrollDialogToTop(); return;
     }
 
-    const conflicts = this.mockData.getInterviewerConflicts(
-      this.selectedPanelIds,
-      date,
-      startTime,
-      endTime,
-    );
+    const conflicts = this.mockData.getInterviewerConflicts(this.selectedPanelIds, date, startTime, endTime);
     if (conflicts.length > 0) {
       this.interviewError = `Conflict detected: ${conflicts.join(', ')} already has an interview scheduled at this time.`;
-      this.scrollDialogToTop();
-      return;
+      this.scrollDialogToTop(); return;
     }
+
+    const startISO = `${date}T${startTime}:00`;
+    const endISO = `${date}T${endTime}:00`;
+
+    // const dto: ScheduleInterviewDto = {
+    //   applicationId,
+    //   panel: this.selectedPanelIds.map(id => ({
+    //     employeeId: id,
+    //     role: this.availableInterviewers().find(e => e.id === id)?.position ?? 'Interviewer'
+    //   })),
+    //   interviewDate: date,
+    //   startTime, endTime, platform,
+    // };
 
     const dto: ScheduleInterviewDto = {
       applicationId,
-      panel: this.selectedPanelIds.map((id) => ({
+      title: `Applicant: ${this.selectedApp()?.applicant?.fullName || 'Applicant'}`,
+      description: `Position: ${this.selectedApp()?.vacancy?.title || 'Position'}`,
+      panel: this.selectedPanelIds.map(id => ({
         employeeId: id,
-        role:
-          this.availableInterviewers().find((e) => e.id === id)?.position ??
-          'Interviewer',
+        role: this.availableInterviewers().find(e => e.id === id)?.position ?? 'Interviewer'
       })),
-      interviewDate: date,
-      startTime,
-      endTime,
+      startTime: startISO,
+      endTime: endISO,
       platform,
     };
 
+    // this.interviewService.schedule(dto).subscribe({
+    //   next: () => {
+    //     this.closeInterviewDialog();
+    //     this.loadKanban();
+    //   },
+    //   error: () => {
+    //     // Mock fallback
+    //     const dur = (new Date(`2000-01-01T${endTime}`).getTime() - new Date(`2000-01-01T${startTime}`).getTime()) / 60000;
+    //     this.mockData.addInterview({ applicationId, date, time: startTime, duration: dur, platform, interviewers: this.selectedPanelIds });
+    //     this.closeInterviewDialog();
+    //     this.loadKanban();
+    //   }
+    // });
     this.interviewService.schedule(dto).subscribe({
       next: () => {
         this.closeInterviewDialog();
         this.loadKanban();
       },
-      error: () => {
-        // Mock fallback
-        const dur =
-          (new Date(`2000-01-01T${endTime}`).getTime() -
-            new Date(`2000-01-01T${startTime}`).getTime()) /
-          60000;
-        this.mockData.addInterview({
-          applicationId,
-          date,
-          time: startTime,
-          duration: dur,
-          platform,
-          interviewers: this.selectedPanelIds,
-        });
-        this.closeInterviewDialog();
-        this.loadKanban();
-      },
+      error: (err) => {
+        console.error('Lỗi API:', err);
+        this.interviewError = err.error?.message || 'Không thể đặt lịch phỏng vấn.';
+        this.scrollDialogToTop();
+      }
     });
   }
 
@@ -444,32 +325,13 @@ export class KanbanBoardComponent implements OnInit {
   }
 
   getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((n) => n.charAt(0))
-      .slice(-2)
-      .join('')
-      .toUpperCase();
+    return name.split(' ').map(n => n.charAt(0)).slice(-2).join('').toUpperCase();
   }
 
   private getMockInterviewers(): Employee[] {
     return [
-      {
-        id: 'emp-uuid-001',
-        fullName: 'Nguyen Van An',
-        email: 'an@abc.com',
-        departmentId: '1',
-        position: 'Tech Lead',
-        role: 'Interviewer',
-      },
-      {
-        id: 'emp-uuid-003',
-        fullName: 'Le Van Cuong',
-        email: 'cuong@abc.com',
-        departmentId: '1',
-        position: 'Senior Dev',
-        role: 'Interviewer',
-      },
+      { id: 'emp-uuid-001', fullName: 'Nguyen Van An', email: 'an@abc.com', departmentId: '1', position: 'Tech Lead', role: 'Interviewer' },
+      { id: 'emp-uuid-003', fullName: 'Le Van Cuong', email: 'cuong@abc.com', departmentId: '1', position: 'Senior Dev', role: 'Interviewer' },
     ];
   }
 }

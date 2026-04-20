@@ -55,13 +55,13 @@ export class ApplicationService {
     return this.http.post<ApiResponse<Application>>(`${this.base}/create`, dto);
   }
 
-  /** Change application status — used by Kanban drag-drop */
+  /** Change application status from the Applicant-Vacancy workflow. */
   changeStatus(
     id: string,
     status: ApplicationStatus,
   ): Observable<ApiResponse<Application>> {
     let params = new HttpParams().set('id', id).set('status', status);
-    return this.http.post<ApiResponse<Application>>(
+    return this.http.patch<ApiResponse<Application>>(
       `${this.base}/change-status`,
       {},
       { params },

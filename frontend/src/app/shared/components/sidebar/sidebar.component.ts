@@ -9,6 +9,7 @@ interface NavItem {
   icon: string;
   route: string;
   hrOnly?: boolean;
+  superadminOnly?: boolean;
   interviewerVisible?: boolean;
 }
 
@@ -25,30 +26,9 @@ export class SidebarComponent {
 
   menuItems: NavItem[] = [
     { label: 'Dashboard', icon: 'layout-dashboard', route: '/hr-portal' },
-    {
-      label: 'Vacancies',
-      icon: 'briefcase',
-      route: '/hr-portal/vacancies',
-      hrOnly: true,
-    },
-    {
-      label: 'Applicants',
-      icon: 'users',
-      route: '/hr-portal/applicants',
-      hrOnly: true,
-    },
-    {
-      label: 'Applications',
-      icon: 'file-text',
-      route: '/hr-portal/applications',
-      hrOnly: true,
-    },
-    {
-      label: 'Kanban Board',
-      icon: 'columns-3',
-      route: '/hr-portal/applications/kanban',
-      hrOnly: true,
-    },
+    { label: 'Vacancies', icon: 'briefcase', route: '/hr-portal/vacancies', hrOnly: true },
+    { label: 'Applicants', icon: 'users', route: '/hr-portal/applicants', hrOnly: true },
+    { label: 'Applications', icon: 'file-text', route: '/hr-portal/applications', hrOnly: true },
     { label: 'Interviews', icon: 'calendar', route: '/hr-portal/interviews' },
     {
       label: 'Reports',
@@ -59,12 +39,8 @@ export class SidebarComponent {
   ];
 
   systemItems: NavItem[] = [
-    {
-      label: 'Audit Log',
-      icon: 'clipboard-list',
-      route: '/hr-portal/audit',
-      hrOnly: true,
-    },
+    { label: 'Staff Accounts', icon: 'shield', route: '/hr-portal/admin/staff', superadminOnly: true },
+    { label: 'Audit Log', icon: 'clipboard-list', route: '/hr-portal/audit', hrOnly: true },
     { label: 'Notifications', icon: 'bell', route: '/hr-portal/notifications' },
     { label: 'Profile', icon: 'settings', route: '/hr-portal/profile' },
     { label: 'Help', icon: 'circle-help', route: '/hr-portal/help' },
@@ -94,15 +70,17 @@ export class SidebarComponent {
   ) {}
 
   get visibleMenuItems(): NavItem[] {
-    return this.menuItems.filter(
-      (item) => !item.hrOnly || this.auth.isHR() || this.auth.isSuperadmin(),
-    );
+    return this.menuItems.filter(item => this.canSee(item));
   }
 
   get visibleSystemItems(): NavItem[] {
-    return this.systemItems.filter(
-      (item) => !item.hrOnly || this.auth.isHR() || this.auth.isSuperadmin(),
-    );
+    return this.systemItems.filter(item => this.canSee(item));
+  }
+
+  private canSee(item: NavItem): boolean {
+    if (item.superadminOnly && !this.auth.isSuperadmin()) return false;
+    if (item.hrOnly && !(this.auth.isHR() || this.auth.isSuperadmin())) return false;
+    return true;
   }
 
   toggleCollapse() {
