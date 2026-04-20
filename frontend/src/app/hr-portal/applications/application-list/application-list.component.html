@@ -113,14 +113,14 @@
               <td>
                 <div class="person-cell">
                   <div class="person-avatar">
-                    {{ getInitials(app.applicant?.fullName || "?") }}
+                    {{ getInitials(app.applicant!.user!.fullName || "?") }}
                   </div>
                   <div>
                     <div class="person-name">
-                      {{ app.applicant?.fullName || "—" }}
+                      {{ app.applicant!.user!.fullName || "—" }}
                     </div>
                     <div class="person-meta">
-                      {{ app.applicant?.email || "—" }}
+                      {{ app.applicant!.user!.email || "—" }}
                     </div>
                   </div>
                 </div>
@@ -200,7 +200,11 @@
       <div class="modal-header">
         <div class="modal-header-left">
           <div class="detail-avatar">
-            {{ getInitials(selectedApplication()!.applicant?.fullName || "?") }}
+            {{
+              getInitials(
+                selectedApplication()!.applicant!.user!.fullName || "?"
+              )
+            }}
           </div>
           <div>
             <h3 class="modal-title">
@@ -486,11 +490,11 @@
             <div class="attach-selected">
               <div class="attach-selected-info">
                 <span class="attach-name">{{
-                  attachSelectedApplicant()!.fullName
+                  attachSelectedApplicant()!.user!.fullName
                 }}</span>
                 <span class="attach-meta"
                   >{{ applicantDisplayId(attachSelectedApplicant()!.code) }} ·
-                  {{ attachSelectedApplicant()!.email }}</span
+                  {{ attachSelectedApplicant()!.user!.email }}</span
                 >
               </div>
               <button class="btn-ghost btn-sm" (click)="clearAttachApplicant()">
@@ -515,14 +519,14 @@
                       (click)="selectAttachApplicant(item)"
                     >
                       <div class="attach-item-avatar">
-                        {{ getInitials(item.fullName) }}
+                        {{ getInitials(item.user!.fullName) }}
                       </div>
                       <div class="attach-item-info">
                         <span class="attach-item-name">{{
-                          item.fullName
+                          item.user!.fullName
                         }}</span>
                         <span class="attach-item-meta"
-                          >{{ item.code }} · {{ item.email }} ·
+                          >{{ item.code }} · {{ item.user!.email }} ·
                           {{ item.status }}</span
                         >
                       </div>

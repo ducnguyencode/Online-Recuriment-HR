@@ -239,9 +239,9 @@ export class ApplicationListComponent implements OnInit {
     const all = this.applicants().filter(
       (a) =>
         canAttachVacancyToApplicant(a.status) &&
-        (a.fullName.toLowerCase().includes(q) ||
-          a.email.toLowerCase().includes(q) ||
-          String(a.id).toLowerCase().includes(q)),
+        (a.user!.fullName.toLowerCase().includes(q) ||
+          a.user!.email.toLowerCase().includes(q) ||
+          String(a.code).toLowerCase().includes(q)),
     );
     this.attachSearchResults.set(all.slice(0, 10));
   }

@@ -1,15 +1,9 @@
 import { Routes } from '@angular/router';
 import { HrLayoutComponent } from './layout/hr-layout.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
-import {
-  authAdminGuard,
-  hrGuard,
-  loginAdminGuard,
-} from '../core/guards/auth.guard';
-import { LoginComponent } from './login/login.component';
+import { authAdminGuard, hrGuard } from '../core/guards/auth.guard';
 
 export const hrPortalRoutes: Routes = [
-  { path: 'login', canActivate: [loginAdminGuard], component: LoginComponent },
   {
     path: '',
     component: HrLayoutComponent,

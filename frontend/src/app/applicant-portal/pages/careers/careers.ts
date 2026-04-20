@@ -1,55 +1,66 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { VacancyService } from '../../../core/services/vacancy.service';
-import { Vacancy } from '../../../core/models';
+import { Vacancy, VacancyStatus } from '../../../core/models';
+import { AuthService } from '../../../core/services/auth.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-careers',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './careers.html',
-  styleUrls: ['./careers.scss']
+  styleUrls: ['./careers.scss'],
 })
 export class CareersComponent implements OnInit {
-  isLoggedIn = false;
-  jobs: any[] = [];
-  isLoading = true;
+  vacancies = signal<Vacancy[]>([]);
+  loading = signal(false);
+  errorMsg = signal('');
+
+  // Filters
+  searchQuery = '';
+  filterStatus: VacancyStatus = VacancyStatus.OPENED;
+  filterDepartment = '';
 
   private router = inject(Router);
   private vacancyService = inject(VacancyService);
+  private auth = inject(AuthService);
 
   private mockData = [
     {
       id: 'V0001',
       title: 'Senior Frontend Developer (Angular)',
-      description: 'Lead the development of our recruitment platform using Angular 17 and Tailwind CSS.',
+      description:
+        'Lead the development of our recruitment platform using Angular 17 and Tailwind CSS.',
       department: { name: 'Engineering' },
       createdAt: new Date().toISOString(),
       closingDate: '2026-06-30',
       numberOfOpenings: 2,
-      isFavorite: false
+      isFavorite: false,
     },
     {
       id: 'V0002',
       title: 'Backend Developer (NestJS)',
-      description: 'Build scalable microservices and manage MongoDB databases for high-traffic applications.',
+      description:
+        'Build scalable microservices and manage MongoDB databases for high-traffic applications.',
       department: { name: 'Engineering' },
       createdAt: new Date().toISOString(),
       closingDate: '2026-07-15',
       numberOfOpenings: 5,
-      isFavorite: true
+      isFavorite: true,
     },
     {
       id: 'V0003',
       title: 'UI/UX Product Designer',
-      description: 'Design intuitive and beautiful user interfaces for our applicant tracking system.',
+      description:
+        'Design intuitive and beautiful user interfaces for our applicant tracking system.',
       department: { name: 'Design' },
       createdAt: new Date().toISOString(),
       closingDate: '2026-05-20',
       numberOfOpenings: 1,
-      isFavorite: false
-    }
+      isFavorite: false,
+    },
   ];
 
   ngOnInit() {
@@ -57,28 +68,26 @@ export class CareersComponent implements OnInit {
   }
 
   fetchJobs() {
-    this.isLoading = true;
+    this.loading.set(true);
+    this.errorMsg.set('');
 
-    this.vacancyService.getAll({ status: 'Opened' }).subscribe({
-      next: (response: any) => {
-        const apiJobs = response?.data?.items || response?.data || [];
-
-        if (apiJobs && apiJobs.length > 0) {
-          this.jobs = apiJobs.map((job: any) => ({
-            ...job,
-            isFavorite: false
-          }));
-        } else {
-          this.jobs = [...this.mockData];
-        }
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('API connection failed, using fallback mock data:', err);
-        this.jobs = [...this.mockData];
-        this.isLoading = false;
-      }
-    });
+    this.vacancyService
+      .getAll({
+        status: this.filterStatus || VacancyStatus.OPENED,
+        departmentId: this.filterDepartment || undefined,
+        search: this.searchQuery || undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          const items = (res.data as any)?.items ?? res.data ?? [];
+          this.vacancies.set(items);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.errorMsg = err.error.message;
+          this.loading.set(false);
+        },
+      });
   }
 
   toggleFavorite(job: any) {
@@ -90,7 +99,7 @@ export class CareersComponent implements OnInit {
   }
 
   applyJob(job: any) {
-    if (!this.isLoggedIn) {
+    if (!this.auth.isLoggedIn()) {
       this.router.navigate(['/login']);
     } else {
       alert('Applied successfully for: ' + job.title);

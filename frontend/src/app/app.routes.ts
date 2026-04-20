@@ -7,6 +7,7 @@ import { DashboardComponent } from './applicant-portal/pages/dashboard/dashboard
 import { LoginComponent } from './applicant-portal/pages/login/login.component';
 import { Page404Component } from './shared/components/page404/page404/page404.component';
 import { loginGuard } from './core/guards/auth.guard';
+import { VerifyPageComponent } from './applicant-portal/pages/verify-page/verify-page.component';
 
 export const routes: Routes = [
   // Tuyến đường cho HR Portal (Dev 4)
@@ -24,8 +25,7 @@ export const routes: Routes = [
       { path: 'careers', component: CareersComponent },
       { path: 'applicant', component: DashboardComponent },
       { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
-      { path: 'register', component: LoginComponent },
-      { path: 'forgot-password', component: LoginComponent },
+      { path: 'verify-email', component: VerifyPageComponent },
       { path: '', redirectTo: 'careers', pathMatch: 'full' },
     ],
   },

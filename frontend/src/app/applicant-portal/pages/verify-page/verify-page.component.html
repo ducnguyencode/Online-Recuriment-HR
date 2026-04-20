@@ -1,0 +1,32 @@
+<div
+  class="min-h-[calc(100vh-64px)] bg-slate-50 flex items-center justify-center p-4 py-12 animate-in fade-in duration-500"
+>
+  <div
+    class="w-full max-w-md bg-white border border-slate-200 rounded-[24px] p-8 shadow-xl shadow-slate-200/50"
+  >
+    <div class="text-center mb-4">
+      <div
+        class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 text-white font-black text-xl rounded-2xl shadow-sm mb-4"
+      >
+        HR
+      </div>
+      <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
+        {{ title() }}
+      </h2>
+      <p class="text-sm text-slate-500 mt-2">Verify your email</p>
+    </div>
+
+    <div class="space-y-4 text-center">
+      <div class="mb-4">
+        {{ description() }}
+      </div>
+
+      <button
+        class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+        (click)="returnLogin()"
+      >
+        Return to login
+      </button>
+    </div>
+  </div>
+</div>

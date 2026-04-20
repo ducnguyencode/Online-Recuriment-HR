@@ -9,6 +9,11 @@ export enum UserRole {
   HR = 'HR',
 }
 
+export enum UserRoleLogin {
+  APPLICANT = 'Applicant',
+  HR = 'HR',
+}
+
 export enum VacancyStatus {
   OPENED = 'Opened',
   SUSPENDED = 'Suspended',
@@ -78,6 +83,7 @@ export interface UserAccount {
   applicantId?: string;
   avatarUrl?: string;
   isActive: boolean;
+  phone?: string;
 }
 
 export interface Vacancy {
@@ -110,6 +116,7 @@ export interface Applicant {
   createdAt: string; // auto, immutable
   updatedAt: string;
   applications?: Application[];
+  user?: UserAccount;
 }
 
 export interface CV {

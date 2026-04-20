@@ -1,7 +1,13 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { UserAccount, LoginResponse, UserRole } from '../models';
+import {
+  UserAccount,
+  LoginResponse,
+  UserRole,
+  UserRoleLogin,
+  ApiResponse,
+} from '../models';
 import { environment } from '../../../environments/environment';
 import { tap } from 'rxjs';
 @Injectable({ providedIn: 'root' })
@@ -68,19 +74,41 @@ export class AuthService {
     private router: Router,
   ) {}
 
-  login(email: string, password: string) {
-    return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, {
-      email,
-      password,
-    });
+  login(loginData: { email: string; password: string }) {
+    return this.http.post<LoginResponse>(
+      `${environment.apiUrl}/auth/login`,
+      loginData,
+    );
   }
 
-  handleLoginSuccess(response: LoginResponse) {
+  register(registerData: {
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+  }) {
+    return this.http.post<ApiResponse<UserAccount>>(
+      `${environment.apiUrl}/auth/register`,
+      registerData,
+    );
+  }
+
+  verifyEmail(token: string) {
+    return this.http.get<ApiResponse<UserAccount>>(
+      `${environment.apiUrl}/auth/verify-email?token=${encodeURIComponent(token)}`,
+    );
+  }
+
+  handleLoginSuccess(response: LoginResponse, userRoleLogin: UserRoleLogin) {
     const { access_token, user } = response.data;
     localStorage.setItem(this.TOKEN_KEY, access_token);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.currentUser.set(user);
-    this.router.navigate(['/hr-portal']);
+    if (userRoleLogin == UserRoleLogin.HR) {
+      this.router.navigate(['/hr-portal']);
+      return;
+    }
+    this.router.navigate(['/']);
   }
 
   logout() {

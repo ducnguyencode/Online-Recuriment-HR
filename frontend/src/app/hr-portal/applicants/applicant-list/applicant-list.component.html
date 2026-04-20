@@ -92,18 +92,20 @@
               <td>
                 <div class="person-cell">
                   <div class="person-avatar">
-                    {{ getInitials(applicant.fullName) }}
+                    {{ getInitials(applicant.user!.fullName) }}
                   </div>
                   <div class="id-stack">
-                    <span class="person-name">{{ applicant.fullName }}</span>
+                    <span class="person-name">{{
+                      applicant.user!.fullName
+                    }}</span>
                     <span class="mono-id">{{ applicant.code }}</span>
                   </div>
                 </div>
               </td>
               <td>
                 <div class="contact-stack">
-                  <span>{{ applicant.email }}</span>
-                  <span class="muted">{{ applicant.phone }}</span>
+                  <span>{{ applicant.user!.email }}</span>
+                  <span class="muted">{{ applicant.user!.phone }}</span>
                 </div>
               </td>
               <td>
@@ -160,13 +162,16 @@
       <div class="modal-header">
         <div class="modal-header-left">
           <div class="detail-avatar">
-            {{ getInitials(selectedApplicant()!.fullName) }}
+            {{ getInitials(selectedApplicant()!.user!.fullName) }}
           </div>
           <div>
-            <h3 class="modal-title">{{ selectedApplicant()!.fullName }}</h3>
+            <h3 class="modal-title">
+              {{ selectedApplicant()!.user!.fullName }}
+            </h3>
             <p class="modal-subtitle">
-              {{ selectedApplicant()!.id }} · {{ selectedApplicant()!.email }} ·
-              {{ selectedApplicant()!.phone }}
+              {{ selectedApplicant()!.code }} ·
+              {{ selectedApplicant()!.user!.email }} ·
+              {{ selectedApplicant()!.user!.phone }}
             </p>
           </div>
         </div>
