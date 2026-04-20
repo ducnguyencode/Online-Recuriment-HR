@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserRole, VacancyStatus } from 'src/common/enum';
 import { Department } from 'src/entities/department.entity';
@@ -6,6 +5,8 @@ import { Repository } from 'typeorm';
 import * as bycrypt from 'bcrypt';
 import { User } from 'src/entities/user.entity';
 import { Vacancy } from 'src/entities/vacancy.entity';
+import { Applicant } from 'src/entities/applicant.entity';
+import { Employee } from 'src/entities/employee.entity';
 
 export class Seed {
   constructor(
@@ -32,28 +33,108 @@ export class Seed {
       fullName: UserRole.SUPER_ADMIN,
       role: UserRole.SUPER_ADMIN,
       email: 'admin@test.com',
+      phone: '0901234567',
       password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
     },
     {
       id: 2,
       fullName: UserRole.HR,
       role: UserRole.HR,
+      phone: '0901234567',
       email: 'hr@test.com',
       password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
     },
     {
       id: 3,
       fullName: UserRole.INTERVIEWER,
       role: UserRole.INTERVIEWER,
+      phone: '0901234567',
       email: 'interviewer@test.com',
       password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
     },
     {
       id: 4,
       fullName: UserRole.APPLICANT,
       role: UserRole.APPLICANT,
+      phone: '0901234567',
       email: 'applicant@test.com',
       password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
+    },
+    {
+      id: 5,
+      fullName: `${UserRole.INTERVIEWER} 2`,
+      email: `interviewer2@gmail.com`,
+      phone: '0901234567',
+      role: UserRole.INTERVIEWER,
+      password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
+    },
+    {
+      id: 6,
+      fullName: `${UserRole.HR} 2`,
+      email: `hr2@gmail.com`,
+      phone: '0912345678',
+      role: UserRole.HR,
+      password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
+    },
+    {
+      id: 7,
+      fullName: 'Bui Duc Manh',
+      email: 'manh.bui@gmail.com',
+      phone: '0923456789',
+      role: UserRole.INTERVIEWER,
+      password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
+    },
+    {
+      id: 8,
+      fullName: 'Nguyen Thi Hoa',
+      email: 'hoa.nguyen@gmail.com',
+      phone: '0934567890',
+      role: UserRole.APPLICANT,
+      password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
+    },
+    {
+      id: 9,
+      fullName: 'Dang Van Khoa',
+      email: 'khoa.dang@gmail.com',
+      phone: '0945678901',
+      role: UserRole.APPLICANT,
+      password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
+    },
+    {
+      id: 10,
+      fullName: 'Ly Thi Mai',
+      email: 'mai.ly@gmail.com',
+      phone: '0956789012',
+      role: UserRole.APPLICANT,
+      password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
+    },
+    {
+      id: 11,
+      fullName: 'Tran Van Nam',
+      email: 'nam.tran@gmail.com',
+      phone: '0967890123',
+      role: UserRole.APPLICANT,
+      password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
+    },
+    {
+      id: 12,
+      fullName: 'Phan Thi Oanh',
+      email: 'oanh.phan@gmail.com',
+      phone: '0978901234',
+      role: UserRole.INTERVIEWER,
+      password: bycrypt.hashSync('123456', 10),
+      isVerified: true,
     },
   ];
 
@@ -205,13 +286,31 @@ export class Seed {
 
   async seedUser() {
     for (const user of this.users) {
-      const exists = await this.userTable.findOne({
-        where: { email: user.email },
+      await this.userTable.manager.transaction(async (manager) => {
+        const exists = await manager.exists(User, {
+          where: { email: user.email },
+        });
+        if (!exists) {
+          let newUser = manager.create(User, user);
+          newUser = await manager.save(newUser);
+          switch (newUser.role) {
+            case UserRole.APPLICANT:
+              {
+                const applicant = manager.create(Applicant, { user: newUser });
+                await manager.save(applicant);
+              }
+              break;
+            case UserRole.SUPER_ADMIN:
+              break;
+            default:
+              {
+                const employee = manager.create(Employee, { user: newUser });
+                await manager.save(employee);
+              }
+              break;
+          }
+        }
       });
-
-      if (!exists) {
-        await this.userTable.save(user);
-      }
     }
 
     await this.departmentTable.query(`

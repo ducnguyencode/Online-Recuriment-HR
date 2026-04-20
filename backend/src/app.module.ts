@@ -33,6 +33,8 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { BootstrapService } from './services/bootstrap.service';
 import { Seed } from './database/seed';
+import { Employee } from './entities/employee.entity';
+import { MailService } from './services/mail.service';
 
 @Module({
   imports: [
@@ -83,6 +85,7 @@ import { Seed } from './database/seed';
       Applicant,
       CV,
       User,
+      Employee,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -119,6 +122,7 @@ import { Seed } from './database/seed';
     BootstrapService,
     JwtStrategy,
     Seed,
+    MailService,
   ],
 })
 export class AppModule {}

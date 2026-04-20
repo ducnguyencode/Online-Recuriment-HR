@@ -1,18 +1,21 @@
 import {
-  BeforeInsert,
-  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Application } from './application.entity';
 import { ApplicantStatus } from 'src/common/enum';
+import { User } from './user.entity';
+import { Expose } from 'class-transformer';
 
 @Entity('applicants')
-@Index('UQ_applicant_email', ['email'], { unique: true })
+@Index('UQ_applicant_user', ['user'], { unique: true })
 export class Applicant {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -23,17 +26,13 @@ export class Applicant {
   })
   code!: string;
 
+  @Expose()
+  @OneToOne(() => User, (u) => u.applicant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user!: User;
+
   @OneToMany(() => Application, (a) => a.applicant)
   applications!: Application[];
-
-  @Column()
-  fullName!: string;
-
-  @Column()
-  email!: string;
-
-  @Column({ nullable: true })
-  phone!: string;
 
   @Column({
     type: 'enum',
@@ -42,17 +41,9 @@ export class Applicant {
   })
   status!: ApplicantStatus;
 
-  @Column('boolean', { default: true })
-  isActive!: boolean;
-
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn()
   createdAt!: Date;
 
-  @BeforeInsert()
-  @BeforeUpdate()
-  normalize() {
-    if (this.email) {
-      this.email = this.email.trim();
-    }
-  }
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

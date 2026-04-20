@@ -4,11 +4,17 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
+  JoinColumn,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Applicant } from './applicant.entity';
+import { Employee } from './employee.entity';
 
 @Entity('users')
+@Index('UQ_user_email', ['email'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -19,8 +25,15 @@ export class User {
   })
   code!: string;
 
+  @OneToOne(() => Applicant, (a) => a.user)
+  applicant!: Applicant;
+
+  @OneToOne(() => Employee, (e) => e.user)
+  @JoinColumn()
+  employee!: Employee;
+
   @Expose()
-  @Column({ unique: true })
+  @Column()
   email!: string;
 
   @Exclude()
@@ -34,6 +47,10 @@ export class User {
   @Expose()
   @Column()
   fullName!: string;
+
+  @Expose()
+  @Column({ nullable: true })
+  phone!: string;
 
   @Exclude()
   @Column({ default: false })

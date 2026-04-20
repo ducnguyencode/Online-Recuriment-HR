@@ -67,7 +67,6 @@ export class VacanciesService {
       });
       const newVacancy = await manager.save(vacancy);
 
-      newVacancy.code = `V${newVacancy.id.toString().padStart(4, '0')}`;
       return manager.save(newVacancy);
     });
   }

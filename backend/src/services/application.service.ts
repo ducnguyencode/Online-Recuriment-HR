@@ -34,16 +34,17 @@ export class ApplicationService {
 
     const qb = this.applicationsTable.createQueryBuilder('application');
 
-    qb.leftJoinAndSelect('application.vacancy', 'vacancy');
-    qb.leftJoinAndSelect('application.applicant', 'applicant');
-    qb.leftJoinAndSelect('application.cv', 'cv');
+    qb.leftJoinAndSelect('application.vacancy', 'vacancy')
+      .leftJoinAndSelect('application.applicant', 'applicant')
+      .leftJoinAndSelect('applicant.user', 'user')
+      .leftJoinAndSelect('application.cv', 'cv');
 
     //Filter
     if (search) {
       qb.andWhere(
         new Brackets((qb) => {
           qb.where('application.vacancy.title ILIKE :search').orWhere(
-            'application.applicant.fullName ILIKE :search',
+            'user.fullName ILIKE :search',
           );
         }),
         { search: search },
@@ -85,7 +86,8 @@ export class ApplicationService {
   }
 
   async create(data: ApplicationCreateDto) {
-    return this.applicationsTable.manager.transaction(async (manager) => {
+    let application: Application;
+    await this.applicationsTable.manager.transaction(async (manager) => {
       const applicant = await this.customValidator.getOneOrFail<Applicant>(
         manager,
         Applicant,
@@ -122,7 +124,7 @@ export class ApplicationService {
         }
       }
 
-      let application = manager.create(Application, {
+      application = manager.create(Application, {
         ...data,
         applicant,
         vacancy,
@@ -130,8 +132,6 @@ export class ApplicationService {
       });
 
       application = await manager.save(application);
-
-      application.code = `A${application.id.toString().padStart(4, '0')}`;
 
       //update applicant status
       await this.applicantService.changeStatus(
@@ -151,26 +151,30 @@ export class ApplicationService {
         }
       }
       application = await manager.save(application);
-
+    });
+    console.log(application!);
+    try {
       // 1. Phát sự kiện Real-time cho NotificationGateway
       this.eventEmitter.emit('notification.send', {
-        notificationId: `notif-${application.id}`,
+        notificationId: `notif-${application!.id}`,
         type: 'SUCCESS',
-        message: `Ứng viên ${application.applicant.fullName} vừa nộp CV vào vị trí ${application.vacancy.title}`,
-        linkUrl: `/hr-portal/applications/${application.id}`,
+        message: `Ứng viên ${application!.applicant.user.fullName} vừa nộp CV vào vị trí ${application!.vacancy.title}`,
+        linkUrl: `/hr-portal/applications/${application!.id}`,
         createdAt: new Date().toISOString(),
       });
 
       // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
       this.eventEmitter.emit('application.submitted', {
-        applicationId: application.id,
-        candidateEmail: application.applicant.email,
-        candidateName: application.applicant.fullName,
-        vacancyTitle: application.vacancy.title,
+        applicationId: application!.id,
+        candidateEmail: application!.applicant.user.email,
+        candidateName: application!.applicant.user.fullName,
+        vacancyTitle: application!.vacancy.title,
       });
+    } catch (err) {
+      console.log(err);
+    }
 
-      return application;
-    });
+    return application!;
   }
 
   async changeStatus(id: number, status: ApplicationStatus) {

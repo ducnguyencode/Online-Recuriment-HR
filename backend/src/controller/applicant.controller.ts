@@ -5,13 +5,11 @@ import {
   HttpStatus,
   Param,
   Patch,
-  Post,
   Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApplicantStatusUpdateDto } from 'src/dto/applicant/applicant-status.update.dto';
-import { ApplicantCreateDto } from 'src/dto/applicant/applicant.create.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
 import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
 import { Applicant } from 'src/entities/applicant.entity';
@@ -20,26 +18,11 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantService } from 'src/services/applicant.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { UserRole } from 'src/common/enum';
-import { Roles } from 'src/common/decorator/decorator';
 
 @Controller('applicant')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ApplicantController {
   constructor(private applicantServie: ApplicantService) {}
-
-  @Post('create')
-  @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
-  async create(
-    @Body() applicantCreateDto: ApplicantCreateDto,
-  ): Promise<ApiResponse<Applicant>> {
-    const data = await this.applicantServie.create(applicantCreateDto);
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Success create an applicant',
-      data,
-    };
-  }
 
   @Put(':id')
   async update(
