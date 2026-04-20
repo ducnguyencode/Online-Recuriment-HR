@@ -11,9 +11,6 @@
       <button class="btn-primary" (click)="openAttachDialog()">
         Attach Applicant
       </button>
-      <a class="btn-primary" routerLink="/hr-portal/applications/kanban"
-        >Open Kanban Board</a
-      >
     </div>
   </div>
 
@@ -36,12 +33,13 @@
         class="form-input search-input"
         placeholder="Search by application ID, applicant ID, vacancy ID, name, title..."
         [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
       />
     </div>
     <select
       class="form-select filter-select"
       [(ngModel)]="selectedVacancyId"
-      (change)="loadApplications()"
+      (change)="onSearchChange()"
     >
       <option value="">All Vacancies</option>
       @for (v of vacancies(); track v.id) {
@@ -51,18 +49,16 @@
     <select
       class="form-select filter-select"
       [(ngModel)]="filterStatus"
-      (change)="loadApplications()"
+      (change)="onSearchChange()"
     >
       <option value="">All Statuses</option>
       @for (status of applicationStatus; track status) {
-        <option value="status">{{ status }}</option>
+        <option [value]="status">{{ status }}</option>
       }
     </select>
     <button class="btn-secondary" (click)="clearFilters()">Reset</button>
-    <span class="result-count"
-      >{{ filteredApplications().length }} records</span
-    >
-    @if (totalPages > 1) {
+    <span class="result-count">{{ displayedResultsCount() }} records</span>
+    @if (totalPages() > 1) {
       <div class="pagination">
         <button
           class="btn-ghost btn-sm"
@@ -71,10 +67,10 @@
         >
           ←
         </button>
-        <span class="page-info">{{ currentPage() }} / {{ totalPages }}</span>
+        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
         <button
           class="btn-ghost btn-sm"
-          [disabled]="currentPage() === totalPages"
+          [disabled]="currentPage() === totalPages()"
           (click)="goToPage(currentPage() + 1)"
         >
           →
@@ -104,9 +100,9 @@
             <tr>
               <td>
                 <div class="id-stack">
-                  <span class="mono-id">{{ app.code }}</span>
+                  <span class="mono-id">{{ displayApplicationCode(app) }}</span>
                   <span class="sub-id"
-                    >Applicant: {{ app.applicant?.code }}</span
+                    >Applicant: {{ displayApplicantCode(app) }}</span
                   >
                 </div>
               </td>
@@ -130,21 +126,21 @@
                   <span class="vacancy-title">{{
                     app.vacancy?.title || "—"
                   }}</span>
-                  <span class="sub-id">Vacancy: {{ app.vacancy?.code }}</span>
+                  <span class="sub-id">Vacancy: {{ displayVacancyCode(app) }}</span>
                 </div>
               </td>
-              <td>{{ app.createdAt | date: "MM/dd/yyyy HH:mm" }}</td>
+              <td>{{ displayApplicationDate(app) | date: "MM/dd/yyyy HH:mm" }}</td>
               <td>
                 <span class="badge" [ngClass]="getStatusClass(app.status)">{{
                   app.status
                 }}</span>
               </td>
               <td>
-                @if (app.aiPreview?.matchScore !== undefined) {
+                @if (displayApplicationScore(app) !== undefined) {
                   <span
                     class="ai-badge"
-                    [ngClass]="getScoreClass(app.aiPreview?.matchScore)"
-                    >{{ app.aiPreview?.matchScore }}%</span
+                    [ngClass]="getScoreClass(displayApplicationScore(app))"
+                    >{{ displayApplicationScore(app) }}%</span
                   >
                 } @else {
                   <span class="muted">—</span>
@@ -502,6 +498,14 @@
                 (input)="onAttachSearch()"
                 autocomplete="off"
               />
+              @if (attachSearching()) {
+                <p
+                  class="form-hint"
+                  style="color: var(--shell-text-soft); margin-top: 8px"
+                >
+                  Searching applicants...
+                </p>
+              }
               @if (attachSearchResults().length > 0) {
                 <div class="attach-results">
                   @for (item of attachSearchResults(); track item.id) {

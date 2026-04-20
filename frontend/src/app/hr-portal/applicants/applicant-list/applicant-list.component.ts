@@ -11,15 +11,9 @@ import {
   Applicant,
   Application,
   CV,
+  displayApplicantStatus,
   formatDisplayId,
 } from '../../../core/models';
-
-enum ApplicantStatus {
-  NOT_IN_PROCESS = 'Not In Process',
-  IN_PROCESS = 'In Process',
-  HIRED = 'Hired',
-  BANNED = 'Banned',
-}
 
 @Component({
   selector: 'app-applicant-list',
@@ -29,9 +23,16 @@ enum ApplicantStatus {
   styleUrl: './applicant-list.component.scss',
 })
 export class ApplicantListComponent implements OnInit {
-  applicantStatus = Object.values(ApplicantStatus);
+  applicantStatus: Applicant['status'][] = [
+    'Not In Process',
+    'In Process',
+    'Hired',
+    'Banned',
+  ];
   applicants = signal<Applicant[]>([]);
   loading = signal(false);
+  totalItems = signal(0);
+  totalPages = signal(1);
 
   searchQuery = '';
   filterStatus = '';
@@ -64,50 +65,58 @@ export class ApplicantListComponent implements OnInit {
     this.applicantService
       .getAll({
         status: this.filterStatus || undefined,
-        search: this.searchQuery || undefined,
+        search: this.useBackendSearch() ? this.searchQuery : undefined,
+        page: this.currentPage(),
+        limit: this.pageSize,
       })
       .subscribe({
         next: (res) => {
           const items: Applicant[] = (res.data as any)?.items ?? [];
+          const totalItems =
+            (res.data as any)?.totalItems ??
+            (res.data as any)?.total ??
+            items.length;
+          const totalPages =
+            (res.data as any)?.totalPage ??
+            (res.data as any)?.totalPages ??
+            Math.max(1, Math.ceil(totalItems / this.pageSize));
           this.applicants.set(items);
+          this.totalItems.set(totalItems);
+          this.totalPages.set(totalPages);
           this.loading.set(false);
         },
         error: () => {
-          this.applicants.set(
+          const all = this.applyLocalSearch(
             this.mockData.getApplicants({
               status: this.filterStatus || undefined,
-              search: this.searchQuery || undefined,
             }),
           );
+          const start = (this.currentPage() - 1) * this.pageSize;
+          this.applicants.set(all.slice(start, start + this.pageSize));
+          this.totalItems.set(all.length);
+          this.totalPages.set(Math.max(1, Math.ceil(all.length / this.pageSize)));
           this.loading.set(false);
         },
       });
   }
 
-  filteredApplicants(): Applicant[] {
+  pagedApplicants(): Applicant[] {
     return this.applicants();
   }
 
-  get totalPages(): number {
-    return Math.max(
-      1,
-      Math.ceil(this.filteredApplicants().length / this.pageSize),
-    );
-  }
-
-  pagedApplicants(): Applicant[] {
-    const all = this.filteredApplicants();
-    const start = (this.currentPage() - 1) * this.pageSize;
-    return all.slice(start, start + this.pageSize);
-  }
-
   goToPage(page: number) {
-    this.currentPage.set(Math.max(1, Math.min(page, this.totalPages)));
+    this.currentPage.set(Math.max(1, Math.min(page, this.totalPages())));
+    this.loadApplicants();
   }
 
   clearFilters() {
     this.searchQuery = '';
     this.filterStatus = '';
+    this.currentPage.set(1);
+    this.loadApplicants();
+  }
+
+  onSearchChange() {
     this.currentPage.set(1);
     this.loadApplicants();
   }
@@ -169,11 +178,7 @@ export class ApplicantListComponent implements OnInit {
         this.loadApplicants();
       },
       error: (err) => {
-        console.log(err);
-        this.formError = err.error.message;
-        // this.mockData.addApplicant(this.formData);
-        // this.closeFormDialog();
-        // this.loadApplicants();
+        this.formError = err?.error?.message ?? 'Cannot create applicant.';
       },
     });
   }
@@ -226,22 +231,9 @@ export class ApplicantListComponent implements OnInit {
     this.selectedCv.set(null);
   }
 
-  getApplicantApplicationsCount(applicantId: string): number {
-    return this.mockData
-      .getApplications()
-      .filter((item) => item.applicantId === applicantId).length;
-  }
-
-  getLatestVacancyTitle(applicantId: string): string {
-    const latest = this.mockData
-      .getApplications()
-      .find((item) => item.applicantId === applicantId);
-    return latest?.vacancy?.title ?? 'No vacancy attached';
-  }
-
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
-      'Not in Process': 'badge-neutral',
+      'Not In Process': 'badge-neutral',
       'In Process': 'badge-info',
       Hired: 'badge-success',
       Banned: 'badge-danger',
@@ -274,7 +266,32 @@ export class ApplicantListComponent implements OnInit {
     return formatDisplayId('A', id);
   }
 
+  applicationDisplayId(id?: string) {
+    return formatDisplayId('R', id);
+  }
+
   vacancyDisplayId(id: string) {
     return formatDisplayId('V', id);
+  }
+
+  displayStatus(status?: string) {
+    return displayApplicantStatus(status);
+  }
+
+  private useBackendSearch(): boolean {
+    const query = this.searchQuery.trim();
+    if (!query) return false;
+    return !/^a\d+/i.test(query);
+  }
+
+  private applyLocalSearch(applicants: Applicant[]): Applicant[] {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) return applicants;
+    return applicants.filter((applicant) => {
+      const values = [applicant.code, applicant.id, applicant.fullName, applicant.email];
+      return values.some((value) =>
+        String(value ?? '').toLowerCase().includes(query),
+      );
+    });
   }
 }

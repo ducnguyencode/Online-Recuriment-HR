@@ -94,8 +94,7 @@ a:focus-visible {
 
 @layer components {
   .page-container,
-  .dashboard,
-  .kanban-page {
+  .dashboard {
     animation: slideInUp 0.28s ease;
   }
 
@@ -131,8 +130,7 @@ a:focus-visible {
   .favorites-table-wrap,
   .timeline-card,
   .vacancy-card,
-  .applicant-card,
-  .kanban-card {
+  .applicant-card {
     background: var(--shell-surface);
     border: 1px solid var(--shell-border);
     border-radius: var(--radius-card);
