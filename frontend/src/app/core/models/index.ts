@@ -161,6 +161,10 @@ export interface Interview {
   application?: Application;
   applicant?: Applicant;
   vacancy?: Vacancy;
+  title: string;
+  description?: string;
+  googleMeetLink?: string;
+  googleCalendarEventId?: string;
   interviewDate: string;
   startTime: string;
   endTime: string;

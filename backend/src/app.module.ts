@@ -18,10 +18,9 @@ import { ApplicationController } from './controller/application.controller';
 import { AiService } from './services/ai.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { NotificationGateway } from './gateways/notification.gateway';
+import { NotificationGateway } from './notification/notification.gateway';
 import { BullModule } from '@nestjs/bull';
 import { EmailQueueService } from './services/email-queue.service';
-import { EmailProcessor } from './processors/email.processor';
 import { DevToolsController } from './controller/dev-tools.controller';
 import { GoogleMeetService } from './services/google-meet.service';
 import { InterviewController } from './controller/interview.controller';
@@ -31,12 +30,17 @@ import { InterviewListener } from './listeners/interview.listener';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { join } from 'path';
+import { InAppNotification } from './entities/notification.entity';
+import { EmailCronService } from './cron/email.cron';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
+    ScheduleModule.forRoot(),
 
     MailerModule.forRootAsync({
       imports: [ConfigModule], // Import này để lấy được các biến .env
@@ -97,7 +101,7 @@ import { join } from 'path';
         synchronize: true, // Lưu ý: Tắt khi lên môi trường thực tế (Production)
       }),
     }),
-    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV, Interview]),
+    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV, Interview, InAppNotification]),
 
   ],
   controllers: [
@@ -118,7 +122,7 @@ import { join } from 'path';
     AiService,
     NotificationGateway,
     EmailQueueService,
-    EmailProcessor,
+    EmailCronService,
     GoogleMeetService,
     InterviewService,
     InterviewListener,

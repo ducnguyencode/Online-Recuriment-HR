@@ -70,6 +70,8 @@ export class ApplicationListComponent implements OnInit {
   selectedPanelIds: string[] = [];
   interviewData = {
     applicationId: '',
+    title: '',
+    description: '',
     date: '',
     startTime: '09:00',
     endTime: '10:00',
@@ -94,7 +96,7 @@ export class ApplicationListComponent implements OnInit {
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadVacancies();
@@ -343,6 +345,8 @@ export class ApplicationListComponent implements OnInit {
     this.interviewApplication.set(app);
     this.interviewData = {
       applicationId: app.id,
+      title: `Interview: ${app.applicant?.fullName} - ${app.vacancy?.title}`,
+      description: '',
       date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
       startTime: '09:00',
       endTime: '10:00',
@@ -442,7 +446,7 @@ export class ApplicationListComponent implements OnInit {
   }
 
   saveInterview() {
-    const { applicationId, date, startTime, endTime, platform } =
+    const { applicationId, title, description, date, startTime, endTime, platform } =
       this.interviewData;
     const applicantId =
       this.interviewApplication()?.applicantId ??
@@ -494,42 +498,74 @@ export class ApplicationListComponent implements OnInit {
       }
     }
 
+    const startISO = `${date}T${startTime}:00`;
+    const endISO = `${date}T${endTime}:00`;
+
+    // const dto: ScheduleInterviewDto = {
+    //   applicationId,
+    //   panel: this.selectedPanelIds.map((id) => ({
+    //     employeeId: id,
+    //     role:
+    //       this.availableInterviewers().find((emp) => emp.id === id)?.position ??
+    //       'Interviewer',
+    //   })),
+    //   interviewDate: date,
+    //   startTime,
+    //   endTime,
+    //   platform,
+    // };
     const dto: ScheduleInterviewDto = {
       applicationId,
-      panel: this.selectedPanelIds.map((id) => ({
+      title,
+      description: description || '',
+      panel: this.selectedPanelIds.map(id => ({
         employeeId: id,
-        role:
-          this.availableInterviewers().find((emp) => emp.id === id)?.position ??
-          'Interviewer',
+        role: this.availableInterviewers().find(e => e.id === id)?.position ?? 'Interviewer',
       })),
-      interviewDate: date,
-      startTime,
-      endTime,
+      startTime: startISO,
+      endTime: endISO,
       platform,
     };
 
+    // this.interviewService.schedule(dto).subscribe({
+    //   next: () => {
+    //     this.closeInterviewDialog();
+    //     this.loadApplications();
+    //   },
+    //   error: () => {
+    //     const duration =
+    //       (new Date(`2000-01-01T${endTime}`).getTime() -
+    //         new Date(`2000-01-01T${startTime}`).getTime()) /
+    //       60000;
+    //     this.mockData.addInterview({
+    //       applicationId,
+    //       date,
+    //       time: startTime,
+    //       duration,
+    //       platform,
+    //       interviewers: this.selectedPanelIds,
+    //     });
+    //     this.closeInterviewDialog();
+    //     this.loadApplications();
+    //   },
+    // });
+    this.loading.set(true);
     this.interviewService.schedule(dto).subscribe({
       next: () => {
+        alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
         this.closeInterviewDialog();
         this.loadApplications();
       },
-      error: () => {
-        const duration =
-          (new Date(`2000-01-01T${endTime}`).getTime() -
-            new Date(`2000-01-01T${startTime}`).getTime()) /
-          60000;
-        this.mockData.addInterview({
-          applicationId,
-          date,
-          time: startTime,
-          duration,
-          platform,
-          interviewers: this.selectedPanelIds,
-        });
-        this.closeInterviewDialog();
-        this.loadApplications();
+      error: (err) => {
+        console.error('Error:', err);
+        this.interviewError = err.error?.message || 'Conflict detected or HR/Interviewer is not available at this time.';
       },
     });
+  }
+
+  private getApplicantNameByAppId(appId: string): string {
+    const app = this.applications().find(a => a.id === appId);
+    return app?.applicant?.fullName ?? 'Applicant';
   }
 
   getStatusClass(status: string): string {
