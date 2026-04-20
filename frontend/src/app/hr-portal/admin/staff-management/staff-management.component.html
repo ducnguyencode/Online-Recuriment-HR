@@ -17,6 +17,18 @@
 
   <div class="filters-bar">
     <div class="search-box">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
       <input
         type="text"
         class="form-input search-input"
@@ -45,7 +57,23 @@
         <option [value]="d.id">{{ d.name }}</option>
       }
     </select>
-    <button class="btn-secondary" (click)="clearFilters()">Reset</button>
+    @if (searchQuery() || filterRole() || filterDepartment()) {
+      <button class="btn-ghost btn-sm" (click)="clearFilters()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+        Clear
+      </button>
+    }
     <span class="result-count">{{ totalItems() }} accounts</span>
   </div>
 
