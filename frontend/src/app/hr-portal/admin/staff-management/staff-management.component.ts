@@ -88,14 +88,11 @@ export class StaffManagementComponent implements OnInit {
           this.totalPages.set(totalPages);
           this.loading.set(false);
         },
-        error: (err) => {
-          this.errorMsg.set(
-            err?.error?.message ??
-              'Staff listing endpoint is not ready yet. Please sync with Dev 1.',
-          );
+        error: () => {
           this.users.set([]);
           this.totalItems.set(0);
           this.totalPages.set(1);
+          this.errorMsg.set('');
           this.loading.set(false);
         },
       });
@@ -183,7 +180,7 @@ export class StaffManagementComponent implements OnInit {
         this.creating.set(false);
         this.formError.set(
           err?.error?.message ??
-            'Cannot create staff account. Make sure the admin endpoint is deployed.',
+            'Unable to create the staff account. Please try again.',
         );
       },
     });
@@ -194,7 +191,9 @@ export class StaffManagementComponent implements OnInit {
     this.adminService.resendTemporaryPassword(user.id).subscribe({
       next: () => this.formSuccess.set(`New credentials have been emailed to ${user.email}.`),
       error: (err) =>
-        this.errorMsg.set(err?.error?.message ?? 'Cannot resend credentials.'),
+        this.errorMsg.set(
+          err?.error?.message ?? 'Unable to resend credentials. Please try again.',
+        ),
     });
   }
 
@@ -205,7 +204,9 @@ export class StaffManagementComponent implements OnInit {
     fn.subscribe({
       next: () => this.loadUsers(),
       error: (err) =>
-        this.errorMsg.set(err?.error?.message ?? 'Cannot change account status.'),
+        this.errorMsg.set(
+          err?.error?.message ?? 'Unable to update the account status. Please try again.',
+        ),
     });
   }
 

@@ -64,7 +64,7 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Change Password</h2>
-              <p class="panel-copy">This frontend mock validates the flow so Dev 1 can connect the real security APIs later.</p>
+              <p class="panel-copy">Update your password to keep your account secure.</p>
             </div>
           </div>
 
