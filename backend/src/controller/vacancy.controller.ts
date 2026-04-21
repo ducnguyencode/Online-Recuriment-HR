@@ -48,7 +48,7 @@ export class VacancyController {
     const data = await this.vacanciesService.findAll(query);
     return {
       statusCode: HttpStatus.OK,
-      message: 'Success create a vacancy',
+      message: 'Success load vacancies',
       data,
     };
   }

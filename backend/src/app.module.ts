@@ -47,6 +47,8 @@ import { MailService } from './services/mail.service';
 import { NotificationsService } from './notification/notification.service';
 import { InterviewerPanel } from './entities/interviewer-panel.entity';
 import { InterviewerAvailability } from './entities/interviewer-availability.entity';
+import { EmployeeController } from './controller/employee.controller';
+import { EmployeeService } from './services/employee.service';
 
 @Module({
   imports: [
@@ -150,6 +152,7 @@ import { InterviewerAvailability } from './entities/interviewer-availability.ent
     DevToolsController,
     InterviewController,
     AuthController,
+    EmployeeController,
   ],
   providers: [
     VacanciesService,
@@ -171,6 +174,7 @@ import { InterviewerAvailability } from './entities/interviewer-availability.ent
     Seed,
     MailService,
     NotificationsService,
+    EmployeeService,
   ],
 })
 export class AppModule {}

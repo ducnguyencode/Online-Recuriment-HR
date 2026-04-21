@@ -52,7 +52,7 @@ export class User {
   @Column({ nullable: true })
   phone!: string;
 
-  @Exclude()
+  @Expose()
   @Column({ default: false })
   isVerified!: boolean;
 

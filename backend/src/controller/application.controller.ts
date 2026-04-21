@@ -38,7 +38,7 @@ export class ApplicationController {
     const data = await this.applicationService.findAll(query);
     return {
       statusCode: HttpStatus.OK,
-      message: 'Success create a vacancy',
+      message: 'Success load applications',
       data,
     };
   }
