@@ -35,6 +35,12 @@ export class Employee {
   @JoinColumn({ name: 'departmentId' })
   department!: Department;
 
+  @Column({ nullable: true })
+  jobTitle!: string;
+
+  @Column({ default: false })
+  isActive!: boolean;
+
   @CreateDateColumn()
   createdAt!: Date;
 

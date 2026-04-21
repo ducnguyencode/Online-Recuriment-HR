@@ -64,14 +64,17 @@ export interface Department {
 
 export interface Employee {
   id: string; // UUID
+  code?: string;
   departmentId: string;
   department?: Department;
   fullName: string;
   email: string;
   phone?: string;
+  user?: UserAccount;
   position?: string;
   role?: 'HR' | 'Interviewer';
   isActive?: boolean;
+  createdAt?: Date;
 }
 
 export interface UserAccount {
@@ -84,6 +87,7 @@ export interface UserAccount {
   avatarUrl?: string;
   isActive: boolean;
   phone?: string;
+  isVerified?: boolean;
 }
 
 export interface Vacancy {

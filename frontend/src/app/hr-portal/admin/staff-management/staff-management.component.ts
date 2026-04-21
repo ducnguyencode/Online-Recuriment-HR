@@ -6,7 +6,16 @@ import {
   CreateStaffAccountDto,
 } from '../../../core/services/admin-user.service';
 import { DepartmentService } from '../../../core/services/department.service';
-import { Department, UserAccount, UserRole } from '../../../core/models';
+import {
+  Department,
+  Employee,
+  UserAccount,
+  UserRole,
+} from '../../../core/models';
+import {
+  CreateEmployeeDto,
+  EmployeeService,
+} from '../../../core/services/employee.service';
 
 type StaffRole = Extract<UserRole, 'HR' | 'Interviewer'>;
 
@@ -18,7 +27,8 @@ type StaffRole = Extract<UserRole, 'HR' | 'Interviewer'>;
   styleUrl: './staff-management.component.scss',
 })
 export class StaffManagementComponent implements OnInit {
-  users = signal<UserAccount[]>([]);
+  UserRole = UserRole;
+  employees = signal<Employee[]>([]);
   departments = signal<Department[]>([]);
   loading = signal(false);
   errorMsg = signal('');
@@ -47,6 +57,7 @@ export class StaffManagementComponent implements OnInit {
   constructor(
     private adminService: AdminUserService,
     private departmentService: DepartmentService,
+    private employeeService: EmployeeService,
   ) {}
 
   ngOnInit() {
@@ -65,7 +76,7 @@ export class StaffManagementComponent implements OnInit {
   loadUsers() {
     this.loading.set(true);
     this.errorMsg.set('');
-    this.adminService
+    this.employeeService
       .getAll({
         role: this.filterRole() || undefined,
         departmentId: this.filterDepartment() || undefined,
@@ -84,13 +95,13 @@ export class StaffManagementComponent implements OnInit {
             (res.data as any)?.totalPage ??
             (res.data as any)?.totalPages ??
             Math.max(1, Math.ceil(totalItems / this.pageSize));
-          this.users.set(items);
+          this.employees.set(items);
           this.totalItems.set(totalItems);
           this.totalPages.set(totalPages);
           this.loading.set(false);
         },
         error: () => {
-          this.users.set([]);
+          this.employees.set([]);
           this.totalItems.set(0);
           this.totalPages.set(1);
           this.errorMsg.set('');
@@ -158,17 +169,18 @@ export class StaffManagementComponent implements OnInit {
       return;
     }
 
-    const dto: CreateStaffAccountDto = {
+    const dto: CreateEmployeeDto = {
       ...this.formData,
       email,
       fullName,
-      position: this.formData.position?.trim() || undefined,
+      departmentId: this.formData.departmentId,
+      jobTitle: this.formData.position?.trim() || undefined,
       phone: this.formData.phone?.trim() || undefined,
     };
 
     this.creating.set(true);
     this.formError.set('');
-    this.adminService.createStaff(dto).subscribe({
+    this.employeeService.create(dto).subscribe({
       next: () => {
         this.creating.set(false);
         this.formSuccess.set(
@@ -187,7 +199,8 @@ export class StaffManagementComponent implements OnInit {
     });
   }
 
-  resendCredentials(user: UserAccount) {
+  resendCredentials(user: UserAccount | undefined) {
+    if (!user) return;
     if (!confirm(`Send a fresh temporary password to ${user.email}?`)) return;
     this.adminService.resendTemporaryPassword(user.id).subscribe({
       next: () =>
@@ -202,7 +215,8 @@ export class StaffManagementComponent implements OnInit {
     });
   }
 
-  toggleActive(user: UserAccount) {
+  toggleActive(user: UserAccount | undefined) {
+    if (!user) return;
     const fn = user.isActive
       ? this.adminService.deactivate(user.id)
       : this.adminService.activate(user.id);

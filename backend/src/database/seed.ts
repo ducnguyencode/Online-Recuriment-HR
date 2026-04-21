@@ -297,7 +297,10 @@ export class Seed {
             case UserRole.APPLICANT:
               {
                 const applicant = manager.create(Applicant, { user: newUser });
+
+                newUser.applicant = applicant;
                 await manager.save(applicant);
+                await manager.save(newUser);
               }
               break;
             case UserRole.SUPER_ADMIN:
@@ -305,7 +308,11 @@ export class Seed {
             default:
               {
                 const employee = manager.create(Employee, { user: newUser });
+
+                newUser.employee = employee;
+
                 await manager.save(employee);
+                await manager.save(newUser);
               }
               break;
           }

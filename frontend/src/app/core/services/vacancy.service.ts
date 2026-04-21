@@ -45,8 +45,7 @@ export class VacancyService {
     if (filters.page) params = params.set('page', filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
     if (filters.search) params = params.set('search', filters.search);
-    if (filters.status)
-      params = params.set('status', this.mapStatusForApi(filters.status));
+    if (filters.status) params = params.set('status', filters.status);
     if (filters.departmentId)
       params = params.set('departmentId', filters.departmentId);
     return this.http.get<ApiResponse<PaginatedResponse<Vacancy>>>(this.base, {
@@ -71,13 +70,7 @@ export class VacancyService {
     status: VacancyStatus,
   ): Observable<ApiResponse<Vacancy>> {
     return this.http.patch<ApiResponse<Vacancy>>(`${this.base}/${id}/status`, {
-      status: this.mapStatusForApi(status),
+      status: status,
     });
-  }
-
-  private mapStatusForApi(status: string): string {
-    if (status === 'Opened') return 'Open';
-    if (status === 'Closed') return 'Close';
-    return status;
   }
 }
