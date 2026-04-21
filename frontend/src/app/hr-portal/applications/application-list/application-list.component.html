@@ -524,9 +524,11 @@
               <input
                 class="form-input"
                 type="text"
-                placeholder="Search by name, email or ID..."
+                placeholder="Click to list or type to search by name, email or ID..."
                 [(ngModel)]="attachSearchQuery"
                 (input)="onAttachSearch()"
+                (focus)="onAttachFocus()"
+                (blur)="onAttachBlur()"
                 autocomplete="off"
               />
               @if (attachSearching()) {
@@ -537,12 +539,12 @@
                   Searching applicants...
                 </p>
               }
-              @if (attachSearchResults().length > 0) {
+              @if (attachDropdownOpen() && attachSearchResults().length > 0) {
                 <div class="attach-results">
                   @for (item of attachSearchResults(); track item.id) {
                     <div
                       class="attach-result-item"
-                      (click)="selectAttachApplicant(item)"
+                      (mousedown)="selectAttachApplicant(item)"
                     >
                       <div class="attach-item-avatar">
                         {{ getInitials(item.user!.fullName) }}
@@ -561,7 +563,8 @@
                 </div>
               }
               @if (
-                attachSearchQuery.length > 1 &&
+                attachDropdownOpen() &&
+                !attachSearching() &&
                 attachSearchResults().length === 0
               ) {
                 <p
@@ -579,14 +582,72 @@
           <label class="form-label"
             >Vacancy <span class="required">*</span></label
           >
-          <select class="form-select" [(ngModel)]="attachData.vacancyId">
-            <option value="">Select vacancy</option>
-            @for (item of vacancies(); track item.id) {
-              <option [ngValue]="item.id">
-                [{{ item.code }}] {{ item.title }} · {{ item.status }}
-              </option>
-            }
-          </select>
+          @if (attachSelectedVacancy()) {
+            <div class="attach-selected">
+              <div class="attach-selected-info">
+                <span class="attach-name"
+                  >[{{ attachSelectedVacancy()!.code }}]
+                  {{ attachSelectedVacancy()!.title }}</span
+                >
+                <span class="attach-meta"
+                  >{{ attachSelectedVacancy()!.status }}
+                  @if (attachSelectedVacancy()!.department?.name) {
+                    · {{ attachSelectedVacancy()!.department?.name }}
+                  }</span
+                >
+              </div>
+              <button class="btn-ghost btn-sm" (click)="clearAttachVacancy()">
+                Change
+              </button>
+            </div>
+          } @else {
+            <div class="attach-search-wrap">
+              <input
+                class="form-input"
+                type="text"
+                placeholder="Click to list or type to search vacancies..."
+                [(ngModel)]="vacancySearchQuery"
+                (input)="onVacancySearchInput()"
+                (focus)="onVacancyFocus()"
+                (blur)="onVacancyBlur()"
+                autocomplete="off"
+              />
+              @if (vacancyDropdownOpen() && filteredVacancies().length > 0) {
+                <div class="attach-results">
+                  @for (item of filteredVacancies(); track item.id) {
+                    <div
+                      class="attach-result-item"
+                      (mousedown)="selectAttachVacancy(item)"
+                    >
+                      <div class="attach-item-info">
+                        <span class="attach-item-name"
+                          >[{{ item.code }}] {{ item.title }}</span
+                        >
+                        <span class="attach-item-meta"
+                          >{{ item.status }}
+                          @if (item.department?.name) {
+                            · {{ item.department?.name }}
+                          }</span
+                        >
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+              @if (
+                vacancyDropdownOpen() &&
+                filteredVacancies().length === 0 &&
+                vacancies().length > 0
+              ) {
+                <p
+                  class="form-hint"
+                  style="color: var(--shell-text-soft); margin-top: 8px"
+                >
+                  No vacancies match your search.
+                </p>
+              }
+            </div>
+          }
         </div>
 
         <p class="form-hint">

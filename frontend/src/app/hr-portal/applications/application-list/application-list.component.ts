@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { catchError, forkJoin, of } from 'rxjs';
+import { catchError, forkJoin, of, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { ApplicantService } from '../../../core/services/applicant.service';
 import { ApplicationService } from '../../../core/services/application.service';
 import {
@@ -39,7 +40,7 @@ enum ApplicationStatus {
   templateUrl: './application-list.component.html',
   styleUrl: './application-list.component.scss',
 })
-export class ApplicationListComponent implements OnInit {
+export class ApplicationListComponent implements OnInit, OnDestroy {
   applicationStatus = Object.values(ApplicationStatus);
   applications = signal<Application[]>([]);
   vacancies = signal<Vacancy[]>([]);
@@ -58,10 +59,18 @@ export class ApplicationListComponent implements OnInit {
   currentPage = signal(1);
   readonly pageSize = 20;
 
-  // Attach dialog search
+  // Attach dialog — applicant search
   attachSearchQuery = '';
   attachSearchResults = signal<Applicant[]>([]);
   attachSelectedApplicant = signal<Applicant | null>(null);
+  attachDropdownOpen = signal(false);
+  private attachSearchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
+  // Attach dialog — vacancy combobox
+  vacancySearchQuery = '';
+  vacancyDropdownOpen = signal(false);
+  attachSelectedVacancy = signal<Vacancy | null>(null);
 
   showCVDetail = signal(false);
   selectedApplication = signal<Application | null>(null);
@@ -102,6 +111,15 @@ export class ApplicationListComponent implements OnInit {
   ngOnInit() {
     this.loadVacancies();
     this.loadApplications();
+
+    this.attachSearchSubject
+      .pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((q) => this.performApplicantSearch(q));
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadVacancies() {
@@ -231,6 +249,10 @@ export class ApplicationListComponent implements OnInit {
     this.attachSearchResults.set([]);
     this.attachSelectedApplicant.set(null);
     this.attachSearching.set(false);
+    this.attachDropdownOpen.set(false);
+    this.vacancySearchQuery = '';
+    this.vacancyDropdownOpen.set(false);
+    this.attachSelectedVacancy.set(null);
     this.showAttachDialog.set(true);
   }
 
@@ -241,18 +263,32 @@ export class ApplicationListComponent implements OnInit {
     this.attachSearchResults.set([]);
     this.attachSelectedApplicant.set(null);
     this.attachSearching.set(false);
+    this.attachDropdownOpen.set(false);
+    this.vacancySearchQuery = '';
+    this.vacancyDropdownOpen.set(false);
+    this.attachSelectedVacancy.set(null);
   }
 
   onAttachSearch() {
-    const q = this.attachSearchQuery.trim().toLowerCase();
-    if (!q) {
-      this.attachSearchResults.set([]);
-      this.attachSearching.set(false);
-      return;
+    this.attachDropdownOpen.set(true);
+    this.attachSearchSubject.next(this.attachSearchQuery);
+  }
+
+  onAttachFocus() {
+    this.attachDropdownOpen.set(true);
+    if (this.attachSearchResults().length === 0) {
+      this.performApplicantSearch(this.attachSearchQuery);
     }
+  }
+
+  onAttachBlur() {
+    setTimeout(() => this.attachDropdownOpen.set(false), 200);
+  }
+
+  private performApplicantSearch(query: string) {
     this.attachSearching.set(true);
     this.applicantService
-      .getAll({ search: this.attachSearchQuery, page: 1, limit: 10 })
+      .getAll({ search: query?.trim() || undefined, page: 1, limit: 20 })
       .subscribe({
         next: (res) => {
           const items = ((res.data as any)?.items ??
@@ -265,12 +301,12 @@ export class ApplicationListComponent implements OnInit {
         },
         error: () => {
           const all = this.mockData.getApplicants({
-            search: this.attachSearchQuery,
+            search: query?.trim() || undefined,
           });
           this.attachSearchResults.set(
             all
               .filter((item) => canAttachVacancyToApplicant(item.status))
-              .slice(0, 10),
+              .slice(0, 20),
           );
           this.attachSearching.set(false);
         },
@@ -280,8 +316,9 @@ export class ApplicationListComponent implements OnInit {
   selectAttachApplicant(applicant: Applicant) {
     this.attachSelectedApplicant.set(applicant);
     this.attachData.applicantId = applicant.id;
-    this.attachSearchQuery = applicant.fullName;
+    this.attachSearchQuery = applicant.user?.fullName ?? '';
     this.attachSearchResults.set([]);
+    this.attachDropdownOpen.set(false);
   }
 
   clearAttachApplicant() {
@@ -289,6 +326,50 @@ export class ApplicationListComponent implements OnInit {
     this.attachData.applicantId = '';
     this.attachSearchQuery = '';
     this.attachSearchResults.set([]);
+    this.attachDropdownOpen.set(false);
+  }
+
+  filteredVacancies(): Vacancy[] {
+    const q = this.vacancySearchQuery.trim().toLowerCase();
+    if (!q) return this.vacancies();
+    return this.vacancies().filter((v) => {
+      const values = [v.title, v.code, v.id, v.status, v.department?.name];
+      return values.some((value) =>
+        String(value ?? '')
+          .toLowerCase()
+          .includes(q),
+      );
+    });
+  }
+
+  onVacancyFocus() {
+    this.vacancyDropdownOpen.set(true);
+  }
+
+  onVacancyBlur() {
+    setTimeout(() => this.vacancyDropdownOpen.set(false), 200);
+  }
+
+  onVacancySearchInput() {
+    this.vacancyDropdownOpen.set(true);
+    if (this.attachSelectedVacancy()) {
+      this.attachSelectedVacancy.set(null);
+      this.attachData.vacancyId = '';
+    }
+  }
+
+  selectAttachVacancy(vacancy: Vacancy) {
+    this.attachSelectedVacancy.set(vacancy);
+    this.attachData.vacancyId = vacancy.id;
+    this.vacancySearchQuery = `[${vacancy.code}] ${vacancy.title}`;
+    this.vacancyDropdownOpen.set(false);
+  }
+
+  clearAttachVacancy() {
+    this.attachSelectedVacancy.set(null);
+    this.attachData.vacancyId = '';
+    this.vacancySearchQuery = '';
+    this.vacancyDropdownOpen.set(false);
   }
 
   saveAttachApplication() {
