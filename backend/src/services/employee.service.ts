@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserRole } from 'src/common/enum';
-import { EmployeeFindDto } from 'src/dto/employee/applicant.find.dto';
+import { EmployeeFindDto } from 'src/dto/employee/employee.find.dto';
 import { Employee } from 'src/entities/employee.entity';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { Repository } from 'typeorm';

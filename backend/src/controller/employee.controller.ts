@@ -1,5 +1,5 @@
 import { Controller, Get, HttpStatus, Query } from '@nestjs/common';
-import { EmployeeFindDto } from 'src/dto/employee/applicant.find.dto';
+import { EmployeeFindDto } from 'src/dto/employee/employee.find.dto';
 import { Employee } from 'src/entities/employee.entity';
 import { ApiResponse } from 'src/helper/api-response';
 import { FindResponseDto } from 'src/helper/find.response.dto';
