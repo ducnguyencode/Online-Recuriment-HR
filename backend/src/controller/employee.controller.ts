@@ -16,7 +16,7 @@ export class EmployeeController {
     const data = await this.employeeService.findAll(query);
     return {
       statusCode: HttpStatus.OK,
-      message: 'Success create a applicant',
+      message: 'Success load employees',
       data,
     };
   }
