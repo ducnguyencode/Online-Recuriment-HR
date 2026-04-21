@@ -45,10 +45,12 @@ import { Seed } from './database/seed';
 import { Employee } from './entities/employee.entity';
 import { MailService } from './services/mail.service';
 import { NotificationsService } from './notification/notification.service';
+import { NotificationsController } from './notification/notification.controller';
 import { InterviewerPanel } from './entities/interviewer-panel.entity';
 import { InterviewerAvailability } from './entities/interviewer-availability.entity';
 import { EmployeeController } from './controller/employee.controller';
 import { EmployeeService } from './services/employee.service';
+import { EmailQueue } from './entities/email-queue.entity';
 
 @Module({
   imports: [
@@ -132,6 +134,7 @@ import { EmployeeService } from './services/employee.service';
       InterviewerPanel,
       InterviewerAvailability,
       InAppNotification,
+      EmailQueue,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -153,6 +156,7 @@ import { EmployeeService } from './services/employee.service';
     InterviewController,
     AuthController,
     EmployeeController,
+    NotificationsController,
   ],
   providers: [
     VacanciesService,
