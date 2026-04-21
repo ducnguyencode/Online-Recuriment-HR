@@ -18,17 +18,17 @@ import { Applicant } from 'src/entities/applicant.entity';
 import { Employee } from 'src/entities/employee.entity';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from './mail.service';
+import { ConfigService } from '@nestjs/config';
+import { StringValue } from 'ms';
+import { Department } from 'src/entities/department.entity';
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private userTable: Repository<User>,
     private jwtService: JwtService,
     private mailService: MailService,
+    private configService: ConfigService,
   ) {}
-
-  create(user: Partial<User>) {
-    return this.userTable.save(user);
-  }
 
   findByEmail(email: string) {
     return this.userTable.findOne({ where: { email } });
@@ -67,9 +67,7 @@ export class UserService {
         }
 
         if (existing.verificationToken) {
-          const { expired } = this.getTokenRemainingTime(
-            existing.verificationToken,
-          );
+          const { expired } = this.getTokenInfo(existing.verificationToken);
 
           if (!expired) {
             throw new ConflictException(
@@ -83,7 +81,13 @@ export class UserService {
         user = existing;
       }
 
-      const token = this.generateEmailToken(user);
+      const token = this.generateEmailToken(
+        user,
+        null,
+        UserRole.APPLICANT,
+        '1m',
+        TokenType.EMAIL_REGISTER_VERIFY,
+      );
       user.verificationToken = token;
       user = await manager.save(user);
     });
@@ -97,29 +101,54 @@ export class UserService {
     return user!;
   }
 
-  async verifyAccount(data: { email: string }) {
+  async verifyAccount(payload: {
+    email: string;
+    departmentId: number;
+    role: UserRole;
+    type: TokenType;
+  }) {
     return this.userTable.manager.transaction(async (manager) => {
       const user = await manager.findOne(User, {
-        where: { email: data.email },
+        where: { email: payload.email },
       });
 
       if (!user) {
         throw new NotFoundException('Account not found!');
       }
       if (user.isVerified == true) {
-        throw new ServiceUnavailableException('Account is already verified!');
+        if (payload.type == TokenType.EMAIL_REGISTER_VERIFY) {
+          throw new ServiceUnavailableException('Account is already verified!');
+        }
+        if (
+          payload.type == TokenType.EMAIL_INVITE_VERIFY &&
+          user.role == payload.role
+        ) {
+          throw new ServiceUnavailableException(
+            'Employee account is already verified!',
+          );
+        }
       }
 
+      user.role = payload.role;
       user.isVerified = true;
       user.verifiedAt = new Date();
       user.verificationToken = null;
 
       if (user.role == UserRole.APPLICANT) {
-        let applicant = manager.create(Applicant, { user: user });
+        let applicant = await manager.findOne(Applicant, { where: { user } });
+        if (!applicant) {
+          applicant = manager.create(Applicant, { user: user });
+        }
+
         applicant = await manager.save(applicant);
         user.applicant = applicant;
       } else {
-        let employee = manager.create(Employee, { user: user });
+        let employee = await manager.findOne(Employee, { where: { user } });
+        if (!employee) {
+          employee = manager.create(Employee, { user: user });
+        }
+        employee.isActive = true;
+        employee.department = { id: payload.departmentId } as Department;
         employee = await manager.save(employee);
         user.employee = employee;
       }
@@ -129,32 +158,40 @@ export class UserService {
   }
 
   async sendVerification(user: User, rawPassword?: string) {
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:4200';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
     const verifyUrl = `${frontendUrl}/verify-email?token=${user.verificationToken}`;
 
     await this.mailService.sendVerificationEmail(
       user.email,
       user.fullName,
       verifyUrl,
-      false,
       rawPassword,
     );
   }
 
-  generateEmailToken(user: { id: number; email: string }) {
+  generateEmailToken(
+    user: { id: number; email: string; role: UserRole },
+    departmentId: number | null,
+    role: UserRole = UserRole.APPLICANT,
+    expiresIn: number | StringValue = '15m',
+    type: TokenType,
+  ) {
     const payload = {
       sub: user.id,
       email: user.email,
-      type: TokenType.EMAIL_REGISTER_VERIFY,
+      departmentId,
+      role: role,
+      type: type,
     };
 
     return this.jwtService.sign(payload, {
-      secret: process.env.JWT_EMAIL_SECRET,
-      expiresIn: '1m',
+      secret: this.configService.getOrThrow<string>('JWT_EMAIL_SECRET'),
+      expiresIn: expiresIn,
     });
   }
 
-  getTokenRemainingTime(token: string) {
+  getTokenInfo(token: string) {
     const decoded = this.jwtService.decode(token);
 
     if (!decoded || !decoded.exp) {
@@ -163,10 +200,12 @@ export class UserService {
 
     const now = Math.floor(Date.now() / 1000);
     const remaining = decoded.exp - now;
+    const type = decoded.type as TokenType;
 
     return {
       expired: remaining <= 0,
       remaining: Math.max(0, remaining),
+      type,
     };
   }
 }
