@@ -7,6 +7,7 @@ import { User } from 'src/entities/user.entity';
 import { Vacancy } from 'src/entities/vacancy.entity';
 import { Applicant } from 'src/entities/applicant.entity';
 import { Employee } from 'src/entities/employee.entity';
+import { randomInt } from 'crypto';
 
 export class Seed {
   constructor(
@@ -308,7 +309,8 @@ export class Seed {
             default:
               {
                 const employee = manager.create(Employee, { user: newUser });
-
+                employee.isActive = true;
+                employee.department = { id: randomInt(1, 6) } as Department;
                 newUser.employee = employee;
 
                 await manager.save(employee);

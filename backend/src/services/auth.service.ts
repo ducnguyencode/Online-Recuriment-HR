@@ -35,7 +35,7 @@ export class AuthService {
     return this.signToken(user);
   }
 
-  private signToken(user: any) {
+  private signToken(user: User) {
     const payload = {
       sub: user.id,
       email: user.email,

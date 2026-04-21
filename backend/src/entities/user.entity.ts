@@ -34,6 +34,10 @@ export class User {
   employee!: Employee;
 
   @Expose()
+  @Column({ nullable: true })
+  employeeId!: number;
+
+  @Expose()
   @Column()
   email!: string;
 

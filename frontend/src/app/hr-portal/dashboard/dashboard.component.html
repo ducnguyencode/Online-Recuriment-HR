@@ -260,10 +260,12 @@
           @for (app of recentApplications(); track app.applicant) {
             <div class="application-item">
               <div class="application-avatar">
-                {{ app.applicant.fullName.charAt(0) }}
+                {{ app.applicant.user.fullName.charAt(0) }}
               </div>
               <div class="application-info">
-                <p class="application-name">{{ app.applicant.fullName }}</p>
+                <p class="application-name">
+                  {{ app.applicant.user.fullName }}
+                </p>
                 <p class="application-vacancy">{{ app.vacancy.title }}</p>
               </div>
               <div class="application-right">
