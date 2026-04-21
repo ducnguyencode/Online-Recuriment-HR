@@ -9,13 +9,11 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
 import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
 import { ApplicantStatus, UserRole } from 'src/common/enum';
-import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class ApplicantService {
   constructor(
     @InjectRepository(Applicant) private applicantsTable: Repository<Applicant>,
-    @InjectRepository(User) private userTable: Repository<User>,
   ) {}
 
   async findAll(

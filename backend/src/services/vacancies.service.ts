@@ -17,7 +17,7 @@ export class VacanciesService {
 
   //Find All
   async findAll(request: VacancyFindDto): Promise<FindResponseDto<Vacancy>> {
-    const { page, limit, status, title, departmentId } = request;
+    const { page, limit, status, search, departmentId } = request;
 
     const qb = this.vacanciesTable
       .createQueryBuilder('vacancy')
@@ -25,15 +25,15 @@ export class VacanciesService {
       .leftJoinAndSelect('vacancy.createdBy', 'createdBy');
 
     //Filter
-    if (title) {
+    if (search) {
       qb.andWhere('vacancy.title ILIKE :title', {
-        title: `%${title}%`,
+        title: `%${search}%`,
       });
     }
 
     if (departmentId) {
-      qb.andWhere('vacancy.departmentId = :deparmentId', {
-        deparmentId: departmentId,
+      qb.andWhere('vacancy.departmentId = :departmentId', {
+        departmentId: departmentId,
       });
     }
 
