@@ -9,8 +9,6 @@ import {
 import { UserService } from './user.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { plainToInstance } from 'class-transformer';
-import { User } from 'src/entities/user.entity';
 import { TokenType } from 'src/common/enum';
 import { UserCreateDto } from 'src/dto/user/user.create.dto';
 import { TokenExpiredError } from 'jsonwebtoken';
@@ -34,21 +32,6 @@ export class AuthService {
       throw new UnauthorizedException('Email or password not correct!');
 
     return signToken(user, this.jwtService);
-  }
-
-  private signToken(user: User) {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
-
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: plainToInstance(User, user, {
-        excludeExtraneousValues: true,
-      }),
-    };
   }
 
   async verifyEmailToken(token: string) {
