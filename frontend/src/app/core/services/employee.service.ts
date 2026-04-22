@@ -2,7 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, Employee, UserAccount, UserRole } from '../models';
+import {
+  ApiResponse,
+  Employee,
+  UpdateAccountResponse,
+  UserAccount,
+  UserRole,
+} from '../models';
 
 export interface EmployeeFilters {
   departmentId?: string;
@@ -51,5 +57,12 @@ export class EmployeeService {
     departmentId: string,
   ): Observable<ApiResponse<Employee[]>> {
     return this.getAll({ departmentId, role: 'Interviewer' });
+  }
+
+  updateAccount(dto: { email: string; fullName: string }) {
+    return this.http.post<UpdateAccountResponse>(
+      `${this.base}/update-account`,
+      dto,
+    );
   }
 }

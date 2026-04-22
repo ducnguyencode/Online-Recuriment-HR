@@ -22,13 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
     const user = await this.userTable.findOne({
       where: { id: payload.sub, email: payload.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        fullName: true,
-        employee: true,
-      },
+      relations: ['employee'],
     });
     if (!user) {
       throw new UnauthorizedException('Invalid token');

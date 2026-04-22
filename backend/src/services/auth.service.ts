@@ -14,6 +14,7 @@ import { User } from 'src/entities/user.entity';
 import { TokenType } from 'src/common/enum';
 import { UserCreateDto } from 'src/dto/user/user.create.dto';
 import { TokenExpiredError } from 'jsonwebtoken';
+import { signToken } from 'src/helper/function.helper';
 @Injectable()
 export class AuthService {
   constructor(
@@ -32,7 +33,7 @@ export class AuthService {
     if (!isMatch)
       throw new UnauthorizedException('Email or password not correct!');
 
-    return this.signToken(user);
+    return signToken(user, this.jwtService);
   }
 
   private signToken(user: User) {

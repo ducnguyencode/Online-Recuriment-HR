@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { EmployeeService } from '../../core/services/employee.service';
 
 @Component({
   selector: 'app-LProfile',
@@ -208,7 +209,10 @@ export class ProfileComponent {
     confirmPassword: '',
   };
 
-  constructor(public auth: AuthService) {
+  constructor(
+    public auth: AuthService,
+    private employeeService: EmployeeService,
+  ) {
     this.detailForm = {
       fullName: this.auth.currentUser()?.fullName ?? '',
       email: this.auth.currentUser()?.email ?? '',
@@ -228,10 +232,19 @@ export class ProfileComponent {
   }
 
   saveDetails() {
-    this.auth.updateCurrentUser({
-      fullName: this.detailForm.fullName,
-      email: this.detailForm.email,
-    });
+    this.employeeService
+      .updateAccount({
+        fullName: this.detailForm.fullName,
+        email: this.detailForm.email,
+      })
+      .subscribe({
+        next: (res) => {
+          this.auth.handleUpdateAccountSuccess(res);
+        },
+        error: (err) => {
+          this.detailMessage.set(err.error.message);
+        },
+      });
     this.detailMessage.set('Profile details updated successfully.');
     setTimeout(() => this.detailMessage.set(''), 2500);
   }

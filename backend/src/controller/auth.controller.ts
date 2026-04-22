@@ -10,12 +10,17 @@ import {
 import { CurrentUser } from 'src/common/decorator/decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { LoginDto } from 'src/dto/auth/login.dto';
+import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { UserCreateDto } from 'src/dto/user/user.create.dto';
 import { AuthService } from 'src/services/auth.service';
+import { UserService } from 'src/services/user.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private userService: UserService,
+  ) {}
 
   @Post('register')
   async register(@Body() userCreateDto: UserCreateDto) {
@@ -52,7 +57,12 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  me(@CurrentUser() user: unknown) {
-    return user;
+  async me(@CurrentUser() user: SafeUserDto) {
+    const data = await this.userService.findById(user.id);
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Login success',
+      data: data,
+    };
   }
 }

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenType, UserRole } from 'src/common/enum';
@@ -6,15 +9,19 @@ import { EmployeeFindDto } from 'src/dto/employee/employee.find.dto';
 import { Employee } from 'src/entities/employee.entity';
 import { User } from 'src/entities/user.entity';
 import { FindResponseDto } from 'src/helper/find.response.dto';
-import { generatePassword } from 'src/helper/function.helper';
+import { generatePassword, signToken } from 'src/helper/function.helper';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UserService } from './user.service';
+import { EmployeeUpdateDto } from 'src/dto/employee/employee.update.dto';
+import { SafeUserDto } from 'src/dto/user/safe.user.dto';
+import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class EmployeeService {
   constructor(
     @InjectRepository(Employee) private employeeTable: Repository<Employee>,
     private userService: UserService,
+    private jwtService: JwtService,
   ) {}
 
   async findAll(request: EmployeeFindDto): Promise<FindResponseDto<Employee>> {
@@ -125,5 +132,43 @@ export class EmployeeService {
       });
 
     return user!;
+  }
+
+  async updateAccount(data: EmployeeUpdateDto, safeUser: SafeUserDto) {
+    if (data.email == safeUser.email && data.fullName == safeUser.fullName) {
+      return null;
+    }
+    const user = await this.employeeTable.manager.transaction(
+      async (manager) => {
+        const currentUser = await manager
+          .createQueryBuilder(User, 'user')
+          .setLock('pessimistic_write')
+          .where('user.email = :email', { email: safeUser.email })
+          .getOneOrFail();
+
+        const exising = await manager
+          .createQueryBuilder(User, 'user')
+          .setLock('pessimistic_write')
+          .where('user.email = :email', { email: data.email })
+          .getOne();
+
+        if (exising && exising.id != currentUser.id) {
+          throw new ConflictException('Email already exist');
+        }
+
+        currentUser.email = data.email;
+        currentUser.fullName = data.fullName;
+
+        try {
+          return await manager.save(currentUser);
+        } catch (e: any) {
+          if (e.code === '23505') {
+            throw new ConflictException('Email already exist');
+          }
+          throw e;
+        }
+      },
+    );
+    return signToken(user, this.jwtService);
   }
 }

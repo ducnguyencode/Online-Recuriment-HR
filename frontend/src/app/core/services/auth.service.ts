@@ -7,6 +7,7 @@ import {
   UserRole,
   UserRoleLogin,
   ApiResponse,
+  UpdateAccountResponse,
 } from '../models';
 import { environment } from '../../../environments/environment';
 import { tap } from 'rxjs';
@@ -111,6 +112,12 @@ export class AuthService {
     this.router.navigate(['/']);
   }
 
+  handleUpdateAccountSuccess(response: UpdateAccountResponse) {
+    const { access_token, user } = response.data;
+    localStorage.setItem(this.TOKEN_KEY, access_token);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  }
+
   logout() {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
@@ -182,11 +189,13 @@ export class AuthService {
     if (!token && !this.currentUser()) {
       return;
     }
-    return this.http.get<UserAccount>(`${environment.apiUrl}/auth/me`).pipe(
-      tap((user) => {
-        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-        this.currentUser.set(user);
-      }),
-    );
+    return this.http
+      .get<ApiResponse<UserAccount>>(`${environment.apiUrl}/auth/me`)
+      .pipe(
+        tap((res) => {
+          localStorage.setItem(this.USER_KEY, JSON.stringify(res.data));
+          this.currentUser.set(res.data);
+        }),
+      );
   }
 }

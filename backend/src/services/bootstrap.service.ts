@@ -12,7 +12,7 @@ export class BootstrapService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.seed.runSeed();
-    // await this.userService.ensureDefaultAdmin();
+    // await this.seed.runSeed();
+    await this.userService.ensureDefaultAdmin();
   }
 }

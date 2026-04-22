@@ -8,8 +8,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorator/decorator';
 import { EmployeeCreateDto } from 'src/dto/employee/employee.create.dto';
 import { EmployeeFindDto } from 'src/dto/employee/employee.find.dto';
+import { EmployeeUpdateDto } from 'src/dto/employee/employee.update.dto';
+import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { Employee } from 'src/entities/employee.entity';
 import { User } from 'src/entities/user.entity';
 import { ApiResponse } from 'src/helper/api-response';
@@ -35,12 +38,29 @@ export class EmployeeController {
   @Post('create')
   @UseGuards(JwtAuthGuard)
   async create(
-    @Body() vacancyCreateDto: EmployeeCreateDto,
+    @Body() employeeCreateDto: EmployeeCreateDto,
   ): Promise<ApiResponse<User>> {
-    const data = await this.employeeService.create(vacancyCreateDto);
+    const data = await this.employeeService.create(employeeCreateDto);
     return {
       statusCode: HttpStatus.OK,
-      message: 'Success create a vacancy',
+      message: 'Success create a employee',
+      data,
+    };
+  }
+
+  @Post('update-account')
+  @UseGuards(JwtAuthGuard)
+  async updateAccount(
+    @Body() employeeUpdateDto: EmployeeUpdateDto,
+    @CurrentUser() user: SafeUserDto,
+  ) {
+    const data = await this.employeeService.updateAccount(
+      employeeUpdateDto,
+      user,
+    );
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Success create a employee',
       data,
     };
   }

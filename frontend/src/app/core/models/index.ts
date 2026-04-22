@@ -248,6 +248,15 @@ export interface LoginResponse {
   };
 }
 
+export interface UpdateAccountResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    access_token: string;
+    user: UserAccount;
+  };
+}
+
 export interface ApiResponse<T> {
   statusCode: number;
   message: string;

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
@@ -30,14 +32,13 @@ export class UserService {
     private configService: ConfigService,
   ) {}
 
-  findByEmail(email: string) {
-    return this.userTable.findOne({ where: { email } });
+  async findByEmail(email: string) {
+    return await this.userTable.findOne({ where: { email } });
   }
 
   async findUserVerifiedByEmail(email: string) {
     const user = await this.userTable.findOne({ where: { email } });
-    if (!user)
-      throw new UnauthorizedException('Email or password not correct!');
+    if (!user) throw new UnauthorizedException('Account not found!');
 
     if (user.isVerified == false)
       throw new UnauthorizedException('Account not verified');
@@ -45,8 +46,8 @@ export class UserService {
     return user;
   }
 
-  findById(id: number) {
-    return this.userTable.findOne({ where: { id } });
+  async findById(id: number) {
+    return await this.userTable.findOne({ where: { id } });
   }
 
   async createRegisterApplicant(data: UserCreateDto) {
@@ -207,5 +208,25 @@ export class UserService {
       remaining: Math.max(0, remaining),
       type,
     };
+  }
+
+  async ensureDefaultAdmin() {
+    const adminEmail = 'admin@gmail.com';
+    const existing = await this.findByEmail(adminEmail);
+
+    if (existing) {
+      return existing;
+    }
+
+    const admin = this.userTable.create({
+      fullName: 'Super Admin',
+      email: adminEmail,
+      password: await bcrypt.hash('123456', 10),
+      role: UserRole.SUPER_ADMIN,
+      isVerified: true,
+      verifiedAt: new Date(),
+    });
+
+    return this.userTable.save(admin);
   }
 }
