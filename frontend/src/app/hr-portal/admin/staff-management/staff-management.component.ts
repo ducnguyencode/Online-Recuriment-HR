@@ -184,8 +184,8 @@ export class StaffManagementComponent implements OnInit {
       next: () => {
         this.creating.set(false);
         this.formSuccess.set(
-          `Account created. A temporary password has been emailed to ${email}. ` +
-            `The user will be forced to change it on first login.`,
+          `Invitation sent to ${email}. ` +
+            `After verifying the email, the user will set an initial password before signing in.`,
         );
         this.loadUsers();
       },
@@ -201,11 +201,11 @@ export class StaffManagementComponent implements OnInit {
 
   resendCredentials(user: UserAccount | undefined) {
     if (!user) return;
-    if (!confirm(`Send a fresh temporary password to ${user.email}?`)) return;
+    if (!confirm(`Resend the activation email to ${user.email}?`)) return;
     this.adminService.resendTemporaryPassword(user.id).subscribe({
       next: () =>
         this.formSuccess.set(
-          `New credentials have been emailed to ${user.email}.`,
+          `A new activation email has been sent to ${user.email}.`,
         ),
       error: (err) =>
         this.errorMsg.set(
