@@ -152,7 +152,6 @@ export class ApplicationService {
       }
       application = await manager.save(application);
     });
-    console.log(application!);
     try {
       // 1. Phát sự kiện Real-time cho NotificationGateway
       this.eventEmitter.emit('notification.send', {

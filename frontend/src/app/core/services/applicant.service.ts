@@ -49,6 +49,13 @@ export class ApplicantService {
     return this.http.post<ApiResponse<Applicant>>(`${this.base}/create`, dto);
   }
 
+  uploadCv(formData: FormData): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(
+      `${environment.apiUrl}/cv/create`,
+      formData,
+    );
+  }
+
   update(
     id: string,
     dto: Partial<CreateApplicantDto>,

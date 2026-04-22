@@ -26,7 +26,14 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
     const path = this.router.url;
-    this.selectedRole = path.includes('hr/login') ? UserRoleLogin.HR : UserRoleLogin.APPLICANT;
+    this.selectedRole = path.includes('hr/login')
+      ? UserRoleLogin.HR
+      : UserRoleLogin.APPLICANT;
+    if (this.selectedRole == UserRoleLogin.HR) {
+      this.form = { email: 'admin@test.com', password: '123456' };
+    } else {
+      this.form = { email: 'applicant@test.com', password: '123456' };
+    }
   }
 
   submit() {
@@ -37,14 +44,20 @@ export class LoginComponent implements OnInit {
       next: (res) => {
         const userRole = res.data.user.role;
 
-        if (this.selectedRole === UserRoleLogin.HR && userRole === UserRole.APPLICANT) {
-          this.formError = 'This account is for applicants. Please use the Applicant Login.';
+        if (
+          this.selectedRole === UserRoleLogin.HR &&
+          userRole === UserRole.APPLICANT
+        ) {
+          this.formError = 'Email or password not correct!';
           this.isLoading = false;
           return;
         }
 
-        if (this.selectedRole === UserRoleLogin.APPLICANT && userRole !== UserRole.APPLICANT) {
-          this.formError = 'This account is for HR. Please use the HR Portal Login.';
+        if (
+          this.selectedRole === UserRoleLogin.APPLICANT &&
+          userRole !== UserRole.APPLICANT
+        ) {
+          this.formError = 'Email or password not correct!';
           this.isLoading = false;
           return;
         }
@@ -52,7 +65,7 @@ export class LoginComponent implements OnInit {
         this.auth.handleLoginSuccess(res, this.selectedRole);
       },
       error: (err) => {
-        this.formError = err.error?.message || 'Invalid email or password';
+        this.formError = err.error?.message || 'Email or password not correct!';
         this.isLoading = false;
       },
     });
