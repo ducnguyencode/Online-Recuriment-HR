@@ -15,7 +15,7 @@ export class AiService {
   private genAI: GoogleGenerativeAI;
   constructor(private configService: ConfigService) {
     this.genAI = new GoogleGenerativeAI(
-      this.configService.get<string>('GEMINI_API_KEY_OANHVU')!,
+      this.configService.get<string>('GEMINI_API')!,
     );
   }
 
