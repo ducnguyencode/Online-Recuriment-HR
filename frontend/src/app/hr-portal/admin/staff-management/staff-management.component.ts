@@ -250,20 +250,11 @@ export class StaffManagementComponent implements OnInit {
     });
   }
 
-  resendCredentials(staff: StaffAccountRow | undefined) {
-    if (!staff) return;
-    if (!confirm(`Resend activation email to ${staff.email}?`)) return;
-    this.adminService.resendTemporaryPassword(staff.id).subscribe({
-      next: () =>
-        this.formSuccess.set(
-          `Activation email has been sent to ${staff.email}.`,
-        ),
-      error: (err) =>
-        this.errorMsg.set(
-          err?.error?.message ??
-            'Unable to resend credentials. Please try again.',
-        ),
-    });
+  roleBadgeClass(role?: string): string {
+    if (role === 'HR') return 'badge-info';
+    if (role === 'Interviewer') return 'badge-warning';
+    if (role === 'Superadmin') return 'badge-success';
+    return 'badge-neutral';
   }
 
   toggleActive(staff: StaffAccountRow | undefined) {
@@ -279,13 +270,6 @@ export class StaffManagementComponent implements OnInit {
             'Unable to update the account status. Please try again.',
         ),
     });
-  }
-
-  roleBadgeClass(role?: string): string {
-    if (role === 'HR') return 'badge-info';
-    if (role === 'Interviewer') return 'badge-warning';
-    if (role === 'Superadmin') return 'badge-success';
-    return 'badge-neutral';
   }
 
   isEditingMode() {

@@ -131,15 +131,6 @@
               </td>
               <td>{{ staff.createdAt | date: "MM/dd/yyyy" }}</td>
               <td class="actions-cell">
-                @if (!staff.isVerified) {
-                  <button
-                    class="btn-ghost btn-sm"
-                    (click)="resendCredentials(staff)"
-                    title="Resend activation email"
-                  >
-                    Resend invite
-                  </button>
-                }
                 <button class="btn-ghost btn-sm" (click)="openEditDialog(staff)">
                   Edit
                 </button>
