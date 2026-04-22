@@ -23,6 +23,13 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./hr-portal/hr-portal.routes').then((m) => m.hrPortalRoutes),
   },
+  {
+    path: 'set-initial-password',
+    loadComponent: () =>
+      import(
+        './shared/components/set-initial-password/set-initial-password.component'
+      ).then((m) => m.SetInitialPasswordComponent),
+  },
 
   // --- Luồng Login cho HR ---
   {
