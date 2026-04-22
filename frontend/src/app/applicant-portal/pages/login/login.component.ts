@@ -41,7 +41,7 @@ export class LoginComponent implements OnInit {
     this.authService.login(this.loginForm.value).subscribe({
       next: (response: LoginResponse) => {
         // Based on Nhựt's Postman data, even for applicants, the role should be checked.
-        if (response.data.user.role !== 'APPLICANT') {
+        if (response.data.user.role !== 'Applicant') {
           this.errorMessage = 'This login is for Applicants only. HR please use the HR Portal.';
           this.isLoading = false;
           this.authService.logout(); // Clear token immediately if wrong role

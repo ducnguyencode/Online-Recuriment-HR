@@ -28,7 +28,7 @@
       <input
         type="text"
         class="form-input search-input"
-        placeholder="Search vacancies..."
+        placeholder="Search by vacancy title or code..."
         [(ngModel)]="searchQuery"
         (input)="onSearch()"
       />
@@ -70,7 +70,7 @@
         Clear
       </button>
     }
-    <span class="result-count">{{ vacancies().length }} results</span>
+    <span class="result-count">{{ displayedResultsCount() }} results</span>
 
     <!-- View Toggle -->
     <div class="view-toggle">
@@ -136,14 +136,14 @@
           </tr>
         </thead>
         <tbody>
-          @for (v of vacancies(); track v.id) {
+          @for (v of visibleVacancies(); track v.id) {
             <tr class="table-row" (click)="openDetail(v)">
               <td>
                 <div class="vacancy-title">{{ v.title }}</div>
                 <div class="vacancy-desc">
                   {{ v.code }} · {{ v.description | slice: 0 : 70 }}...
                 </div>
-                @if (isNearDeadline(v) && v.status === "Opened") {
+                @if (isNearDeadline(v) && isOpenStatus(v.status)) {
                   <span
                     class="badge badge-danger"
                     style="font-size: 10px; margin-top: 4px"
@@ -252,7 +252,7 @@
                       }
                     </button>
                   }
-                } @else if (v.status === "Closed") {
+                } @else if (isClosedStatus(v.status)) {
                   <span
                     class="locked-badge"
                     title="Closed vacancies cannot be reopened"
@@ -272,12 +272,31 @@
         </tbody>
       </table>
     </div>
+    @if (totalPages() > 1) {
+      <div class="pagination" style="margin-top: 16px; justify-content: flex-end">
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)"
+        >
+          ←
+        </button>
+        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(currentPage() + 1)"
+        >
+          →
+        </button>
+      </div>
+    }
   }
 
   <!-- ── CARD VIEW ── -->
   @if (viewMode === "card" && !loading()) {
     <div class="vacancy-grid">
-      @for (v of vacancies(); track v.id) {
+      @for (v of visibleVacancies(); track v.id) {
         <div class="vacancy-card" (click)="openDetail(v)">
           <div class="vc-header">
             <div class="vc-dept-tag">{{ v.department?.name ?? "No Dept" }}</div>
@@ -346,7 +365,7 @@
                   → {{ s }}
                 </button>
               }
-            } @else if (v.status === "Closed") {
+            } @else if (isClosedStatus(v.status)) {
               <span class="locked-badge">🔒 Closed</span>
             }
           </div>
@@ -358,6 +377,25 @@
         </div>
       }
     </div>
+    @if (totalPages() > 1) {
+      <div class="pagination" style="margin-top: 16px; justify-content: flex-end">
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)"
+        >
+          ←
+        </button>
+        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
+        <button
+          class="btn-ghost btn-sm"
+          [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(currentPage() + 1)"
+        >
+          →
+        </button>
+      </div>
+    }
   }
 </div>
 
@@ -441,9 +479,13 @@
           />
         </div>
         <div class="form-group">
-          <label class="form-label"
-            >Job Description <span class="required">*</span></label
-          >
+          <div class="form-label-row">
+            <label class="form-label">Job Description <span class="required">*</span></label>
+            <button type="button" class="btn-link btn-sm editor-expand-btn" (click)="openExpandedEditor()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+              Expand Editor
+            </button>
+          </div>
           <textarea
             class="form-textarea"
             rows="5"
@@ -519,9 +561,7 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Owner</span>
-            <span class="detail-value">{{
-              selectedVacancy()!.owner?.fullName ?? "—"
-            }}</span>
+            <span class="detail-value">{{ ownerDisplay(selectedVacancy()!) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Created</span>
@@ -532,11 +572,45 @@
         </div>
         <div class="detail-description">
           <h4 class="detail-section-title">Job Description</h4>
-          <p>{{ selectedVacancy()!.description }}</p>
+          <div class="description-html" [innerHTML]="selectedVacancy()!.description"></div>
+        </div>
+
+        <div class="detail-description">
+          <h4 class="detail-section-title">Selected Applicants</h4>
+          @if (selectedApplicantsLoading()) {
+            <div class="info-banner info-banner-info">
+              Loading selected applicants...
+            </div>
+          } @else if (selectedApplicants().length > 0) {
+            <div class="card table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Applicant</th>
+                    <th>Applicant ID</th>
+                    <th>Selected Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of selectedApplicants(); track item.id) {
+                    <tr>
+                      <td>{{ item.applicant?.fullName || "—" }}</td>
+                      <td class="mono-id">{{ item.applicant?.code || applicantDisplayId(item.applicant?.id || item.applicantId) }}</td>
+                      <td>{{ item.updatedAt | date: "MM/dd/yyyy HH:mm" }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="info-banner info-banner-info">
+              No applicants have been marked as selected for this vacancy yet.
+            </div>
+          }
         </div>
 
         <!-- Closed vacancy lock notice -->
-        @if (selectedVacancy()!.status === "Closed") {
+        @if (isClosedStatus(selectedVacancy()!.status)) {
           <div class="info-banner info-banner-warning">
             🔒 This vacancy is <strong>Closed</strong> and cannot be reopened or
             modified.
@@ -544,11 +618,17 @@
         }
 
         <!-- Not owner notice -->
-        @if (!isOwner(selectedVacancy()!)) {
+        @if (hasOwnerData(selectedVacancy()!) && !isOwner(selectedVacancy()!)) {
           <div class="info-banner info-banner-info">
             ℹ️ You are not the owner of this vacancy. Contact
-            <strong>{{ selectedVacancy()!.owner?.fullName }}</strong> to make
+            <strong>{{ ownerDisplay(selectedVacancy()!) }}</strong> to make
             changes.
+          </div>
+        }
+        @if (!hasOwnerData(selectedVacancy()!)) {
+          <div class="info-banner info-banner-info">
+            ℹ️ Owner data is not available in the current API response, so
+            owner-specific rules cannot be enforced from the UI yet.
           </div>
         }
       </div>
@@ -562,6 +642,59 @@
             Edit Vacancy
           </button>
         }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ====== EXPANDED DESCRIPTION EDITOR ====== -->
+@if (showExpandedEditor()) {
+  <div class="modal-backdrop" (click)="closeExpandedEditor()">
+    <div class="modal-content modal-editor" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Job Description Editor</h3>
+        <button class="btn-ghost btn-icon" (click)="closeExpandedEditor()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="editor-toolbar">
+        <button type="button" class="toolbar-btn" title="Bold (Ctrl+B)" (click)="execCommand('bold')"><b>B</b></button>
+        <button type="button" class="toolbar-btn toolbar-italic" title="Italic (Ctrl+I)" (click)="execCommand('italic')"><i>I</i></button>
+        <button type="button" class="toolbar-btn toolbar-underline" title="Underline (Ctrl+U)" (click)="execCommand('underline')"><u>U</u></button>
+        <span class="toolbar-sep"></span>
+        <button type="button" class="toolbar-btn" title="Heading" (click)="execCommand('formatBlock', 'h3')">H</button>
+        <button type="button" class="toolbar-btn" title="Paragraph" (click)="execCommand('formatBlock', 'p')">P</button>
+        <span class="toolbar-sep"></span>
+        <button type="button" class="toolbar-btn" title="Bullet List" (click)="execCommand('insertUnorderedList')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+        </button>
+        <button type="button" class="toolbar-btn" title="Numbered List" (click)="execCommand('insertOrderedList')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+        </button>
+        <span class="toolbar-sep"></span>
+        <button type="button" class="toolbar-btn" title="Indent" (click)="execCommand('indent')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 8 7 12 3 16"/><line x1="21" x2="11" y1="12" y2="12"/><line x1="21" x2="11" y1="6" y2="6"/><line x1="21" x2="11" y1="18" y2="18"/></svg>
+        </button>
+        <button type="button" class="toolbar-btn" title="Outdent" (click)="execCommand('outdent')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 8 3 12 7 16"/><line x1="21" x2="11" y1="12" y2="12"/><line x1="21" x2="11" y1="6" y2="6"/><line x1="21" x2="11" y1="18" y2="18"/></svg>
+        </button>
+        <span class="toolbar-sep"></span>
+        <button type="button" class="toolbar-btn toolbar-danger" title="Remove Formatting" (click)="execCommand('removeFormat')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M5 20h6"/><path d="M13 4l-6 16"/><line x1="17" x2="22" y1="17" y2="22"/><line x1="22" x2="17" y1="17" y2="22"/></svg>
+        </button>
+      </div>
+      <div class="editor-body">
+        <div
+          #editorEl
+          class="editor-content"
+          contenteditable="true"
+          (blur)="onEditorBlur()"
+          (keydown.tab)="$event.preventDefault(); execCommand('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;')"
+        ></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeExpandedEditor()">Cancel</button>
+        <button class="btn-primary" (click)="applyExpandedContent()">Apply</button>
       </div>
     </div>
   </div>

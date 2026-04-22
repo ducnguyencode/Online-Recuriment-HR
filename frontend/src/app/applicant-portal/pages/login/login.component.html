@@ -1,60 +1,78 @@
-<div class="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-6 lg:px-8 font-sans animate-in fade-in duration-300">
+<div class="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans relative overflow-hidden">
 
-  <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
-    <a routerLink="/" class="text-3xl font-extrabold text-blue-600 tracking-tight">Recruit<span class="text-slate-900">Hub</span></a>
-    <h2 class="mt-8 text-3xl font-extrabold text-slate-900 tracking-tight">Applicant Sign In</h2>
-    <p class="mt-2 text-sm text-slate-500 font-medium">Welcome back! Please enter your details to continue.</p>
-  </div>
+  <div class="absolute top-[-10%] left-[-5%] w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40"></div>
+  <div class="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40"></div>
 
-  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-md">
-    <div class="bg-white p-10 rounded-[28px] border border-slate-200 shadow-sm">
+  <div class="w-full max-w-md bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 border border-slate-100 p-10 relative z-10 animate-in slide-in-from-bottom-4 fade-in duration-500">
 
-      @if (errorMessage) {
-        <div class="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 mb-6 text-sm font-semibold flex items-center gap-3">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-          {{ errorMessage }}
-        </div>
-      }
-
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
-
-        <div>
-          <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-3">Email Address</label>
-          <input id="email" type="email" formControlName="email"
-            class="w-full px-5 py-3.5 rounded-xl border transition-all duration-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            [ngClass]="f['email'].touched && f['email'].errors ? 'border-red-200 focus:border-red-500' : 'border-slate-200 focus:border-blue-500 hover:bg-slate-50'"
-            placeholder="e.g., student@university.edu">
-          @if (f['email'].touched && f['email'].errors) {
-            <div class="text-red-500 text-xs mt-2 font-semibold">Please enter a valid email address.</div>
-          }
-        </div>
-
-        <div>
-          <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-3">Password</label>
-          <input id="password" type="password" formControlName="password"
-            class="w-full px-5 py-3.5 rounded-xl border transition-all duration-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            [ngClass]="f['password'].touched && f['password'].errors ? 'border-red-200 focus:border-red-500' : 'border-slate-200 focus:border-blue-500 hover:bg-slate-50'">
-          @if (f['password'].touched && f['password'].errors) {
-            <div class="text-red-500 text-xs mt-2 font-semibold">Password must be at least 6 characters.</div>
-          }
-        </div>
-
-        <button type="submit" [disabled]="isLoading"
-          class="w-full flex justify-center items-center py-4 px-8 border border-transparent rounded-2xl shadow-lg text-sm font-bold text-white bg-slate-900 hover:bg-blue-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 disabled:opacity-50 disabled:bg-slate-500">
-          @if (isLoading) {
-            <svg class="w-5 h-5 mr-3 animate-spin" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          }
-          Sign In as Applicant
-        </button>
-      </form>
-
-      <div class="mt-8 pt-8 border-t border-slate-100 text-center">
-        <p class="text-sm text-slate-500 font-medium">Don't have an account?</p>
-        <a routerLink="/register" class="mt-2 inline-block text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">Create one now</a>
+    <div class="flex flex-col items-center mb-8">
+      <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center font-bold text-2xl rounded-2xl shadow-lg shadow-blue-200 mb-5">
+        HR
       </div>
+      <h2 class="text-[28px] font-extrabold text-slate-900 tracking-tight leading-tight">Welcome Back</h2>
+      <p class="text-sm text-slate-500 font-medium mt-1">Applicant Portal Access</p>
     </div>
+
+    @if (errorMessage) {
+      <div class="bg-red-50 text-red-600 p-4 rounded-2xl border border-red-100 mb-6 text-sm font-bold flex items-center gap-3">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span>{{ errorMessage }}</span>
+      </div>
+    }
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5">
+
+      <div>
+        <label for="email" class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path></svg>
+          </div>
+          <input id="email" type="email" formControlName="email"
+            class="w-full pl-11 pr-5 py-4 rounded-2xl border transition-all duration-200 bg-slate-50/50 text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white"
+            [ngClass]="f['email'].touched && f['email'].errors ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-200 hover:border-slate-300'"
+            placeholder="student@university.edu">
+        </div>
+        @if (f['email'].touched && f['email'].errors) {
+          <p class="text-red-500 text-xs mt-2 ml-1 font-bold">Valid email is required.</p>
+        }
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center mb-2 ml-1">
+          <label for="password" class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest">Password</label>
+          <a routerLink="/forgot-password" class="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">Forgot?</a>
+        </div>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          </div>
+          <input id="password" type="password" formControlName="password"
+            class="w-full pl-11 pr-5 py-4 rounded-2xl border transition-all duration-200 bg-slate-50/50 text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white"
+            [ngClass]="f['password'].touched && f['password'].errors ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-200 hover:border-slate-300'"
+            placeholder="••••••••">
+        </div>
+      </div>
+
+      <button type="submit" [disabled]="isLoading"
+        class="w-full mt-4 flex justify-center items-center py-4 px-8 border border-transparent rounded-2xl shadow-lg shadow-slate-900/10 text-sm font-bold text-white bg-slate-900 hover:bg-blue-600 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed group">
+        @if (isLoading) {
+          <svg class="w-5 h-5 mr-3 animate-spin" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Authenticating...</span>
+        } @else {
+          <span>Login to Portal</span>
+          <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        }
+      </button>
+    </form>
+
+    <div class="mt-8 pt-6 border-t border-slate-100 text-center">
+      <p class="text-sm text-slate-500 font-medium">New to RecruitHub?</p>
+      <a routerLink="/register" class="mt-1 inline-block text-sm font-bold text-slate-900 hover:text-blue-600 transition-colors">Create an account</a>
+    </div>
+
   </div>
 </div>

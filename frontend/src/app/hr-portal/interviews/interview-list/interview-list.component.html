@@ -12,6 +12,7 @@
     <input
       class="form-input filter-search"
       [(ngModel)]="searchTerm"
+      (input)="onSearchChange()"
       placeholder="Search by applicant ID, vacancy ID, name, title..."
     />
     <div class="header-filters">
@@ -129,7 +130,7 @@
           <div class="detail-avatar-lg">{{ getInitials(getApplicantName(selectedInterview()!)) }}</div>
           <div>
             <h3 class="detail-name">{{ getApplicantName(selectedInterview()!) }}</h3>
-            <p class="detail-email">{{ selectedInterview()!.application?.applicant?.email }}</p>
+            <p class="detail-email">{{ getApplicantEmail(selectedInterview()!) }}</p>
             <span class="badge" [ngClass]="getStatusClass(selectedInterview()!.status)" style="margin-top:4px">
               {{ selectedInterview()!.status }}
             </span>
@@ -143,7 +144,7 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Applicant ID</span>
-            <span class="detail-value">{{ applicantDisplayId(selectedInterview()!.application?.applicantId) }}</span>
+            <span class="detail-value">{{ applicantDisplayId(getApplicantId(selectedInterview()!)) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Position</span>
@@ -151,7 +152,7 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Vacancy ID</span>
-            <span class="detail-value">{{ vacancyDisplayId(selectedInterview()!.application?.vacancyId) }}</span>
+            <span class="detail-value">{{ vacancyDisplayId(getVacancyId(selectedInterview()!)) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Date</span>

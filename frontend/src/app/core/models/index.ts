@@ -1,17 +1,20 @@
 // ==================== ENUMS ====================
 
-export type UserRole = 'HR' | 'Interviewer' | 'Applicant';
+export type UserRole = 'HR' | 'Interviewer' | 'Applicant' | 'Superadmin';
 
-export type VacancyStatus = 'Opened' | 'Suspended' | 'Closed';
+export type VacancyStatus =
+  | 'Open'
+  | 'Opened'
+  | 'Suspended'
+  | 'Close'
+  | 'Closed';
 
-/** Per spec: Not in Process → In Process (on first attach) → Hired (on Selected) | Banned (manual) */
 export type ApplicantStatus =
-  | 'Not in Process'
+  | 'Not In Process'
   | 'In Process'
   | 'Hired'
   | 'Banned';
 
-/** Per spec application statuses */
 export type ApplicationStatus =
   | 'Pending'
   | 'Screening'
@@ -31,7 +34,7 @@ export type InterviewStatus =
 // ==================== MODELS ====================
 
 export interface Department {
-  id: string; // UUID
+  id: string;
   code?: string;
   name: string;
   description?: string;
@@ -39,64 +42,74 @@ export interface Department {
 }
 
 export interface Employee {
-  id: string; // UUID
+  id: string;
   departmentId: string;
   department?: Department;
   fullName: string;
   email: string;
   phone?: string;
-  position?: string;
+  position?: string; // Giữ lại cho Đức xài
+  jobTitle?: string; // Khang xài (từ ERD)
   role?: 'HR' | 'Interviewer';
   isActive?: boolean;
+  createdAt?: string;
 }
 
 export interface UserAccount {
-  id: string; // UUID
+  id: string;
   email: string;
   fullName: string;
   role: UserRole;
   employeeId?: string;
   applicantId?: string;
   avatarUrl?: string;
+  resetPasswordToken?: string;
+  resetTokenExpiry?: string;
+  mustChangePassword?: boolean;
+  passwordChangedAt?: string;
+  createdByUserId?: string;
   isActive: boolean;
 }
 
 export interface Vacancy {
-  id: string; // UUID — auto-generated, immutable
+  id: string;
   code: string;
   title: string;
   description: string;
   departmentId: string;
   department?: Department;
-  numberOfOpenings: number; // per spec field name
+  numberOfOpenings: number;
   filledCount: number;
-  ownedByEmployeeId: string; // HR who created — only they can edit/close
+  ownedByEmployeeId: string;
   owner?: Employee;
-  closingDate: string | null; // per spec: closingDate (not deadline)
+  closingDate: string | null;
   status: VacancyStatus;
-  createdAt: string; // auto, immutable
-  updatedAt: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Applicant {
-  id: string; // UUID
+  id: string;
   code: string;
   fullName: string;
   email: string;
   phone: string;
+  linkedInProfile?: string;
   status: ApplicantStatus;
   isActive?: boolean;
-  createdAt: string; // auto, immutable
-  updatedAt: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CV {
-  id: string; // UUID
+  id: string;
   applicantId: string;
   fileName?: string;
   fileUrl?: string;
+  yearsOfExperience?: number;
+  highestQualification?: string;
+  isDefault?: boolean;
   parsedDataAi?: {
-    // camelCase matches backend (parsedDataAi)
     fullName?: string;
     email?: string;
     phone?: string;
@@ -125,8 +138,8 @@ export interface AiPreview {
 }
 
 export interface Application {
-  id: string; // UUID
-  code: string;
+  id: string;
+  code?: string;
   applicantId: string;
   applicant?: Applicant;
   vacancyId: string;
@@ -135,12 +148,16 @@ export interface Application {
   cv?: CV;
   status: ApplicationStatus;
   aiPreview?: AiPreview;
+  aiMatchScore?: number;
+  hrNotes?: string;
   appliedAt?: string;
-  createdAt: string;
+  createdAt?: string;
   updatedAt: string;
 }
 
 export interface InterviewerPanel {
+  id?: string;
+  interviewId?: string;
   employeeId: string;
   employee?: Employee;
   fullName?: string;
@@ -150,28 +167,33 @@ export interface InterviewerPanel {
 }
 
 export interface Interview {
-  id: string; // UUID
+  id: string;
   applicationId: string;
   application?: Application;
-  interviewDate: string;
+  applicant?: Applicant;
+  vacancy?: Vacancy;
+  interviewDate: string; // Đã bỏ optional để khỏi báo đỏ Type 'string | undefined'
   startTime: string;
   endTime: string;
-  platform: 'Google Meet' | 'Zoom' | 'On-site';
+  platform: 'Google Meet' | 'Zoom' | 'Teams' | 'On-site';
   meetLink?: string;
   status: InterviewStatus;
+  finalResult?: string;
   panel: InterviewerPanel[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ActivityLog {
   id: string;
   userId: string;
   user?: UserAccount;
-  action: string;
-  entityType: string;
-  entityId: string;
-  details?: string;
+  action: string; // Giữ lại cho Đức
+  actionType?: string; // Khang xài (từ ERD)
+  details?: string; // Giữ lại cho Đức
+  description?: string; // Khang xài (từ ERD)
+  entityType?: string;
+  entityId?: string;
   ipAddress?: string;
   createdAt: string;
 }
@@ -179,9 +201,9 @@ export interface ActivityLog {
 export interface InAppNotification {
   id: string;
   userId: string;
-  title: string;
-  message: string;
+  title: string; // Giữ lại cho Đức (Mặc dù ERD không có)
   type: 'SUCCESS' | 'INFO' | 'WARNING' | 'ERROR';
+  message: string;
   linkUrl?: string;
   isRead: boolean;
   createdAt: string;
@@ -191,10 +213,62 @@ export interface LoginHistory {
   id: string;
   userId: string;
   ipAddress: string;
-  device?: string;
+  device?: string; // Giữ lại cho Đức
+  deviceInfo?: string; // Khang xài
   browser?: string;
-  status: 'Success' | 'Failed';
-  createdAt: string;
+  status?: 'Success' | 'Failed'; // Giữ lại cho Đức
+  isSuccess?: boolean; // Khang xài
+  loginTime?: string;
+  createdAt?: string;
+}
+
+// ==================== NEW ENTITIES TỪ ERD ====================
+
+export interface FavoriteJob {
+  id: string;
+  applicantId: string;
+  vacancyId: string;
+  hasApplied: boolean;
+  savedAt: string;
+}
+
+export interface Skill {
+  id: string;
+  skillName: string;
+  category: 'Tech' | 'SoftSkill' | 'Language';
+}
+
+export interface VacancySkill {
+  vacancyId: string;
+  skillId: string;
+  priorityLevel: number;
+}
+
+export interface CvSkill {
+  cvId: string;
+  skillId: string;
+  yearsUsed: number;
+}
+
+export interface InterviewerAvailability {
+  id: string;
+  employeeId: string;
+  availableDate: string;
+  startTime: string;
+  endTime: string;
+  isBooked: boolean;
+}
+
+export interface EmailQueue {
+  id: string;
+  recipientEmail: string;
+  subject: string;
+  bodyHtml: string;
+  status: 'Pending' | 'Sent' | 'Failed';
+  emailType: 'Invite' | 'Register' | 'Result' | 'StaffWelcome';
+  retryCount: number;
+  scheduledAt: string;
+  sentAt?: string;
 }
 
 // ==================== API RESPONSES ====================
@@ -220,6 +294,8 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages?: number;
+  totalItems?: number;
+  totalPage?: number;
 }
 
 // ==================== DASHBOARD ====================
@@ -235,24 +311,34 @@ export interface DashboardStats {
 
 // ==================== BUSINESS RULE HELPERS ====================
 
-/** Per spec: once Closed, cannot change status */
 export function canChangeVacancyStatus(current: VacancyStatus): boolean {
-  return current !== 'Closed';
+  return current !== 'Closed' && current !== 'Close';
 }
 
-/** Per spec: cannot attach applicant to Closed or Suspended vacancy */
 export function canAttachToVacancy(vacancyStatus: VacancyStatus): boolean {
-  return vacancyStatus === 'Opened';
+  return vacancyStatus === 'Opened' || vacancyStatus === 'Open';
 }
 
-/** Per spec: cannot attach more vacancies if applicant is Hired or Banned */
 export function canAttachVacancyToApplicant(
   applicantStatus: ApplicantStatus,
 ): boolean {
   return applicantStatus !== 'Hired' && applicantStatus !== 'Banned';
 }
 
-/** Per spec: HR can only edit/close vacancies they own */
+export function displayApplicantStatus(status?: string): string {
+  if (!status) return '—';
+  if (status === 'Not In Process') return 'Not in Process';
+  return status;
+}
+
+export function isVacancyOpenStatus(status?: string): boolean {
+  return status === 'Open' || status === 'Opened';
+}
+
+export function isVacancyClosedStatus(status?: string): boolean {
+  return status === 'Close' || status === 'Closed';
+}
+
 export function isVacancyOwner(
   vacancy: Vacancy,
   currentUserId: string,

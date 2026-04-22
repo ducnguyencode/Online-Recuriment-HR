@@ -2,23 +2,30 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { VacancyService } from '../../../core/services/vacancy.service';
-import { Vacancy } from '../../../core/models';
 
 @Component({
   selector: 'app-careers',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './careers.html',
+  templateUrl: './careers.html', // Make sure this matches your HTML file name
   styleUrls: ['./careers.scss']
 })
 export class CareersComponent implements OnInit {
-  isLoggedIn = false;
+  // 1. Set to true to test the Apply Modal (mocking logged-in state)
+  isLoggedIn = true;
+
+  // 2. Job list state
   jobs: any[] = [];
   isLoading = true;
+
+  // 3. Modal state variables
+  isApplyModalOpen = false;
+  selectedJobTitle = '';
 
   private router = inject(Router);
   private vacancyService = inject(VacancyService);
 
+  // Fallback mock data
   private mockData = [
     {
       id: 'V0001',
@@ -56,6 +63,7 @@ export class CareersComponent implements OnInit {
     this.fetchJobs();
   }
 
+  // Fetch jobs from API or use fallback data
   fetchJobs() {
     this.isLoading = true;
 
@@ -81,19 +89,33 @@ export class CareersComponent implements OnInit {
     });
   }
 
+  // Toggle favorite status
   toggleFavorite(job: any) {
     job.isFavorite = !job.isFavorite;
   }
 
+  // Open job details
   viewDetails(job: any) {
+    // Navigate to details page or open details modal
     alert('Opening details for: ' + job.title);
   }
 
+  // Handle Apply button click
   applyJob(job: any) {
     if (!this.isLoggedIn) {
+      // Redirect to login if user is not authenticated
       this.router.navigate(['/login']);
     } else {
-      alert('Applied successfully for: ' + job.title);
+      // Open the application modal if user is authenticated
+      this.selectedJobTitle = job.title;
+      this.isApplyModalOpen = true;
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
     }
+  }
+
+  // Close the application modal
+  closeApplyModal() {
+    this.isApplyModalOpen = false;
+    document.body.style.overflow = 'auto'; // Restore background scrolling
   }
 }

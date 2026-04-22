@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -12,42 +12,58 @@ import { MockDataService } from '../../core/services/mock-data.service';
   styleUrl: './dashboard.component.scss'
 })
 export class DashboardComponent implements OnInit {
-  isHR = false;
+  readonly isHR = computed(() => this.auth.isHR() || this.auth.isSuperadmin());
+  readonly isSuperadmin = computed(() => this.auth.isSuperadmin());
 
   stats = signal({ openVacancies: 0, applicantsInProcess: 0, todayInterviews: 0, nearDeadline: 0, totalApplications: 0, hiringRate: 0 });
 
   recentVacancies = signal<any[]>([]);
-  upcomingInterviews = signal<any[]>([
-    { applicant: 'Hoàng Minh Tuấn', vacancy: 'Senior Frontend Developer', date: '11/04/2026', time: '09:00', platform: 'Google Meet' },
-    { applicant: 'Đặng Văn Khoa', vacancy: 'Marketing Manager', date: '12/04/2026', time: '14:00', platform: 'Zoom' },
-    { applicant: 'Trần Văn Nam', vacancy: 'Backend Engineer', date: '13/04/2026', time: '10:30', platform: 'Google Meet' },
-  ]);
+  upcomingInterviews = signal<any[]>([]);
   recentApplications = signal<any[]>([]);
 
   constructor(private auth: AuthService, private mockData: MockDataService) {}
 
   ngOnInit() {
-    this.isHR = this.auth.isHR();
 
     // Load data from MockDataService
     this.stats.set(this.mockData.getDashboardStats());
 
     const vacs = this.mockData.getVacancies();
     this.recentVacancies.set(vacs.slice(0, 5).map(v => ({
-      id: v.id, title: v.title, department: v.department?.name || '', filledCount: v.filledCount, openings: v.numberOfOpenings, status: v.status,
+      id: v.code, title: v.title, department: v.department?.name || '', filledCount: v.filledCount, openings: v.numberOfOpenings, status: v.status,
     })));
 
     const apps = this.mockData.getApplications();
     this.recentApplications.set(apps.slice(0, 4).map(a => ({
       applicant: a.applicant?.fullName || '', vacancy: a.vacancy?.title || '', status: a.status,
-      time: this.timeAgo(a.createdAt),
+      time: this.timeAgo(a.createdAt || a.appliedAt || a.updatedAt),
     })));
+
+    const upcoming = this.mockData
+      .getInterviews()
+      .filter((item: any) => new Date(`${item.date}T${item.startTime || '00:00'}`).getTime() >= Date.now())
+      .sort(
+        (a: any, b: any) =>
+          new Date(`${a.date}T${a.startTime || '00:00'}`).getTime() -
+          new Date(`${b.date}T${b.startTime || '00:00'}`).getTime(),
+      )
+      .slice(0, 3)
+      .map((item: any) => ({
+        applicant: item.applicantName || '—',
+        vacancy: item.vacancyTitle || '—',
+        date: item.date,
+        time: item.startTime || '—',
+        platform: item.platform || 'Google Meet',
+      }));
+    this.upcomingInterviews.set(upcoming);
   }
 
   getStatusClass(status: string): string {
     const map: Record<string, string> = {
+      'Open': 'badge-success',
       'Opened': 'badge-success',
       'Suspended': 'badge-warning',
+      'Close': 'badge-danger',
       'Closed': 'badge-danger',
       'Pending': 'badge-neutral',
       'Screening': 'badge-warning',
