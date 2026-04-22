@@ -23,6 +23,9 @@ export class CareersComponent implements OnInit {
   filterStatus: VacancyStatus = VacancyStatus.OPENED;
   filterDepartment = '';
 
+  isApplyModalOpen = false;
+  selectedJobTitle = '';
+
   private router = inject(Router);
   private vacancyService = inject(VacancyService);
   private auth = inject(AuthService);
@@ -98,11 +101,19 @@ export class CareersComponent implements OnInit {
     alert('Opening details for: ' + job.title);
   }
 
-  applyJob(job: any) {
+  applyJob(vacancy: Vacancy) {
     if (!this.auth.isLoggedIn()) {
+      // Redirect to login if user is not authenticated
       this.router.navigate(['/login']);
     } else {
-      alert('Applied successfully for: ' + job.title);
+      this.selectedJobTitle = vacancy.title;
+      this.isApplyModalOpen = true;
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
     }
+  }
+
+  closeApplyModal() {
+    this.isApplyModalOpen = false;
+    document.body.style.overflow = 'auto';
   }
 }
