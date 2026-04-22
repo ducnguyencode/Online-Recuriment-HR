@@ -62,3 +62,20 @@ export const loginGuard: CanActivateFn = () => {
   }
   return true;
 };
+
+// ==========================================
+// THÊM MỚI BỞI DEV 5 (KHANG)
+// ==========================================
+export const authApplicantGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  // Cho phép nếu đã đăng nhập và đúng là Ứng viên
+  if (auth.isLoggedIn() && auth.isApplicant()) {
+    return true;
+  }
+
+  // Chưa đăng nhập hoặc đi lạc -> đá về trang login của ứng viên
+  router.navigate(['/login']);
+  return false;
+};

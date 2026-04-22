@@ -1,16 +1,10 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 import { UserRole, UserRoleLogin } from '../../../core/models';
 
-enum AuthView {
-  LOGIN = 'Login',
-  REGISTER = 'Register',
-  FORGOT = 'Forgot',
-  VERIFY_EMAIL = 'Verify email',
-}
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -20,70 +14,47 @@ enum AuthView {
 })
 export class LoginComponent implements OnInit {
   private auth = inject(AuthService);
-  AuthView = AuthView;
+  private router = inject(Router);
+
+  // Expose enum to HTML template
   UserRoleLogin = UserRoleLogin;
-  currentView: AuthView = AuthView.LOGIN;
+
   selectedRole: UserRoleLogin = UserRoleLogin.APPLICANT;
-  verify_email: string = '';
-  form = {
-    email: 'applicant@test.com',
-    password: '123456',
-    fullName: '',
-    phone: '',
-  };
+  form = { email: '', password: '' };
   formError = '';
+  isLoading = false;
 
-  constructor() {}
-  ngOnInit(): void {}
-
-  switchView(view: AuthView) {
-    this.currentView = view;
-    this.verify_email = '';
-    this.formError = '';
-    this.form = {
-      email: 'applicant@test.com',
-      password: '123456',
-      fullName: '',
-      phone: '',
-    };
-  }
-
-  setRole(role: UserRoleLogin) {
-    this.selectedRole = role;
+  ngOnInit(): void {
+    const path = this.router.url;
+    this.selectedRole = path.includes('hr/login') ? UserRoleLogin.HR : UserRoleLogin.APPLICANT;
   }
 
   submit() {
-    switch (this.currentView) {
-      case AuthView.LOGIN:
-        this.auth.login(this.form).subscribe({
-          next: (res) => {
-            if (this.selectedRole == UserRoleLogin.HR) {
-              if (res.data.user.role == UserRole.APPLICANT) {
-                this.formError = 'Email or password not correct!';
-                return;
-              }
-            }
-            this.auth.handleLoginSuccess(res, this.selectedRole);
-          },
-          error: (err) => {
-            this.formError = err.error.message;
-          },
-        });
-        break;
-      case AuthView.REGISTER:
-        this.auth.register(this.form).subscribe({
-          next: (res) => {
-            this.verify_email = res.data.email;
-            this.currentView = AuthView.VERIFY_EMAIL;
-          },
-          error: (err) => {
-            this.formError = err.error.message;
-          },
-        });
-        break;
-      default:
-        this.switchView(AuthView.LOGIN);
-        break;
-    }
+    this.formError = '';
+    this.isLoading = true;
+
+    this.auth.login(this.form).subscribe({
+      next: (res) => {
+        const userRole = res.data.user.role;
+
+        if (this.selectedRole === UserRoleLogin.HR && userRole === UserRole.APPLICANT) {
+          this.formError = 'This account is for applicants. Please use the Applicant Login.';
+          this.isLoading = false;
+          return;
+        }
+
+        if (this.selectedRole === UserRoleLogin.APPLICANT && userRole !== UserRole.APPLICANT) {
+          this.formError = 'This account is for HR. Please use the HR Portal Login.';
+          this.isLoading = false;
+          return;
+        }
+
+        this.auth.handleLoginSuccess(res, this.selectedRole);
+      },
+      error: (err) => {
+        this.formError = err.error?.message || 'Invalid email or password';
+        this.isLoading = false;
+      },
+    });
   }
 }
