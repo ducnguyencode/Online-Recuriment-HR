@@ -248,6 +248,15 @@ export interface LoginResponse {
   };
 }
 
+export interface SetInitialPasswordResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    email?: string;
+    redirectTo?: string;
+  };
+}
+
 export interface UpdateAccountResponse {
   statusCode: number;
   message: string;
