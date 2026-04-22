@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -26,23 +25,18 @@ export class User {
   code!: string;
 
   @OneToOne(() => Applicant, (a) => a.user)
-  @JoinColumn({ name: 'applicantId' })
   applicant!: Applicant;
 
-  @OneToOne(() => Employee, (e) => e.user, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'employeeId' })
-  employee!: Employee;
-
-  @Expose()
-  @Column({ nullable: true })
-  employeeId!: number;
+  @OneToOne(() => Employee, (e) => e.user)
+  employee!: Employee | null;
 
   @Expose()
   @Column()
   email!: string;
 
   @Exclude()
-  @Column()
+  /** DB column name kept for compatibility with existing PostgreSQL schemas. */
+  @Column({ name: 'passwordHash' })
   password!: string;
 
   @Expose()
@@ -60,6 +54,25 @@ export class User {
   @Expose()
   @Column({ default: false })
   isVerified!: boolean;
+
+  @Expose()
+  @Column({ default: true })
+  isActive!: boolean;
+
+  @Column({ default: false })
+  mustChangePassword!: boolean;
+
+  /** Comma-separated USER_ROLES values (avoids PG text[] vs simple-array mismatch on legacy DBs). */
+  @Column({ type: 'varchar', length: 512, nullable: true })
+  roles!: string | null;
+
+  @Exclude()
+  @Column({ type: 'varchar', nullable: true })
+  resetPasswordToken!: string | null;
+
+  @Exclude()
+  @Column({ type: 'timestamptz', nullable: true })
+  resetPasswordTokenExpiresAt!: Date | null;
 
   @Exclude()
   @Column({ type: 'varchar', nullable: true })

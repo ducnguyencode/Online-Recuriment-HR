@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/only-throw-error */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   Body,
   Controller,
@@ -10,6 +8,9 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Public } from 'src/auth/public.decorator';
+import { Roles } from 'src/auth/roles.decorator';
+import { USER_ROLES } from 'src/auth/role.constants';
 import { CvCreateDto } from 'src/dto/cv.create.dto';
 import { AiService } from 'src/services/ai.service';
 import { CvService } from 'src/services/cv.service';
@@ -21,6 +22,7 @@ export class CvController {
     private aiService: AiService,
   ) {}
 
+  @Public()
   @Post('create')
   @UseInterceptors(FileInterceptor('file'))
   async create(
@@ -36,6 +38,7 @@ export class CvController {
   }
 
   @Get()
+  @Roles(USER_ROLES.SUPERADMIN, USER_ROLES.HR, USER_ROLES.INTERVIEWER)
   async findAll() {
     const data = await this.cvService.findAll();
     return {

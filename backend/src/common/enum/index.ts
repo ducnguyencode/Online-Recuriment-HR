@@ -36,6 +36,5 @@ export enum InterviewStatus {
 
 export enum TokenType {
   EMAIL_REGISTER_VERIFY = 'email_register_verify',
-  EMAIL_INVITE_VERIFY = 'email_invite_verify',
   EMAIL_FORGOT_VERIFY = 'email_forgot_verify',
 }

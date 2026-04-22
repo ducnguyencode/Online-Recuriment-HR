@@ -1,7 +1,9 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
+import { ApiResponse } from '../../core/models';
 
 @Component({
   selector: 'app-LProfile',
@@ -86,7 +88,7 @@ import { AuthService } from '../../core/services/auth.service';
             <div>
               <h2 class="panel-title">Change Password</h2>
               <p class="panel-copy">
-                Update your password to keep your account secure.
+                Change password via secure API (login required).
               </p>
             </div>
           </div>
@@ -248,12 +250,6 @@ export class ProfileComponent {
       this.passwordError.set('All password fields are required.');
       return;
     }
-    if (this.passwordForm.currentPassword !== '123456') {
-      this.passwordError.set(
-        'Current password is incorrect for the mock account.',
-      );
-      return;
-    }
     if (this.passwordForm.newPassword.length < 6) {
       this.passwordError.set('New password must be at least 6 characters.');
       return;
@@ -263,14 +259,27 @@ export class ProfileComponent {
       return;
     }
 
-    this.passwordForm = {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    };
-    this.passwordMessage.set(
-      'Password updated successfully in the mock workflow.',
-    );
-    setTimeout(() => this.passwordMessage.set(''), 2500);
+    this.auth
+      .changePassword({
+        currentPassword: this.passwordForm.currentPassword,
+        newPassword: this.passwordForm.newPassword,
+      })
+      .subscribe({
+        next: (res: ApiResponse<{ message: string }>) => {
+          this.passwordForm = {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+          };
+          this.passwordMessage.set(res.message);
+          setTimeout(() => this.passwordMessage.set(''), 2500);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.passwordError.set(
+            (err.error as { message?: string })?.message ??
+              'Unable to change password.',
+          );
+        },
+      });
   }
 }

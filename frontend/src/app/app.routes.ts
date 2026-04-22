@@ -10,6 +10,12 @@ import { loginGuard } from './core/guards/auth.guard';
 import { VerifyPageComponent } from './applicant-portal/pages/verify-page/verify-page.component';
 
 export const routes: Routes = [
+  {
+    path: 'hr-portal/login',
+    component: LoginComponent,
+    canActivate: [loginGuard],
+    data: { portal: 'staff' },
+  },
   // Tuyến đường cho HR Portal (Dev 4)
   {
     path: 'hr-portal',
@@ -24,7 +30,12 @@ export const routes: Routes = [
     children: [
       { path: 'careers', component: CareersComponent },
       { path: 'applicant', component: DashboardComponent },
-      { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
+      {
+        path: 'login',
+        component: LoginComponent,
+        canActivate: [loginGuard],
+        data: { portal: 'applicant' },
+      },
       { path: 'verify-email', component: VerifyPageComponent },
       { path: '', redirectTo: 'careers', pathMatch: 'full' },
     ],

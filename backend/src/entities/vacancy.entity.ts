@@ -33,12 +33,15 @@ export class Vacancy {
   @Column({ nullable: true })
   departmentId!: number;
 
-  @ManyToOne(() => User, (u) => u.id, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => User, (u) => u.id, {
+    onDelete: 'RESTRICT',
+    nullable: true,
+  })
   @JoinColumn({ name: 'createdById' })
-  createdBy!: User;
+  createdBy!: User | null;
 
-  @Column()
-  createdById!: number;
+  @Column({ nullable: true })
+  createdById!: number | null;
 
   @Column()
   title!: string;
@@ -52,7 +55,11 @@ export class Vacancy {
   @Column('int', { default: 0 })
   filledCount!: number;
 
-  @Column({ type: 'enum', enum: VacancyStatus, default: VacancyStatus.OPENED })
+  @Column({
+    type: 'enum',
+    enum: VacancyStatus,
+    default: VacancyStatus.OPENED,
+  })
   status!: string;
 
   @Column('date', { nullable: true })

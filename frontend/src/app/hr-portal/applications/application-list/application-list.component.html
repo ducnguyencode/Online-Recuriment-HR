@@ -109,14 +109,14 @@
               <td>
                 <div class="person-cell">
                   <div class="person-avatar">
-                    {{ getInitials(app.applicant!.user!.fullName || "?") }}
+                    {{ getInitials(getApplicantName(app) || "?") }}
                   </div>
                   <div>
                     <div class="person-name">
-                      {{ app.applicant!.user!.fullName || "—" }}
+                      {{ getApplicantName(app) }}
                     </div>
                     <div class="person-meta">
-                      {{ app.applicant!.user!.email || "—" }}
+                      {{ getApplicantEmail(app) }}
                     </div>
                   </div>
                 </div>
@@ -198,17 +198,17 @@
           <div class="detail-avatar">
             {{
               getInitials(
-                selectedApplication()!.applicant!.user!.fullName || "?"
+                getApplicantName(selectedApplication()!) || "?"
               )
             }}
           </div>
           <div>
             <h3 class="modal-title">
-              {{ selectedApplication()!.applicant!.user!.fullName }}
+              {{ getApplicantName(selectedApplication()!) }}
             </h3>
             <p class="modal-subtitle">
-              {{ selectedApplication()!.applicant!.user!.email }} ·
-              {{ selectedApplication()!.applicant!.user!.phone }}
+              {{ getApplicantEmail(selectedApplication()!) }} ·
+              {{ selectedApplication()!.applicant?.user?.phone || "—" }}
             </p>
           </div>
         </div>
@@ -508,11 +508,15 @@
             <div class="attach-selected">
               <div class="attach-selected-info">
                 <span class="attach-name">{{
-                  attachSelectedApplicant()!.user!.fullName
+                  attachSelectedApplicant()!.user?.fullName ||
+                    attachSelectedApplicant()!.fullName
                 }}</span>
                 <span class="attach-meta"
                   >{{ attachSelectedApplicant()!.code }} ·
-                  {{ attachSelectedApplicant()!.user!.email }}</span
+                  {{
+                    attachSelectedApplicant()!.user?.email ||
+                      attachSelectedApplicant()!.email
+                  }}</span
                 >
               </div>
               <button class="btn-ghost btn-sm" (click)="clearAttachApplicant()">
@@ -524,11 +528,9 @@
               <input
                 class="form-input"
                 type="text"
-                placeholder="Click to list or type to search by name, email or ID..."
+                placeholder="Search by name, email or ID..."
                 [(ngModel)]="attachSearchQuery"
                 (input)="onAttachSearch()"
-                (focus)="onAttachFocus()"
-                (blur)="onAttachBlur()"
                 autocomplete="off"
               />
               @if (attachSearching()) {
@@ -539,22 +541,23 @@
                   Searching applicants...
                 </p>
               }
-              @if (attachDropdownOpen() && attachSearchResults().length > 0) {
+              @if (attachSearchResults().length > 0) {
                 <div class="attach-results">
                   @for (item of attachSearchResults(); track item.id) {
                     <div
                       class="attach-result-item"
-                      (mousedown)="selectAttachApplicant(item)"
+                      (click)="selectAttachApplicant(item)"
                     >
                       <div class="attach-item-avatar">
-                        {{ getInitials(item.user!.fullName) }}
+                        {{ getInitials(item.user?.fullName || item.fullName) }}
                       </div>
                       <div class="attach-item-info">
                         <span class="attach-item-name">{{
-                          item.user!.fullName
+                          item.user?.fullName || item.fullName
                         }}</span>
                         <span class="attach-item-meta"
-                          >{{ item.code }} · {{ item.user!.email }} ·
+                          >{{ item.code }} ·
+                          {{ item.user?.email || item.email }} ·
                           {{ item.status }}</span
                         >
                       </div>
@@ -563,8 +566,7 @@
                 </div>
               }
               @if (
-                attachDropdownOpen() &&
-                !attachSearching() &&
+                attachSearchQuery.length > 1 &&
                 attachSearchResults().length === 0
               ) {
                 <p
@@ -582,72 +584,14 @@
           <label class="form-label"
             >Vacancy <span class="required">*</span></label
           >
-          @if (attachSelectedVacancy()) {
-            <div class="attach-selected">
-              <div class="attach-selected-info">
-                <span class="attach-name"
-                  >[{{ attachSelectedVacancy()!.code }}]
-                  {{ attachSelectedVacancy()!.title }}</span
-                >
-                <span class="attach-meta"
-                  >{{ attachSelectedVacancy()!.status }}
-                  @if (attachSelectedVacancy()!.department?.name) {
-                    · {{ attachSelectedVacancy()!.department?.name }}
-                  }</span
-                >
-              </div>
-              <button class="btn-ghost btn-sm" (click)="clearAttachVacancy()">
-                Change
-              </button>
-            </div>
-          } @else {
-            <div class="attach-search-wrap">
-              <input
-                class="form-input"
-                type="text"
-                placeholder="Click to list or type to search vacancies..."
-                [(ngModel)]="vacancySearchQuery"
-                (input)="onVacancySearchInput()"
-                (focus)="onVacancyFocus()"
-                (blur)="onVacancyBlur()"
-                autocomplete="off"
-              />
-              @if (vacancyDropdownOpen() && filteredVacancies().length > 0) {
-                <div class="attach-results">
-                  @for (item of filteredVacancies(); track item.id) {
-                    <div
-                      class="attach-result-item"
-                      (mousedown)="selectAttachVacancy(item)"
-                    >
-                      <div class="attach-item-info">
-                        <span class="attach-item-name"
-                          >[{{ item.code }}] {{ item.title }}</span
-                        >
-                        <span class="attach-item-meta"
-                          >{{ item.status }}
-                          @if (item.department?.name) {
-                            · {{ item.department?.name }}
-                          }</span
-                        >
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-              @if (
-                vacancyDropdownOpen() &&
-                filteredVacancies().length === 0 &&
-                vacancies().length > 0
-              ) {
-                <p
-                  class="form-hint"
-                  style="color: var(--shell-text-soft); margin-top: 8px"
-                >
-                  No vacancies match your search.
-                </p>
-              }
-            </div>
-          }
+          <select class="form-select" [(ngModel)]="attachData.vacancyId">
+            <option value="">Select vacancy</option>
+            @for (item of vacancies(); track item.id) {
+              <option [ngValue]="item.id">
+                [{{ item.code }}] {{ item.title }} · {{ item.status }}
+              </option>
+            }
+          </select>
         </div>
 
         <p class="form-hint">

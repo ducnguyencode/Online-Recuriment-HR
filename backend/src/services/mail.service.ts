@@ -11,6 +11,7 @@ export class MailService {
     email: string,
     name: string,
     verifyUrl: string,
+    createdByAdmin = false,
     rawPassword?: string,
   ) {
     const senderEmail = this.configService.get<string>(
@@ -28,12 +29,12 @@ export class MailService {
         <h2>Hello ${name},</h2>
         <p>Please verify your account by clicking the button below.</p>
         ${
-          rawPassword
+          createdByAdmin && rawPassword
             ? `<p>Your temporary password is: <strong>${rawPassword}</strong></p>`
             : ''
         }
         ${
-          rawPassword
+          createdByAdmin
             ? '<p>This account will be deleted automatically if it is not verified within 5 minutes.</p>'
             : ''
         }

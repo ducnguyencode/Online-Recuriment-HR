@@ -74,10 +74,23 @@ export class AuthService {
     private router: Router,
   ) {}
 
-  login(loginData: { email: string; password: string }) {
+  login(
+    loginData: {
+      email: string;
+      password: string;
+      portal?: 'applicant' | 'staff' | 'unified';
+    },
+  ) {
     return this.http.post<LoginResponse>(
       `${environment.apiUrl}/auth/login`,
       loginData,
+    );
+  }
+
+  changePassword(body: { currentPassword: string; newPassword: string }) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/change-password`,
+      body,
     );
   }
 
@@ -96,6 +109,20 @@ export class AuthService {
   verifyEmail(token: string) {
     return this.http.get<ApiResponse<UserAccount>>(
       `${environment.apiUrl}/auth/verify-email?token=${encodeURIComponent(token)}`,
+    );
+  }
+
+  forgotPassword(email: string) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/forgot-password`,
+      { email },
+    );
+  }
+
+  resetPassword(token: string, newPassword: string) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/reset-password`,
+      { token, newPassword },
     );
   }
 
@@ -182,11 +209,14 @@ export class AuthService {
     if (!token && !this.currentUser()) {
       return;
     }
-    return this.http.get<UserAccount>(`${environment.apiUrl}/auth/me`).pipe(
-      tap((user) => {
-        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-        this.currentUser.set(user);
-      }),
-    );
+    return this.http
+      .get<ApiResponse<UserAccount>>(`${environment.apiUrl}/auth/me`)
+      .pipe(
+        tap((res) => {
+          const user = res.data;
+          localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+          this.currentUser.set(user);
+        }),
+      );
   }
 }

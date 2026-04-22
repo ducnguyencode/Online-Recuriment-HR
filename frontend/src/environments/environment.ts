@@ -2,4 +2,6 @@ export const environment = {
   production: false,
   apiUrl: 'http://localhost:3000/api',
   baseUrl: 'http://localhost:3000',
+  /** Mirrors backend REQUIRE_EMAIL_VERIFICATION for email-link registration via Brevo */
+  requireEmailVerification: true,
 };

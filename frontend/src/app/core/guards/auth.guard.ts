@@ -58,7 +58,9 @@ export const loginGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   if (auth.isLoggedIn()) {
-    return router.navigate(['/']);
+    return auth.isApplicant()
+      ? router.createUrlTree(['/applicant'])
+      : router.createUrlTree(['/hr-portal']);
   }
   return true;
 };

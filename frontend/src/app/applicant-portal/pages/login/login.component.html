@@ -29,7 +29,11 @@
       <p class="text-sm text-slate-500 mt-2">
         @switch (currentView) {
           @case (AuthView.FORGOT) {
-            We'll send you instructions to reset your password.
+            @if (resetToken) {
+              Set a new password for your account.
+            } @else {
+              We'll send you instructions to reset your password.
+            }
           }
           @case (AuthView.REGISTER) {
             Join us and find your dream job today.
@@ -44,28 +48,9 @@
       </p>
     </div>
 
-    @if (currentView === AuthView.LOGIN) {
-      <div class="flex p-1 mb-8 bg-slate-100 rounded-xl">
-        <button
-          (click)="setRole(UserRoleLogin.APPLICANT)"
-          [class.bg-white]="selectedRole === UserRoleLogin.APPLICANT"
-          [class.text-blue-600]="selectedRole === UserRoleLogin.APPLICANT"
-          [class.shadow-sm]="selectedRole === UserRoleLogin.APPLICANT"
-          [class.text-slate-500]="selectedRole !== UserRoleLogin.APPLICANT"
-          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all"
-        >
-          Applicant
-        </button>
-        <button
-          (click)="setRole(UserRoleLogin.HR)"
-          [class.bg-white]="selectedRole === UserRoleLogin.HR"
-          [class.text-blue-600]="selectedRole === UserRoleLogin.HR"
-          [class.shadow-sm]="selectedRole === UserRoleLogin.HR"
-          [class.text-slate-500]="selectedRole !== UserRoleLogin.HR"
-          class="flex-1 py-2 text-sm font-bold rounded-lg transition-all"
-        >
-          HR / Employer
-        </button>
+    @if (currentView === AuthView.LOGIN && loginPortal === 'staff') {
+      <div class="mb-8 px-4 py-3 rounded-xl bg-slate-100 text-sm font-semibold text-slate-600">
+        Staff login URL (HR / Superadmin / Interviewer).
       </div>
     }
 
@@ -115,7 +100,7 @@
           />
         </div>
 
-        @if (currentView !== AuthView.FORGOT) {
+        @if (currentView !== AuthView.FORGOT || resetToken) {
           <div>
             <div class="flex items-center justify-between mb-2">
               <label
@@ -134,7 +119,7 @@
             <input
               type="password"
               [(ngModel)]="form.password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium"
             />
           </div>
@@ -169,7 +154,11 @@
       >
         @switch (currentView) {
           @case (AuthView.FORGOT) {
-            Send Reset Link
+            @if (resetToken) {
+              Update Password
+            } @else {
+              Send Reset Link
+            }
           }
           @case (AuthView.REGISTER) {
             Create Account
@@ -178,12 +167,7 @@
             Skip for now
           }
           @default {
-            Sign In as
-            {{
-              selectedRole === UserRoleLogin.APPLICANT
-                ? UserRoleLogin.APPLICANT
-                : UserRoleLogin.HR
-            }}
+            Sign In
           }
         }
       </button>

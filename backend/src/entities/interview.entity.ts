@@ -2,6 +2,8 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
   OneToMany,
@@ -19,9 +21,6 @@ export class Interview {
 
   @Column({ type: 'text', nullable: true })
   description!: string;
-
-  @Column({ name: 'application_id' })
-  applicationId!: string;
 
   @Column({ type: 'timestamptz' })
   startTime!: Date;
@@ -48,13 +47,12 @@ export class Interview {
   @Column({ nullable: true })
   finalResult!: string; // Pass/Fail
 
-  @ManyToOne(() => Application)
+  @ManyToOne(() => Application, { nullable: true })
   @JoinColumn({ name: 'application_id' })
-  application!: Application;
+  application!: Application | null;
 
   @OneToMany(() => InterviewerPanel, (panel) => panel.interview, {
     cascade: true,
   })
-  @JoinColumn({ name: 'interviewers_panel_id' })
   panels!: InterviewerPanel[];
 }

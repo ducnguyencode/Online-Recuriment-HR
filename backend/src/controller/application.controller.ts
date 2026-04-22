@@ -8,19 +8,27 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApplicationStatus } from 'src/common/enum';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { Public } from 'src/auth/public.decorator';
+import { Roles } from 'src/auth/roles.decorator';
+import { USER_ROLES } from 'src/auth/role.constants';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
 import { ApplicationFindDto } from 'src/dto/application/application.find.dto';
 import { Application } from 'src/entities/application.entity';
 import { ApiResponse } from 'src/helper/api-response';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicationService } from 'src/services/application.service';
+import { ApplicationStatus } from 'src/common/enum';
 
 @Controller('application')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ApplicationController {
   constructor(private applicationService: ApplicationService) {}
 
+  @Public()
   @Post('create')
   async create(@Body() applicationCreateDto: ApplicationCreateDto) {
     const data = await this.applicationService.create(applicationCreateDto);
@@ -32,6 +40,7 @@ export class ApplicationController {
   }
 
   @Get()
+  @Roles(USER_ROLES.SUPERADMIN, USER_ROLES.HR, USER_ROLES.INTERVIEWER)
   async findAll(
     @Query() query: ApplicationFindDto,
   ): Promise<ApiResponse<FindResponseDto<Application>>> {
@@ -44,6 +53,7 @@ export class ApplicationController {
   }
 
   @Get(':id')
+  @Roles(USER_ROLES.SUPERADMIN, USER_ROLES.HR, USER_ROLES.INTERVIEWER)
   async findById(@Param('id') id: number) {
     try {
       return await this.applicationService.findById(id);
@@ -53,6 +63,7 @@ export class ApplicationController {
   }
 
   @Patch('change-status')
+  @Roles(USER_ROLES.SUPERADMIN, USER_ROLES.HR, USER_ROLES.INTERVIEWER)
   async changeStatus(
     @Query('id') id: number,
     @Query('status') status: ApplicationStatus,

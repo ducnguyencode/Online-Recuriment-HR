@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Application } from 'src/entities/application.entity';
@@ -41,13 +39,15 @@ export class ApplicationService {
 
     //Filter
     if (search) {
+      const like = `%${search}%`;
       qb.andWhere(
         new Brackets((qb) => {
-          qb.where('application.vacancy.title ILIKE :search').orWhere(
-            'user.fullName ILIKE :search',
-          );
+          qb.where('vacancy.title ILIKE :search')
+            .orWhere('applicant.fullName ILIKE :search')
+            .orWhere('applicant.email ILIKE :search')
+            .orWhere('application.code ILIKE :search');
         }),
-        { search: search },
+        { search: like },
       );
     }
 
@@ -163,7 +163,7 @@ export class ApplicationService {
         createdAt: new Date().toISOString(),
       });
 
-      // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
+      // 2. Emit event consumed by email queue worker
       this.eventEmitter.emit('application.submitted', {
         applicationId: application!.id,
         candidateEmail: application!.applicant.user.email,

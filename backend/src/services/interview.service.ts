@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -20,6 +20,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Interview } from '../entities/interview.entity';
 import { Application } from '../entities/application.entity';
 import { InterviewerPanel } from '../entities/interviewer-panel.entity';
+import { Employee } from '../entities/employee.entity';
 import { InterviewerAvailability } from '../entities/interviewer-availability.entity';
 import { EmailQueue } from '../entities/email-queue.entity';
 
@@ -31,7 +32,6 @@ import { InterviewStatus } from 'src/common/enum';
 @Injectable()
 export class InterviewService {
   constructor(
-    // Inject DataSource to handle Database Transactions
     private dataSource: DataSource,
 
     @InjectRepository(Interview)
@@ -40,10 +40,39 @@ export class InterviewService {
     @InjectRepository(Application)
     private appRepo: Repository<Application>,
 
-    // Inject other services
+    @InjectRepository(InterviewerPanel)
+    private panelRepo: Repository<InterviewerPanel>,
+
+    @InjectRepository(Employee)
+    private employeeRepo: Repository<Employee>,
+
     private googleMeetService: GoogleMeetService,
     private eventEmitter: EventEmitter2,
   ) {}
+
+  private applicantEmail(application: Application | null): string {
+    if (!application) {
+      throw new BadRequestException('Interview has no linked application');
+    }
+    const email =
+      application.applicant?.email?.trim() ||
+      application.applicant?.user?.email;
+    if (!email) {
+      throw new BadRequestException('Applicant has no user email');
+    }
+    return email;
+  }
+
+  private applicantFullName(application: Application | null): string {
+    if (!application) {
+      return 'Candidate';
+    }
+    return (
+      application.applicant?.fullName?.trim() ||
+      application.applicant?.user?.fullName ||
+      'Candidate'
+    );
+  }
 
   // HELPER METHOD: Check Availability & Lock Slots
   // We pass 'EntityManager' so this runs inside the transaction
@@ -128,7 +157,7 @@ export class InterviewService {
       // 3. Validate Application (Inside transaction)
       const application = await queryRunner.manager.findOne(Application, {
         where: { id: data.applicationId },
-        relations: ['applicant'], // Need applicant info for the email queue
+        relations: ['applicant', 'applicant.user'],
       });
 
       if (
@@ -185,10 +214,10 @@ export class InterviewService {
 
       // 8. Queue the Invitation Email
       const emailRecord = queryRunner.manager.create(EmailQueue, {
-        recipientEmail: application.applicant.email,
+        recipientEmail: this.applicantEmail(application),
         subject: `Interview Invitation: ${data.title}`,
         bodyHtml: `
-          <p>Dear ${application.applicant.fullName},</p>
+          <p>Dear ${this.applicantFullName(application)},</p>
           <p>Your interview is scheduled for <strong>${start.toLocaleString()}</strong>.</p>
           <p>Please join the meeting using the following link: <br>
           <a href="${googleEvent.hangoutLink}">${googleEvent.hangoutLink}</a></p>
@@ -207,7 +236,7 @@ export class InterviewService {
         hrId: userId,
         interviewId: savedInterview.id,
         applicationId: application.id,
-        candidateName: application.applicant.fullName,
+        candidateName: this.applicantFullName(application),
         title: savedInterview.title,
       });
 
@@ -262,7 +291,12 @@ export class InterviewService {
       // 1. Fetch existing interview with necessary relations
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id },
-        relations: ['application', 'application.applicant', 'panels'],
+        relations: [
+          'application',
+          'application.applicant',
+          'application.applicant.user',
+          'panels',
+        ],
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -301,10 +335,10 @@ export class InterviewService {
 
       // 5. Queue the Reschedule Notification Email
       const emailRecord = new EmailQueue();
-      emailRecord.recipientEmail = interview.application.applicant.email;
+      emailRecord.recipientEmail = this.applicantEmail(interview.application);
       emailRecord.subject = `Update: Your interview has been rescheduled - ${title}`;
       emailRecord.bodyHtml = `
-        <p>Dear ${interview.application.applicant.fullName},</p>
+        <p>Dear ${this.applicantFullName(interview.application)},</p>
         <p>Please note that your interview time has been updated to <strong>${start.toLocaleString()}</strong>.</p>
         <p>Meeting Link: <a href="${interview.meetLink}">${interview.meetLink}</a></p>
       `;
@@ -319,7 +353,7 @@ export class InterviewService {
       // 7. Emit WebSocket event
       this.eventEmitter.emit('interview.rescheduled', {
         hrId: 'current-user-id', // Replace with dynamic user ID from controller
-        candidateName: interview.application.applicant.fullName,
+        candidateName: this.applicantFullName(interview.application),
         title: updatedInterview.title,
         newTime: start,
       });
@@ -342,7 +376,12 @@ export class InterviewService {
     try {
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id },
-        relations: ['application', 'application.applicant', 'panels'],
+        relations: [
+          'application',
+          'application.applicant',
+          'application.applicant.user',
+          'panels',
+        ],
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -382,10 +421,10 @@ export class InterviewService {
 
         // 3. Queue Cancellation Email
         const emailRecord = new EmailQueue();
-        emailRecord.recipientEmail = interview.application.applicant.email;
+        emailRecord.recipientEmail = this.applicantEmail(interview.application);
         emailRecord.subject = `Interview Cancelled: ${interview.title}`;
         emailRecord.bodyHtml = `
-          <p>Dear ${interview.application.applicant.fullName},</p>
+          <p>Dear ${this.applicantFullName(interview.application)},</p>
           <p>We regret to inform you that your interview scheduled for <strong>${interview.startTime.toLocaleString()}</strong> has been cancelled.</p>
           <p>Our HR team will be in touch with you shortly.</p>
         `;
@@ -405,7 +444,7 @@ export class InterviewService {
       if (status === InterviewStatus.CANCELLED) {
         this.eventEmitter.emit('interview.cancelled', {
           hrId: 'current-user-id',
-          candidateName: interview.application.applicant.fullName,
+          candidateName: this.applicantFullName(interview.application),
           title: interview.title,
         });
       }
@@ -417,5 +456,79 @@ export class InterviewService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async findAll(
+    status?: string,
+    date?: string,
+    search?: string,
+  ): Promise<Interview[]> {
+    const qb = this.interviewRepo
+      .createQueryBuilder('i')
+      .leftJoinAndSelect('i.application', 'app')
+      .leftJoinAndSelect('app.applicant', 'applicant')
+      .leftJoinAndSelect('applicant.user', 'user')
+      .leftJoinAndSelect('i.panels', 'panels');
+    if (status) {
+      qb.andWhere('i.status = :status', { status });
+    }
+    if (date) {
+      qb.andWhere('CAST(i.startTime AS date) = CAST(:date AS date)', { date });
+    }
+    if (search?.trim()) {
+      const q = `%${search.trim().toLowerCase()}%`;
+      qb.andWhere(
+        '(LOWER(i.title) LIKE :q OR LOWER(user.fullName) LIKE :q OR LOWER(user.email) LIKE :q)',
+        { q },
+      );
+    }
+    qb.orderBy('i.startTime', 'ASC');
+    return qb.getMany();
+  }
+
+  async findById(id: string): Promise<Interview> {
+    const interview = await this.interviewRepo.findOne({
+      where: { id },
+      relations: [
+        'application',
+        'application.applicant',
+        'application.applicant.user',
+        'panels',
+      ],
+    });
+    if (!interview) {
+      throw new NotFoundException('Interview not found.');
+    }
+    return interview;
+  }
+
+  async submitResult(
+    interviewId: string,
+    employeeUserIdStr: string,
+    vote: 'Pass' | 'Fail',
+    feedback: string,
+  ): Promise<InterviewerPanel> {
+    const employeeUserId = Number(employeeUserIdStr);
+    const employee = await this.employeeRepo.findOne({
+      where: { user: { id: employeeUserId } },
+      relations: ['user'],
+    });
+    if (!employee) {
+      throw new ForbiddenException('Not an interviewer for this account');
+    }
+    const panel = await this.panelRepo.findOne({
+      where: {
+        interviewId,
+        employeeId: String(employee.id),
+      },
+    });
+    if (!panel) {
+      throw new NotFoundException(
+        'You are not assigned to this interview panel',
+      );
+    }
+    panel.vote = vote;
+    panel.feedback = feedback ?? '';
+    return this.panelRepo.save(panel);
   }
 }

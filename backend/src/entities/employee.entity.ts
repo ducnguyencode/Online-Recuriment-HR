@@ -25,7 +25,7 @@ export class Employee {
   code!: string;
 
   @OneToOne(() => User, (u) => u.employee)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user!: User;
 
   @ManyToOne(() => Department, (d) => d.id, {
@@ -33,13 +33,7 @@ export class Employee {
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'departmentId' })
-  department!: Department;
-
-  @Column({ nullable: true })
-  jobTitle!: string;
-
-  @Column({ default: false })
-  isActive!: boolean;
+  department!: Department | null;
 
   @CreateDateColumn()
   createdAt!: Date;

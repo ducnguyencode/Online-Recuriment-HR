@@ -6,16 +6,7 @@ import {
   CreateStaffAccountDto,
 } from '../../../core/services/admin-user.service';
 import { DepartmentService } from '../../../core/services/department.service';
-import {
-  Department,
-  Employee,
-  UserAccount,
-  UserRole,
-} from '../../../core/models';
-import {
-  CreateEmployeeDto,
-  EmployeeService,
-} from '../../../core/services/employee.service';
+import { Department, UserAccount, UserRole } from '../../../core/models';
 
 type StaffRole = Extract<UserRole, 'HR' | 'Interviewer'>;
 
@@ -27,8 +18,7 @@ type StaffRole = Extract<UserRole, 'HR' | 'Interviewer'>;
   styleUrl: './staff-management.component.scss',
 })
 export class StaffManagementComponent implements OnInit {
-  UserRole = UserRole;
-  employees = signal<Employee[]>([]);
+  users = signal<UserAccount[]>([]);
   departments = signal<Department[]>([]);
   loading = signal(false);
   errorMsg = signal('');
@@ -43,6 +33,7 @@ export class StaffManagementComponent implements OnInit {
 
   showCreateDialog = signal(false);
   creating = signal(false);
+  updatingRoleUserId = signal<string | null>(null);
   formError = signal('');
   formSuccess = signal('');
   formData: CreateStaffAccountDto = {
@@ -57,7 +48,6 @@ export class StaffManagementComponent implements OnInit {
   constructor(
     private adminService: AdminUserService,
     private departmentService: DepartmentService,
-    private employeeService: EmployeeService,
   ) {}
 
   ngOnInit() {
@@ -76,7 +66,7 @@ export class StaffManagementComponent implements OnInit {
   loadUsers() {
     this.loading.set(true);
     this.errorMsg.set('');
-    this.employeeService
+    this.adminService
       .getAll({
         role: this.filterRole() || undefined,
         departmentId: this.filterDepartment() || undefined,
@@ -95,13 +85,13 @@ export class StaffManagementComponent implements OnInit {
             (res.data as any)?.totalPage ??
             (res.data as any)?.totalPages ??
             Math.max(1, Math.ceil(totalItems / this.pageSize));
-          this.employees.set(items);
+          this.users.set(items);
           this.totalItems.set(totalItems);
           this.totalPages.set(totalPages);
           this.loading.set(false);
         },
         error: () => {
-          this.employees.set([]);
+          this.users.set([]);
           this.totalItems.set(0);
           this.totalPages.set(1);
           this.errorMsg.set('');
@@ -169,18 +159,17 @@ export class StaffManagementComponent implements OnInit {
       return;
     }
 
-    const dto: CreateEmployeeDto = {
+    const dto: CreateStaffAccountDto = {
       ...this.formData,
       email,
       fullName,
-      departmentId: this.formData.departmentId,
-      jobTitle: this.formData.position?.trim() || undefined,
+      position: this.formData.position?.trim() || undefined,
       phone: this.formData.phone?.trim() || undefined,
     };
 
     this.creating.set(true);
     this.formError.set('');
-    this.employeeService.create(dto).subscribe({
+    this.adminService.createStaff(dto).subscribe({
       next: () => {
         this.creating.set(false);
         this.formSuccess.set(
@@ -199,8 +188,7 @@ export class StaffManagementComponent implements OnInit {
     });
   }
 
-  resendCredentials(user: UserAccount | undefined) {
-    if (!user) return;
+  resendCredentials(user: UserAccount) {
     if (!confirm(`Send a fresh temporary password to ${user.email}?`)) return;
     this.adminService.resendTemporaryPassword(user.id).subscribe({
       next: () =>
@@ -215,8 +203,7 @@ export class StaffManagementComponent implements OnInit {
     });
   }
 
-  toggleActive(user: UserAccount | undefined) {
-    if (!user) return;
+  toggleActive(user: UserAccount) {
     const fn = user.isActive
       ? this.adminService.deactivate(user.id)
       : this.adminService.activate(user.id);
@@ -227,6 +214,26 @@ export class StaffManagementComponent implements OnInit {
           err?.error?.message ??
             'Unable to update the account status. Please try again.',
         ),
+    });
+  }
+
+  changeRole(user: UserAccount, role: StaffRole) {
+    if (user.role === role) return;
+    this.updatingRoleUserId.set(user.id);
+    this.errorMsg.set('');
+    this.formSuccess.set('');
+    this.adminService.updateRole(user.id, { role }).subscribe({
+      next: () => {
+        this.updatingRoleUserId.set(null);
+        this.formSuccess.set(`Updated role for ${user.email} to ${role}.`);
+        this.loadUsers();
+      },
+      error: (err) => {
+        this.updatingRoleUserId.set(null);
+        this.errorMsg.set(
+          err?.error?.message ?? 'Unable to update role. Please try again.',
+        );
+      },
     });
   }
 

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Department } from './entities/department.entity';
 import { Application } from './entities/application.entity';
@@ -26,69 +27,87 @@ import { GoogleMeetService } from './services/google-meet.service';
 import { InterviewController } from './controller/interview.controller';
 import { InterviewService } from './services/interview.service';
 import { Interview } from './entities/interview.entity';
+import { InterviewerPanel } from './entities/interviewer-panel.entity';
+import { ActivityLog } from './entities/activity-log.entity';
+import { InAppNotification } from './entities/notification.entity';
+import { Employee } from './entities/employee.entity';
 import { InterviewListener } from './listeners/interview.listener';
+import { AuthAuditListener } from './listeners/auth-audit.listener';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { join } from 'path';
-import { InAppNotification } from './entities/notification.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomValidator } from './common/validator/custom.validator';
-import { UserService } from './services/user.service';
-import { AuthService } from './services/auth.service';
-import { AuthController } from './controller/auth.controller';
-import { JwtStrategy } from './common/jwt.strategy';
 import { User } from './entities/user.entity';
-import { PassportModule } from '@nestjs/passport';
-import { JwtModule } from '@nestjs/jwt';
 import { BootstrapService } from './services/bootstrap.service';
 import { Seed } from './database/seed';
-import { Employee } from './entities/employee.entity';
-import { MailService } from './services/mail.service';
 import { NotificationsService } from './notification/notification.service';
-import { NotificationsController } from './notification/notification.controller';
-import { InterviewerPanel } from './entities/interviewer-panel.entity';
 import { InterviewerAvailability } from './entities/interviewer-availability.entity';
 import { EmployeeController } from './controller/employee.controller';
 import { EmployeeService } from './services/employee.service';
-import { EmailQueue } from './entities/email-queue.entity';
+import { AuthModule } from './auth/auth.module';
+import { AuditLogController } from './controller/audit-log.controller';
+import { NotificationsController } from './notification/notification.controller';
+import { AuditService } from './services/audit.service';
+import { DbCompatService } from './common/db-compat.service';
+import { AdminUserController } from './controller/admin-user.controller';
+import { AdminUserService } from './services/admin-user.service';
+import { BrevoApiService } from './services/brevo-api.service';
+import { AuditInterceptor } from './common/audit.interceptor';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
+    AuthModule,
     ScheduleModule.forRoot(),
-
     MailerModule.forRootAsync({
-      imports: [ConfigModule], // Import này để lấy được các biến .env
-      useFactory: (configService: ConfigService) => ({
-        transport: {
-          host: configService.get('SMTP_HOST'), // Ví dụ: smtp.gmail.com
-          port: configService.get('SMTP_PORT'),
-          auth: {
-            user: configService.get('SMTP_USER'),
-            pass: configService.get('SMTP_PASS'),
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => {
+        const host =
+          configService.get<string>('BREVO_SMTP_HOST') ??
+          configService.get<string>('SMTP_HOST');
+        const port = Number(
+          configService.get<string>('BREVO_SMTP_PORT') ??
+            configService.get<string>('SMTP_PORT') ??
+            587,
+        );
+        const brevoApiKey =
+          configService.get<string>('BREVO_API_KEY')?.trim() ?? '';
+        const user =
+          configService.get<string>('BREVO_SMTP_USER')?.trim() ||
+          configService.get<string>('SMTP_USER')?.trim();
+        const pass =
+          configService.get<string>('BREVO_SMTP_PASS')?.trim() ||
+          configService.get<string>('SMTP_PASS')?.trim() ||
+          (brevoApiKey.startsWith('xsmtpsib-') ? brevoApiKey : '');
+        const from =
+          configService.get<string>('BREVO_FROM_EMAIL') ??
+          configService.get<string>('SMTP_FROM') ??
+          '"HR Recruitment" <noreply@example.com>';
+        return {
+          transport: {
+            host,
+            port,
+            secure: port === 465,
+            auth: user && pass ? { user, pass } : undefined,
           },
-        },
-        defaults: {
-          from: '"HR Recruitment" <noreply@example.com>',
-        },
-        template: {
-          // Lưu ý: join(__dirname, 'mail', 'templates') nếu thư mục mail nằm trong src
-          dir: join(__dirname, 'mail', 'templates'),
-          adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
+          defaults: {
+            from,
           },
-        },
-      }),
+          template: {
+            dir: join(__dirname, 'mail', 'templates'),
+            adapter: new HandlebarsAdapter(),
+            options: {
+              strict: true,
+            },
+          },
+        };
+      },
       inject: [ConfigService],
     }),
-
     EventEmitterModule.forRoot(),
-
-    // Kết nối tới Cỗ máy Redis trong Docker của bạn
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -99,12 +118,9 @@ import { EmailQueue } from './entities/email-queue.entity';
         },
       }),
     }),
-
-    // Khởi tạo Bảng công việc
     BullModule.registerQueue({
       name: 'email-queue',
     }),
-
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -115,11 +131,8 @@ import { EmailQueue } from './entities/email-queue.entity';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
-
         autoLoadEntities: true,
-        synchronize: true,
-
-        // dropSchema: true,
+        synchronize: configService.get<string>('DB_SYNC') !== 'false',
       }),
     }),
     TypeOrmModule.forFeature([
@@ -134,17 +147,8 @@ import { EmailQueue } from './entities/email-queue.entity';
       InterviewerPanel,
       InterviewerAvailability,
       InAppNotification,
-      EmailQueue,
+      ActivityLog,
     ]),
-    PassportModule,
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET') || 'secret',
-        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') || '1d' },
-      }),
-    }),
   ],
   controllers: [
     VacancyController,
@@ -154,9 +158,10 @@ import { EmailQueue } from './entities/email-queue.entity';
     ApplicationController,
     DevToolsController,
     InterviewController,
-    AuthController,
     EmployeeController,
+    AuditLogController,
     NotificationsController,
+    AdminUserController,
   ],
   providers: [
     VacanciesService,
@@ -170,15 +175,20 @@ import { EmailQueue } from './entities/email-queue.entity';
     GoogleMeetService,
     InterviewService,
     InterviewListener,
+    AuthAuditListener,
     CustomValidator,
-    UserService,
-    AuthService,
     BootstrapService,
-    JwtStrategy,
     Seed,
-    MailService,
     NotificationsService,
     EmployeeService,
+    AuditService,
+    DbCompatService,
+    AdminUserService,
+    BrevoApiService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
   ],
 })
 export class AppModule {}

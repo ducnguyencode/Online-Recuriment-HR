@@ -72,14 +72,6 @@ export const hrPortalRoutes: Routes = [
           ),
       },
       {
-        path: 'admin/staff',
-        canActivate: [superadminGuard],
-        loadComponent: () =>
-          import('./admin/staff-management/staff-management.component').then(
-            m => m.StaffManagementComponent,
-          ),
-      },
-      {
         path: 'notifications',
         loadComponent: () =>
           import('./notifications/notifications.component').then(

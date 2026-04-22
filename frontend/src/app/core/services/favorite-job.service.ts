@@ -19,10 +19,19 @@ export class FavoriteJobService {
   constructor(private http: HttpClient) {}
 
   /** HR: view all applicants who saved a vacancy but have not applied */
-  getAll(vacancyId?: string, page = 1, limit = 10): Observable<ApiResponse<PaginatedResponse<FavoriteJob>>> {
-    let params = new HttpParams().set('page', page.toString()).set('limit', limit.toString());
+  getAll(
+    vacancyId?: string,
+    page = 1,
+    limit = 10,
+  ): Observable<ApiResponse<PaginatedResponse<FavoriteJob>>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('limit', limit.toString());
     if (vacancyId) params = params.set('vacancyId', vacancyId);
-    return this.http.get<ApiResponse<PaginatedResponse<FavoriteJob>>>(this.base, { params });
+    return this.http.get<ApiResponse<PaginatedResponse<FavoriteJob>>>(
+      this.base,
+      { params },
+    );
   }
 
   /** Applicant: save a vacancy as favorite */

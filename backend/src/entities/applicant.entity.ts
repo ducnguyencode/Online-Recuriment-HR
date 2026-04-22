@@ -28,8 +28,15 @@ export class Applicant {
 
   @Expose()
   @OneToOne(() => User, (u) => u.applicant, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user!: User;
+
+  /** Denormalized from User for DBs / reports that expect columns on applicants. */
+  @Column({ type: 'varchar', length: 255 })
+  fullName!: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email!: string | null;
 
   @OneToMany(() => Application, (a) => a.applicant)
   applications!: Application[];
@@ -46,6 +53,4 @@ export class Applicant {
 
   @UpdateDateColumn()
   updatedAt!: Date;
-    email: any;
-    fullName: any;
 }

@@ -1,4 +1,4 @@
-# === Tài liệu nội bộ - KHÔNG đẩy lên GitHub ===
+# === Internal docs - DO NOT push to GitHub ===
 design.md
 api-contract.md
 chucnangthem.md
@@ -10,7 +10,6 @@ onlinerecuriment process for HR.DOCX
 ProjectSpecification.doc
 Tai_Lieu_HR_Recruitment_Online.html
 taskteam.md
-tongquan.md
 
 # === OS files ===
 .DS_Store

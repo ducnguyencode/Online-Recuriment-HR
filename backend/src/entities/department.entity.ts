@@ -12,7 +12,7 @@ export class Department {
   })
   code!: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   name!: string;
 
   @Column('text', { nullable: true })

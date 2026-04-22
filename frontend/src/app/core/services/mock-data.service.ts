@@ -705,7 +705,8 @@ export class MockDataService {
   getApplicantById(id: string): Applicant | undefined {
     return this.applicants.find(
       (applicant) =>
-        this.normalizeApplicantRef(applicant.id) === this.normalizeApplicantRef(id),
+        this.normalizeApplicantRef(applicant.id) ===
+        this.normalizeApplicantRef(id),
     );
   }
 

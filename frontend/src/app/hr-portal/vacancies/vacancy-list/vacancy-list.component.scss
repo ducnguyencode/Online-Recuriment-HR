@@ -370,7 +370,7 @@
   u { text-decoration: underline; }
 
   &:empty::before {
-    content: 'Nhập mô tả công việc ở đây...';
+    content: 'Enter job description here...';
     color: var(--shell-text-soft);
   }
 }

@@ -38,9 +38,15 @@ export class VacanciesService {
     }
 
     if (status) {
-      qb.andWhere('vacancy.status = :status', {
-        status: status,
-      });
+      if (status === VacancyStatus.OPENED) {
+        qb.andWhere(`vacancy.status::text IN ('Open', 'Opened')`);
+      } else if (status === VacancyStatus.CLOSED) {
+        qb.andWhere(`vacancy.status::text IN ('Close', 'Closed')`);
+      } else {
+        qb.andWhere('vacancy.status::text = :status', {
+          status,
+        });
+      }
     }
 
     //Pagination
@@ -50,9 +56,14 @@ export class VacanciesService {
     qb.orderBy('vacancy.createdAt', 'DESC');
 
     const [vacancies, totalVacancy] = await qb.getManyAndCount();
+    const normalized = vacancies.map((vacancy) => {
+      if (vacancy.status === 'Opened') vacancy.status = 'Open';
+      if (vacancy.status === 'Closed') vacancy.status = 'Close';
+      return vacancy;
+    });
 
     return {
-      items: vacancies,
+      items: normalized,
       totalItems: totalVacancy,
       totalPage: Math.ceil(totalVacancy / limit),
     };

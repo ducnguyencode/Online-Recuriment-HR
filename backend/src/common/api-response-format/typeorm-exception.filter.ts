@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -8,7 +7,7 @@ import { QueryFailedError } from 'typeorm';
 const constraintMessages: Record<string, string> = {
   UQ_vacancy_title_department: 'Vacancy title already exists in deparment',
   UQ_applicant_vacancy: 'Applicant already applied to this vacancy',
-  UQ_user_email: 'Email already exists',
+  UQ_user_email: 'User email already exists',
   UQ_department_name: 'Department title already exists',
 };
 @Catch(QueryFailedError)

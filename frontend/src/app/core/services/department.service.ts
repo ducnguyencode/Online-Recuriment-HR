@@ -18,11 +18,20 @@ export class DepartmentService {
     return this.http.get<ApiResponse<Department>>(`${this.base}/${id}`);
   }
 
-  create(name: string, description?: string): Observable<ApiResponse<Department>> {
-    return this.http.post<ApiResponse<Department>>(`${this.base}/create`, { name, description });
+  create(
+    name: string,
+    description?: string,
+  ): Observable<ApiResponse<Department>> {
+    return this.http.post<ApiResponse<Department>>(`${this.base}/create`, {
+      name,
+      description,
+    });
   }
 
-  update(id: string, data: Partial<Department>): Observable<ApiResponse<Department>> {
+  update(
+    id: string,
+    data: Partial<Department>,
+  ): Observable<ApiResponse<Department>> {
     return this.http.put<ApiResponse<Department>>(`${this.base}/${id}`, data);
   }
 }

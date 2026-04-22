@@ -13,7 +13,11 @@ import {
 import { CurrentUser } from 'src/common/decorator/decorator';
 import { VacancyAccess } from 'src/common/decorator/vacancy-access.decorator';
 import { UserRole, VacancyStatus } from 'src/common/enum';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { Roles } from 'src/auth/roles.decorator';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { Public } from 'src/auth/public.decorator';
+import { USER_ROLES } from 'src/auth/role.constants';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { VacancyCreateDto } from 'src/dto/vacancy/vacancy.create.dto';
 import { VacancyFindDto } from 'src/dto/vacancy/vacancy.find.dto';
@@ -24,11 +28,12 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { VacanciesService } from 'src/services/vacancies.service';
 
 @Controller('vacancy')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class VacancyController {
   constructor(private vacanciesService: VacanciesService) {}
 
   @Post('create')
-  @UseGuards(JwtAuthGuard)
+  @Roles(USER_ROLES.SUPERADMIN, USER_ROLES.HR, USER_ROLES.INTERVIEWER)
   async create(
     @CurrentUser() user: SafeUserDto,
     @Body() vacancyCreateDto: VacancyCreateDto,
@@ -41,6 +46,7 @@ export class VacancyController {
     };
   }
 
+  @Public()
   @Get()
   async findAll(
     @Query() query: VacancyFindDto,

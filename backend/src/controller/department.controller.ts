@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Body,
   Controller,
@@ -11,8 +10,9 @@ import {
 } from '@nestjs/common';
 import { Roles } from 'src/common/decorator/decorator';
 import { UserRole } from 'src/common/enum';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Public } from 'src/auth/public.decorator';
 import { DepartmentCreateDto } from 'src/dto/department.create.dto';
 import { Department } from 'src/entities/department.entity';
 import { ApiResponse } from 'src/helper/api-response';
@@ -24,6 +24,7 @@ export class DepartmentController {
   constructor(private departmentService: DepartmentService) {}
 
   @Post('create')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.HR)
   async create(
     @Body() deparmentCreateDto: DepartmentCreateDto,
   ): Promise<ApiResponse<Department>> {
@@ -35,6 +36,7 @@ export class DepartmentController {
     };
   }
 
+  @Public()
   @Get()
   async findAll(): Promise<ApiResponse<Department[]>> {
     const data = await this.departmentService.findAll();
