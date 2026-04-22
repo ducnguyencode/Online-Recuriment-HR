@@ -13,6 +13,14 @@ export interface CreateStaffAccountDto {
   phone?: string;
 }
 
+export interface UpdateStaffAccountDto {
+  fullName: string;
+  role: Extract<UserRole, 'HR' | 'Interviewer'>;
+  departmentId: string;
+  position?: string;
+  phone?: string;
+}
+
 export interface StaffAccountFilters {
   role?: UserRole | '';
   departmentId?: string;
@@ -46,6 +54,13 @@ export class AdminUserService {
    */
   createStaff(dto: CreateStaffAccountDto): Observable<ApiResponse<UserAccount>> {
     return this.http.post<ApiResponse<UserAccount>>(this.base, dto);
+  }
+
+  updateStaff(
+    userId: string,
+    dto: UpdateStaffAccountDto,
+  ): Observable<ApiResponse<UserAccount>> {
+    return this.http.patch<ApiResponse<UserAccount>>(`${this.base}/${userId}`, dto);
   }
 
   deactivate(userId: string): Observable<ApiResponse<UserAccount>> {

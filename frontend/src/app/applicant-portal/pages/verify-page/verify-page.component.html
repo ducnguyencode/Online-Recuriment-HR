@@ -21,6 +21,31 @@
         {{ description() }}
       </div>
 
+      @if (needsInitialPassword()) {
+        <div class="text-left">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2"
+            >Initial password</label
+          >
+          <input
+            type="password"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+            placeholder="Enter your password"
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium"
+          />
+          @if (formError()) {
+            <div class="text-red-600 text-sm mt-2">{{ formError() }}</div>
+          }
+        </div>
+        <button
+          class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+          [disabled]="submitting()"
+          (click)="submitInitialPassword()"
+        >
+          {{ submitting() ? "Saving..." : "Set initial password" }}
+        </button>
+      }
+
       <button
         class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
         (click)="returnLogin()"

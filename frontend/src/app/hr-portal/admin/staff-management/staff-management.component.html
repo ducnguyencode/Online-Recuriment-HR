@@ -78,7 +78,7 @@
 
   @if (loading()) {
     <div class="loading-state">Loading accounts…</div>
-  } @else if (employees().length === 0) {
+  } @else if (staffAccounts().length === 0) {
     <div class="empty-state">
       <p class="empty-title">No staff accounts yet</p>
       <p class="empty-hint">
@@ -100,56 +100,57 @@
           </tr>
         </thead>
         <tbody>
-          @for (employee of employees(); track employee.id) {
+          @for (staff of staffAccounts(); track staff.id) {
             <tr>
               <td>
                 <div class="user-cell">
                   <div class="avatar">
-                    {{ getInitials(employee.user!.fullName) }}
+                    {{ getInitials(staff.fullName) }}
                   </div>
                   <div>
-                    <div class="user-name">{{ employee.user!.fullName }}</div>
-                    <div class="user-meta">ID: {{ employee.code }}</div>
+                    <div class="user-name">{{ staff.fullName }}</div>
+                    <div class="user-meta">ID: {{ staff.id }}</div>
                   </div>
                 </div>
               </td>
-              <td>{{ employee.user!.email }}</td>
+              <td>{{ staff.email }}</td>
               <td>
                 <span
                   class="badge"
-                  [class]="roleBadgeClass(employee.user!.role)"
+                  [class]="roleBadgeClass(staff.role)"
                 >
-                  {{ employee.user!.role }}
+                  {{ staff.role }}
                 </span>
               </td>
               <td>
-                @if (employee.user?.isVerified) {
+                @if (staff.isVerified) {
                   <span class="badge badge-success">Verified</span>
                 } @else {
                   <span class="badge badge-danger">Unverified</span>
                 }
               </td>
-              <td>{{ employee.createdAt | date: "MM/dd/yyyy" }}</td>
+              <td>{{ staff.createdAt | date: "MM/dd/yyyy" }}</td>
               <td class="actions-cell">
-                @if (!employee.user!.isVerified) {
+                @if (!staff.isVerified) {
                   <button
                     class="btn-ghost btn-sm"
-                    (click)="resendCredentials(employee.user)"
-                    title="Send a fresh temporary password"
+                    (click)="resendCredentials(staff)"
+                    title="Resend activation email"
                   >
-                    Resend pass
+                    Resend invite
                   </button>
                 }
+                <button class="btn-ghost btn-sm" (click)="openEditDialog(staff)">
+                  Edit
+                </button>
                 <button
                   class="btn-ghost btn-sm"
-                  (click)="toggleActive(employee.user)"
+                  (click)="toggleActive(staff)"
                   [title]="
-                    employee.user!.isVerified
-                      ? 'Unverify account'
-                      : 'Verify account'
+                    staff.isActive ? 'Deactivate account' : 'Activate account'
                   "
                 >
-                  {{ employee.user!.isVerified ? "Unverify" : "Verify" }}
+                  {{ staff.isActive ? "Deactivate" : "Activate" }}
                 </button>
               </td>
             </tr>
@@ -193,16 +194,19 @@
   <div class="modal-backdrop" (click)="closeCreateDialog()"></div>
   <div class="modal">
     <div class="modal-header">
-      <h2>Create staff account</h2>
+      <h2>{{ isEditingMode() ? "Edit staff account" : "Create staff account" }}</h2>
       <button class="btn-ghost btn-icon" (click)="closeCreateDialog()">
         ×
       </button>
     </div>
     <div class="modal-body">
       <p class="help-text">
-        The system will generate a one-time password and email it to the address
-        below. The new user will be required to change it on first login. You
-        will never see that password.
+        @if (isEditingMode()) {
+          Update staff information and keep account settings aligned.
+        } @else {
+          The system sends an activation email to the address below. The new user
+          will set an initial password after verification.
+        }
       </p>
 
       <label class="form-label" for="staff-email"
@@ -214,6 +218,7 @@
         class="form-input"
         placeholder="new.staff@abc.com"
         [(ngModel)]="formData.email"
+        [disabled]="isEditingMode()"
       />
 
       <label class="form-label" for="staff-name"
@@ -280,7 +285,15 @@
         Cancel
       </button>
       <button class="btn-primary" (click)="saveStaff()" [disabled]="creating()">
-        {{ creating() ? "Creating…" : "Create account" }}
+        {{
+          creating()
+            ? isEditingMode()
+              ? "Saving..."
+              : "Creating..."
+            : isEditingMode()
+              ? "Save changes"
+              : "Create account"
+        }}
       </button>
     </div>
   </div>

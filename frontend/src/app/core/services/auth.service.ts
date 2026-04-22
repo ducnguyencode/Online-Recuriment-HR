@@ -100,6 +100,27 @@ export class AuthService {
     );
   }
 
+  setInitialPassword(token: string, password: string) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/set-initial-password`,
+      { token, password },
+    );
+  }
+
+  forgotPassword(email: string) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/forgot-password`,
+      { email },
+    );
+  }
+
+  resetPassword(token: string, newPassword: string) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/reset-password`,
+      { token, newPassword },
+    );
+  }
+
   handleLoginSuccess(response: LoginResponse, userRoleLogin: UserRoleLogin) {
     const { access_token, user } = response.data;
     localStorage.setItem(this.TOKEN_KEY, access_token);

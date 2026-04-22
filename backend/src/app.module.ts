@@ -51,6 +51,12 @@ import { InterviewerAvailability } from './entities/interviewer-availability.ent
 import { EmployeeController } from './controller/employee.controller';
 import { EmployeeService } from './services/employee.service';
 import { EmailQueue } from './entities/email-queue.entity';
+import { AdminUserController } from './controller/admin-user.controller';
+import { AdminUserService } from './services/admin-user.service';
+import { RolesGuard } from './common/guards/roles.guard';
+import { AuditLog } from './entities/audit-log.entity';
+import { AuditLogService } from './services/audit-log.service';
+import { AuditLogController } from './controller/audit-log.controller';
 
 @Module({
   imports: [
@@ -135,6 +141,7 @@ import { EmailQueue } from './entities/email-queue.entity';
       InterviewerAvailability,
       InAppNotification,
       EmailQueue,
+      AuditLog,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -157,6 +164,8 @@ import { EmailQueue } from './entities/email-queue.entity';
     AuthController,
     EmployeeController,
     NotificationsController,
+    AdminUserController,
+    AuditLogController,
   ],
   providers: [
     VacanciesService,
@@ -179,6 +188,9 @@ import { EmailQueue } from './entities/email-queue.entity';
     MailService,
     NotificationsService,
     EmployeeService,
+    AdminUserService,
+    RolesGuard,
+    AuditLogService,
   ],
 })
 export class AppModule {}
