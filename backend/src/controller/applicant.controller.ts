@@ -18,20 +18,22 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantService } from 'src/services/applicant.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import { CurrentUser } from 'src/auth/current-user.decorator';
+import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 
 @Controller('applicant')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ApplicantController {
   constructor(private applicantServie: ApplicantService) {}
 
-  @Put(':id')
+  @Put('update-account')
   async update(
-    @Param('id') id: string,
     @Body() applicantUpdateDto: ApplicantUpdateDto,
-  ): Promise<ApiResponse<Applicant>> {
-    const data = await this.applicantServie.update(
-      Number(id),
+    @CurrentUser() user: SafeUserDto,
+  ) {
+    const data = await this.applicantServie.updateAccount(
       applicantUpdateDto,
+      user,
     );
     return {
       statusCode: HttpStatus.OK,

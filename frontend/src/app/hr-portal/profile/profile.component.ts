@@ -185,6 +185,14 @@ import { EmployeeService } from '../../core/services/employee.service';
         font-weight: 600;
         flex-shrink: 0;
       }
+      .form-error-banner {
+        margin-bottom: 14px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: var(--shell-danger-soft);
+        color: var(--shell-danger);
+        font-size: 12px;
+      }
       @media (max-width: 900px) {
         .profile-grid {
           grid-template-columns: 1fr;
@@ -240,12 +248,12 @@ export class ProfileComponent {
       .subscribe({
         next: (res) => {
           this.auth.handleUpdateAccountSuccess(res);
+          this.detailMessage.set('Profile details updated successfully.');
         },
         error: (err) => {
           this.detailMessage.set(err.error.message);
         },
       });
-    this.detailMessage.set('Profile details updated successfully.');
     setTimeout(() => this.detailMessage.set(''), 2500);
   }
 
@@ -261,12 +269,6 @@ export class ProfileComponent {
       this.passwordError.set('All password fields are required.');
       return;
     }
-    if (this.passwordForm.currentPassword !== '123456') {
-      this.passwordError.set(
-        'Current password is incorrect for the mock account.',
-      );
-      return;
-    }
     if (this.passwordForm.newPassword.length < 6) {
       this.passwordError.set('New password must be at least 6 characters.');
       return;
@@ -276,14 +278,20 @@ export class ProfileComponent {
       return;
     }
 
-    this.passwordForm = {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    };
-    this.passwordMessage.set(
-      'Password updated successfully in the mock workflow.',
-    );
+    this.employeeService.changePassword(this.passwordForm).subscribe({
+      next: (res) => {
+        this.passwordMessage.set('Password updated successfully!');
+        this.passwordForm = {
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        };
+      },
+      error: (err) => {
+        this.passwordError.set(err.error.message);
+      },
+    });
+
     setTimeout(() => this.passwordMessage.set(''), 2500);
   }
 }

@@ -60,9 +60,17 @@ export class EmployeeService {
   }
 
   updateAccount(dto: { email: string; fullName: string }) {
-    return this.http.post<UpdateAccountResponse>(
+    return this.http.put<UpdateAccountResponse>(
       `${this.base}/update-account`,
       dto,
     );
+  }
+
+  changePassword(dto: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) {
+    return this.http.put<ApiResponse<any>>(`${this.base}/change-password`, dto);
   }
 }

@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenType, UserRole } from 'src/common/enum';
 import { EmployeeCreateDto } from 'src/dto/employee/employee.create.dto';
@@ -16,6 +22,7 @@ import { UserService } from './user.service';
 import { EmployeeUpdateDto } from 'src/dto/employee/employee.update.dto';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { JwtService } from '@nestjs/jwt';
+import { EmployeeChangePasswordDto } from 'src/dto/employee/employee.change-password.dto';
 @Injectable()
 export class EmployeeService {
   constructor(
@@ -170,5 +177,27 @@ export class EmployeeService {
       },
     );
     return signToken(user, this.jwtService);
+  }
+
+  async changePassword(data: EmployeeChangePasswordDto, safeUser: SafeUserDto) {
+    if (data.newPassword != data.confirmPassword) {
+      throw new BadRequestException('Confirm password miss match!');
+    }
+    const user = await this.employeeTable.manager.transaction(
+      async (manager) => {
+        const existing = await manager.findOne(User, {
+          where: { email: safeUser.email },
+        });
+        if (!existing) {
+          throw new NotFoundException('Account not found!');
+        }
+        if (!bcrypt.compareSync(data.currentPassword, existing.password)) {
+          throw new ForbiddenException('Incorrect current password!');
+        }
+        existing.password = await bcrypt.hash(data.newPassword, 10);
+        return manager.save(existing);
+      },
+    );
+    return user;
   }
 }

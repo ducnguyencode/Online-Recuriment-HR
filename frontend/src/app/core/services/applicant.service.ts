@@ -7,6 +7,7 @@ import {
   PaginatedResponse,
   Applicant,
   ApplicantStatus,
+  UpdateAccountResponse,
 } from '../models';
 
 export interface ApplicantFilters {
@@ -61,6 +62,13 @@ export class ApplicantService {
     dto: Partial<CreateApplicantDto>,
   ): Observable<ApiResponse<Applicant>> {
     return this.http.put<ApiResponse<Applicant>>(`${this.base}/${id}`, dto);
+  }
+
+  updateAccount(dto: { email: string; fullName: string; phone: string }) {
+    return this.http.put<UpdateAccountResponse>(
+      `${this.base}/update-account`,
+      dto,
+    );
   }
 
   changeStatus(

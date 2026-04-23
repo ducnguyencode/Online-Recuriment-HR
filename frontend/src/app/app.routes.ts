@@ -45,7 +45,7 @@ export const routes: Routes = [
     children: [
       { path: 'careers', component: CareersComponent },
 
-      // Khóa 2 trang nội bộ bằng authApplicantGuard
+      // ĐÃ BẬT LẠI KHÓA CHO TRANG NỘI BỘ
       {
         path: 'applicant',
         component: DashboardComponent,
@@ -57,11 +57,11 @@ export const routes: Routes = [
         canActivate: [authApplicantGuard]
       },
 
-      // Các trang public của ứng viên
+      // ĐÃ BẬT LẠI GUARD CHẶN TRANG LOGIN
       {
         path: 'login',
         component: LoginComponent,
-        canActivate: [loginGuard], // loginGuard chặn người đã đăng nhập
+        canActivate: [loginGuard],
         data: { role: 'Applicant' }
       },
       { path: 'register', component: RegisterComponent },

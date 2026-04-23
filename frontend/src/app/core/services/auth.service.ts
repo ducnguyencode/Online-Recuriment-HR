@@ -87,7 +87,6 @@ export class AuthService {
     fullName: string;
     email: string;
     password: string;
-    phone: string;
   }) {
     return this.http.post<ApiResponse<UserAccount>>(
       `${environment.apiUrl}/auth/register`,

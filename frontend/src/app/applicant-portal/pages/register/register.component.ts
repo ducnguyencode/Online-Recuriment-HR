@@ -9,7 +9,7 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.scss']
+  styleUrls: ['./register.component.scss'],
 })
 export class RegisterComponent {
   private auth = inject(AuthService);
@@ -20,7 +20,6 @@ export class RegisterComponent {
     fullName: '',
     email: '',
     password: '',
-    phone: ''
   };
 
   isLoading = false;
@@ -37,13 +36,16 @@ export class RegisterComponent {
       next: (res) => {
         this.isLoading = false;
         // Notify user and redirect to login for email verification
-        alert('Registration successful! Please check your email to verify your account.');
+        alert(
+          'Registration successful! Please check your email to verify your account.',
+        );
         this.router.navigate(['/login']);
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.error?.message || 'Registration failed. Please try again.';
-      }
+        this.errorMessage =
+          err.error?.message || 'Registration failed. Please try again.';
+      },
     });
   }
 }
