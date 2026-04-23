@@ -99,9 +99,59 @@ export class AdminUserService {
     if (!department) {
       throw new NotFoundException('Department not found');
     }
-    const exists = await this.users.findOne({ where: { email } });
+    const exists = await this.users.findOne({
+      where: { email },
+      relations: ['employee', 'employee.department'],
+    });
     if (exists) {
-      throw new ConflictException('Email already exists');
+      if (exists.isVerified || !exists.isActive) {
+        throw new ConflictException('Email already exists');
+      }
+      if (exists.role !== UserRole.HR && exists.role !== UserRole.INTERVIEWER) {
+        throw new ConflictException(
+          'This email is reserved by another pending account type.',
+        );
+      }
+      const tokenInfo = this.userService.getVerificationTokenInfo(
+        exists.verificationToken,
+      );
+      if (tokenInfo && !tokenInfo.expired) {
+        throw new ConflictException(
+          'Staff invite is still active. Use resend invite instead.',
+        );
+      }
+
+      exists.fullName = fullName;
+      exists.phone = dto.phone?.trim() || '';
+      exists.role = dto.role;
+      exists.roles = dto.role === UserRole.HR ? UserRole.HR : UserRole.INTERVIEWER;
+      exists.isActive = true;
+      exists.mustChangePassword = true;
+      exists.verificationToken = this.userService.generateEmailToken(
+        { id: exists.id, email: exists.email, role: dto.role },
+        dto.departmentId,
+        dto.role,
+        '24h',
+        TokenType.EMAIL_INVITE_VERIFY,
+      );
+
+      const saved = await this.users.manager.transaction(async (manager) => {
+        await manager.save(User, exists);
+        let employee = await manager.findOne(Employee, {
+          where: { user: { id: exists.id } },
+          relations: ['user', 'department'],
+        });
+        if (!employee) {
+          employee = manager.create(Employee, { user: exists });
+        }
+        employee.department = department;
+        employee.jobTitle = dto.position?.trim() || '';
+        employee.isActive = true;
+        await manager.save(Employee, employee);
+        return exists;
+      });
+      await this.userService.sendVerification(saved);
+      return this.findByIdOrThrow(saved.id);
     }
 
     const tempUser: Pick<User, 'id' | 'email' | 'role'> = {
@@ -341,6 +391,9 @@ export class AdminUserService {
     this.assertActorCanManageRole(actor, user.role);
     if (user.isVerified) {
       throw new BadRequestException('Account already verified');
+    }
+    if (!user.isActive) {
+      throw new BadRequestException('Deactivated account cannot receive invite');
     }
     const employee = await this.employees.findOne({
       where: { user: { id: userId } },

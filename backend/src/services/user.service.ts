@@ -25,6 +25,8 @@ import { StringValue } from 'ms';
 import { Department } from 'src/entities/department.entity';
 @Injectable()
 export class UserService {
+  private static readonly APPLICANT_VERIFY_EXPIRES = '15m';
+
   constructor(
     @InjectRepository(User) private userTable: Repository<User>,
     private jwtService: JwtService,
@@ -69,23 +71,35 @@ export class UserService {
           ...data,
           role: UserRole.APPLICANT,
           password: bcrypt.hashSync(data.password, 10),
+          isActive: true,
         });
       } else {
+        if (!existing.isActive) {
+          throw new ConflictException(
+            'This email belongs to a deactivated account and cannot be reused.',
+          );
+        }
         if (existing.isVerified) {
           throw new ConflictException('Account already exist');
         }
 
-        if (existing.verificationToken) {
-          const { expired } = this.getTokenInfo(existing.verificationToken);
-
-          if (!expired) {
+        const tokenInfo = this.getVerificationTokenInfo(existing.verificationToken);
+        if (tokenInfo && !tokenInfo.expired) {
+          // Pending unverified account with valid token must continue existing flow.
+          if (existing.role === UserRole.APPLICANT) {
             throw new ConflictException(
-              'Account already register! Check email to verify.',
+              'Account already registered. Check your email to verify.',
             );
           }
+          throw new ConflictException(
+            'Staff invitation is still pending. Ask admin to resend invite.',
+          );
         }
 
+        // Reclaim is only allowed for unverified + expired/no-token accounts.
         existing.role = UserRole.APPLICANT;
+        existing.isActive = true;
+        existing.verificationToken = null;
         existing.password = bcrypt.hashSync(data.password, 10);
         user = existing;
       }
@@ -94,7 +108,7 @@ export class UserService {
         user,
         null,
         UserRole.APPLICANT,
-        '1m',
+        UserService.APPLICANT_VERIFY_EXPIRES,
         TokenType.EMAIL_REGISTER_VERIFY,
       );
       user.verificationToken = token;
@@ -108,6 +122,27 @@ export class UserService {
     }
 
     return user!;
+  }
+
+  async resendApplicantVerification(email: string): Promise<void> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.findByEmail(normalizedEmail);
+    if (!user) {
+      return;
+    }
+    if (!user.isActive || user.isVerified || user.role !== UserRole.APPLICANT) {
+      return;
+    }
+
+    user.verificationToken = this.generateEmailToken(
+      { id: user.id, email: user.email, role: user.role },
+      null,
+      UserRole.APPLICANT,
+      UserService.APPLICANT_VERIFY_EXPIRES,
+      TokenType.EMAIL_REGISTER_VERIFY,
+    );
+    await this.save(user);
+    await this.sendVerification(user);
   }
 
   async verifyAccount(payload: {
@@ -265,6 +300,48 @@ export class UserService {
       remaining: Math.max(0, remaining),
       type,
     };
+  }
+
+  getVerificationTokenInfo(token: string | null | undefined): {
+    expired: boolean;
+    remaining: number;
+    type: TokenType;
+    expiresAt: Date;
+  } | null {
+    if (!token) {
+      return null;
+    }
+    const decoded = this.jwtService.decode(token) as { exp?: number } | null;
+    const info = this.getTokenInfo(token);
+    const expiresAt = decoded?.exp
+      ? new Date(decoded.exp * 1000)
+      : new Date(Date.now() + info.remaining * 1000);
+    return {
+      ...info,
+      expiresAt,
+    };
+  }
+
+  async cleanupExpiredUnverifiedAccounts(graceDays: number): Promise<number> {
+    const cutoff = new Date(Date.now() - graceDays * 24 * 60 * 60 * 1000);
+    const candidates = await this.userTable.find({
+      where: { isVerified: false, isActive: true },
+      relations: ['employee', 'applicant'],
+    });
+
+    const staleUsers = candidates.filter((user) => {
+      const tokenInfo = this.getVerificationTokenInfo(user.verificationToken);
+      if (!tokenInfo) {
+        return user.createdAt <= cutoff;
+      }
+      return tokenInfo.expired && tokenInfo.expiresAt <= cutoff;
+    });
+    if (staleUsers.length === 0) {
+      return 0;
+    }
+
+    await this.userTable.remove(staleUsers);
+    return staleUsers.length;
   }
 
   async ensureDefaultAdmin() {

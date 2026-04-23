@@ -131,10 +131,10 @@
                 </span>
               </td>
               <td>
-                @if (employee.user?.isVerified) {
-                  <span class="badge badge-success">Verified</span>
+                @if (employee.user?.isActive) {
+                  <span class="badge badge-success">Active</span>
                 } @else {
-                  <span class="badge badge-danger">Unverified</span>
+                  <span class="badge badge-danger">Inactive</span>
                 }
               </td>
               <td>{{ employee.createdAt | date: "MM/dd/yyyy" }}</td>
@@ -157,6 +157,14 @@
                   "
                 >
                   {{ employee.user!.isActive ? "Deactivate" : "Activate" }}
+                </button>
+                <button
+                  class="btn-ghost btn-sm"
+                  (click)="resendCredentials(employee.user)"
+                  [disabled]="employee.user!.isVerified"
+                  title="Resend invite email"
+                >
+                  Resend invite
                 </button>
               </td>
             </tr>

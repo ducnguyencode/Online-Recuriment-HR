@@ -17,6 +17,7 @@ import { ChangePasswordDto } from 'src/dto/auth/change-password.dto';
 import { ForgotPasswordDto } from 'src/dto/auth/forgot-password.dto';
 import { ResetPasswordDto } from 'src/dto/auth/reset-password.dto';
 import { SetInitialPasswordDto } from 'src/dto/auth/set-initial-password.dto';
+import { ResendVerifyDto } from 'src/dto/auth/resend-verify.dto';
 import { UserCreateDto } from 'src/dto/user/user.create.dto';
 import { TokenExpiredError } from 'jsonwebtoken';
 import { signToken } from 'src/helper/function.helper';
@@ -88,6 +89,11 @@ export class AuthService {
     await this.userService.sendPasswordReset(user.email, user.fullName, resetUrl);
 
     return { message: 'If your account exists, a reset link has been sent.' };
+  }
+
+  async resendVerify(dto: ResendVerifyDto) {
+    await this.userService.resendApplicantVerification(dto.email);
+    return { message: 'If your account exists, a verification link has been sent.' };
   }
 
   async resetPassword(dto: ResetPasswordDto) {

@@ -12,6 +12,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { ChangePasswordDto } from 'src/dto/auth/change-password.dto';
 import { ForgotPasswordDto } from 'src/dto/auth/forgot-password.dto';
 import { LoginDto } from 'src/dto/auth/login.dto';
+import { ResendVerifyDto } from 'src/dto/auth/resend-verify.dto';
 import { SetInitialPasswordDto } from 'src/dto/auth/set-initial-password.dto';
 import { ResetPasswordDto } from 'src/dto/auth/reset-password.dto';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
@@ -67,6 +68,16 @@ export class AuthController {
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const data = await this.authService.forgotPassword(dto);
+    return {
+      statusCode: HttpStatus.OK,
+      message: data.message,
+      data,
+    };
+  }
+
+  @Post('resend-verify')
+  async resendVerify(@Body() dto: ResendVerifyDto) {
+    const data = await this.authService.resendVerify(dto);
     return {
       statusCode: HttpStatus.OK,
       message: data.message,

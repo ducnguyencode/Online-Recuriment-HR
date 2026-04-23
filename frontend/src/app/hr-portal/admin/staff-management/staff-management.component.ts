@@ -109,17 +109,7 @@ export class StaffManagementComponent implements OnInit {
       .subscribe({
         next: (res) => {
           const rawItems = (res.data as any)?.items ?? [];
-          const items = rawItems.map((item: any) => {
-            if (item?.user) return item;
-            return {
-              ...item.employee,
-              user: item,
-              department: item.employee?.department,
-              departmentId: item.employee?.department?.id,
-              position: item.employee?.jobTitle,
-              createdAt: item.createdAt,
-            } as Employee;
-          });
+          const items = rawItems.map((item: any) => this.toStaffRow(item));
           const totalItems =
             (res.data as any)?.totalItems ??
             (res.data as any)?.total ??
@@ -252,12 +242,18 @@ export class StaffManagementComponent implements OnInit {
   openEditDialog(employee: Employee) {
     const user = employee.user;
     if (!user || user.role === UserRole.SUPER_ADMIN) return;
+    const resolvedDepartmentId = Number(
+      employee.department?.id ??
+        employee.departmentId ??
+        (employee as any)?.department?.id ??
+        0,
+    );
     this.selectedStaff.set(user);
     this.editFormData = {
       fullName: user.fullName ?? '',
       role: (user.role as StaffRole) ?? UserRole.HR,
-      departmentId: Number(employee.department?.id ?? employee.departmentId ?? 0),
-      position: employee.position ?? '',
+      departmentId: resolvedDepartmentId,
+      position: employee.position ?? (employee as any)?.jobTitle ?? '',
       phone: user.phone ?? '',
     };
     this.formError.set('');
@@ -294,10 +290,16 @@ export class StaffManagementComponent implements OnInit {
         phone: this.editFormData.phone?.trim() || undefined,
       })
       .subscribe({
-        next: () => {
+        next: (res) => {
           this.updating.set(false);
           this.showEditDialog.set(false);
           this.formSuccess.set('Staff account updated successfully.');
+          const updated = this.toStaffRow(res.data as any);
+          this.employees.update((rows) =>
+            rows.map((row) =>
+              String(row.user?.id ?? row.id) === String(staff.id) ? updated : row,
+            ),
+          );
           this.loadUsers();
         },
         error: (err) => {
@@ -307,6 +309,24 @@ export class StaffManagementComponent implements OnInit {
           );
         },
       });
+  }
+
+  private toStaffRow(item: any): Employee {
+    if (item?.user) {
+      return {
+        ...item,
+        departmentId: Number(item.department?.id ?? item.departmentId ?? 0),
+        position: item.position ?? item.jobTitle ?? '',
+      } as Employee;
+    }
+    return {
+      ...item.employee,
+      user: item,
+      department: item.employee?.department,
+      departmentId: Number(item.employee?.department?.id ?? 0),
+      position: item.employee?.jobTitle ?? '',
+      createdAt: item.createdAt,
+    } as Employee;
   }
 
   toggleActive(user: UserAccount | undefined) {

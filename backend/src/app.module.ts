@@ -58,6 +58,7 @@ import { AuditLog } from './entities/audit-log.entity';
 import { AuditLogService } from './services/audit-log.service';
 import { AuditLogController } from './controller/audit-log.controller';
 import { EmailCronService } from './cron/email.cron';
+import { AccountCleanupCronService } from './cron/account-cleanup.cron';
 import { InterviewerAvailabilityController } from './controller/interviewer-availability.controller';
 import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
 
@@ -196,6 +197,7 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
     RolesGuard,
     AuditLogService,
     EmailCronService,
+    AccountCleanupCronService,
     InterviewerAvailabilityService,
   ],
 })
