@@ -36,6 +36,10 @@ export class UserService {
     return await this.userTable.findOne({ where: { email } });
   }
 
+  async findByResetToken(token: string) {
+    return await this.userTable.findOne({ where: { resetPasswordToken: token } });
+  }
+
   async findUserVerifiedByEmail(email: string) {
     const user = await this.userTable.findOne({ where: { email } });
     if (!user) throw new UnauthorizedException('Account not found!');
@@ -48,6 +52,10 @@ export class UserService {
 
   async findById(id: number) {
     return await this.userTable.findOne({ where: { id } });
+  }
+
+  async save(user: User) {
+    return await this.userTable.save(user);
   }
 
   async createRegisterApplicant(data: UserCreateDto) {
@@ -158,6 +166,40 @@ export class UserService {
     });
   }
 
+  async activateInvitedAccount(payload: {
+    email: string;
+    departmentId: number;
+    role: UserRole;
+  }) {
+    return this.userTable.manager.transaction(async (manager) => {
+      const user = await manager.findOne(User, {
+        where: { email: payload.email },
+      });
+      if (!user) {
+        throw new NotFoundException('Account not found!');
+      }
+
+      user.role = payload.role;
+      user.isVerified = true;
+      user.verifiedAt = new Date();
+      user.verificationToken = null;
+
+      let employee = await manager.findOne(Employee, {
+        where: { user: { id: user.id } },
+        relations: ['user'],
+      });
+      if (!employee) {
+        employee = manager.create(Employee, { user });
+      }
+      employee.isActive = true;
+      employee.department = { id: payload.departmentId } as Department;
+      employee = await manager.save(employee);
+      user.employee = employee;
+
+      return await manager.save(user);
+    });
+  }
+
   async sendVerification(user: User, rawPassword?: string) {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
@@ -169,6 +211,21 @@ export class UserService {
       verifyUrl,
       rawPassword,
     );
+  }
+
+  async sendPasswordReset(email: string, name: string, resetUrl: string) {
+    await this.mailService.sendPasswordResetEmail(email, name, resetUrl);
+  }
+
+  async sendRoleChangedNotification(input: {
+    email: string;
+    name: string;
+    actorName: string;
+    fromRole: string;
+    toRole: string;
+    reason: string;
+  }) {
+    await this.mailService.sendRoleChangedEmail(input);
   }
 
   generateEmailToken(

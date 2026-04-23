@@ -9,6 +9,7 @@ interface NavItem {
   icon: string;
   route: string;
   hrOnly?: boolean;
+  hrOnlyStrict?: boolean;
   superadminOnly?: boolean;
   interviewerVisible?: boolean;
 }
@@ -40,6 +41,7 @@ export class SidebarComponent {
 
   systemItems: NavItem[] = [
     { label: 'Staff Accounts', icon: 'shield', route: '/hr-portal/admin/staff', superadminOnly: true },
+    { label: 'Staff Accounts', icon: 'shield', route: '/hr-portal/staff', hrOnlyStrict: true },
     { label: 'Audit Log', icon: 'clipboard-list', route: '/hr-portal/audit', hrOnly: true },
     { label: 'Notifications', icon: 'bell', route: '/hr-portal/notifications' },
     { label: 'Profile', icon: 'settings', route: '/hr-portal/profile' },
@@ -79,6 +81,7 @@ export class SidebarComponent {
 
   private canSee(item: NavItem): boolean {
     if (item.superadminOnly && !this.auth.isSuperadmin()) return false;
+    if (item.hrOnlyStrict && !this.auth.isHR()) return false;
     if (item.hrOnly && !(this.auth.isHR() || this.auth.isSuperadmin())) return false;
     return true;
   }

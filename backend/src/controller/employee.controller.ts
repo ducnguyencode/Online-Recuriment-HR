@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   HttpStatus,
-  Post,
   Put,
   Query,
   UseGuards,
@@ -11,12 +10,10 @@ import {
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorator/decorator';
 import { EmployeeChangePasswordDto } from 'src/dto/employee/employee.change-password.dto';
-import { EmployeeCreateDto } from 'src/dto/employee/employee.create.dto';
 import { EmployeeFindDto } from 'src/dto/employee/employee.find.dto';
 import { EmployeeUpdateDto } from 'src/dto/employee/employee.update.dto';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { Employee } from 'src/entities/employee.entity';
-import { User } from 'src/entities/user.entity';
 import { ApiResponse } from 'src/helper/api-response';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { EmployeeService } from 'src/services/employee.service';
@@ -33,19 +30,6 @@ export class EmployeeController {
     return {
       statusCode: HttpStatus.OK,
       message: 'Success load employees',
-      data,
-    };
-  }
-
-  @Post('create')
-  @UseGuards(JwtAuthGuard)
-  async create(
-    @Body() employeeCreateDto: EmployeeCreateDto,
-  ): Promise<ApiResponse<User>> {
-    const data = await this.employeeService.create(employeeCreateDto);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Success create a employee',
       data,
     };
   }

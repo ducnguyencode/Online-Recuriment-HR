@@ -65,6 +65,18 @@ export class User {
   @Column({ default: false })
   isVerified!: boolean;
 
+  @Expose()
+  @Column({ default: true })
+  isActive!: boolean;
+
+  @Exclude()
+  @Column({ default: false })
+  mustChangePassword!: boolean;
+
+  @Exclude()
+  @Column({ type: 'varchar', nullable: true })
+  roles!: string | null;
+
   @Exclude()
   @Column({ type: 'varchar', nullable: true })
   verificationToken!: string | null;
@@ -76,6 +88,14 @@ export class User {
   @Exclude()
   @Column({ type: 'timestamptz', nullable: true })
   verifiedAt!: Date | null;
+
+  @Exclude()
+  @Column({ type: 'varchar', nullable: true })
+  resetPasswordToken!: string | null;
+
+  @Exclude()
+  @Column({ type: 'timestamptz', nullable: true })
+  resetPasswordTokenExpiresAt!: Date | null;
 
   @Expose()
   @CreateDateColumn()

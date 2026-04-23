@@ -51,6 +51,12 @@ import { InterviewerAvailability } from './entities/interviewer-availability.ent
 import { EmployeeController } from './controller/employee.controller';
 import { EmployeeService } from './services/employee.service';
 import { EmailQueue } from './entities/email-queue.entity';
+import { AdminUserController } from './controller/admin-user.controller';
+import { AdminUserService } from './services/admin-user.service';
+import { RolesGuard } from './common/guards/roles.guard';
+import { AuditLog } from './entities/audit-log.entity';
+import { AuditLogService } from './services/audit-log.service';
+import { AuditLogController } from './controller/audit-log.controller';
 import { EmailCronService } from './cron/email.cron';
 import { InterviewerAvailabilityController } from './controller/interviewer-availability.controller';
 import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
@@ -138,6 +144,7 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
       InterviewerAvailability,
       InAppNotification,
       EmailQueue,
+      AuditLog,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -160,6 +167,8 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
     AuthController,
     EmployeeController,
     NotificationsController,
+    AdminUserController,
+    AuditLogController,
     InterviewerAvailabilityController,
   ],
   providers: [
@@ -183,6 +192,9 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
     MailService,
     NotificationsService,
     EmployeeService,
+    AdminUserService,
+    RolesGuard,
+    AuditLogService,
     EmailCronService,
     InterviewerAvailabilityService,
   ],
