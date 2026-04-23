@@ -134,7 +134,6 @@ export class AdminUserController {
   }
 
   @Post(':id/resend-invite')
-  @Roles(UserRole.SUPER_ADMIN)
   async resendInvite(
     @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,

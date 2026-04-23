@@ -239,7 +239,8 @@ export class StaffManagementComponent implements OnInit {
     this.adminService.resendTemporaryPassword(user.id).subscribe({
       next: () =>
         this.formSuccess.set(
-          `A new activation email has been sent to ${user.email}.`,
+          `Invitation email re-sent to ${user.email}. ` +
+            `Please verify the email, then set a new password to activate the account.`,
         ),
       error: (err) =>
         this.errorMsg.set(

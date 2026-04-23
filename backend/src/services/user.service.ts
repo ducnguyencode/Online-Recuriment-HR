@@ -240,16 +240,18 @@ export class UserService {
     });
   }
 
-  async sendVerification(user: User, rawPassword?: string) {
+  async sendVerification(user: User) {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
     const verifyUrl = `${frontendUrl}/verify-email?token=${user.verificationToken}`;
+    const requireInitialPasswordSetup =
+      user.role === UserRole.HR || user.role === UserRole.INTERVIEWER;
 
     await this.mailService.sendVerificationEmail(
       user.email,
       user.fullName,
       verifyUrl,
-      rawPassword,
+      { requireInitialPasswordSetup },
     );
   }
 
