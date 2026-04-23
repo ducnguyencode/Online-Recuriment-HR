@@ -68,8 +68,9 @@ export class InterviewListComponent implements OnInit {
     };
     this.interviewService.getAll(params).subscribe({
       next: (res) => {
-        const items: Interview[] = (res.data as any)?.items ?? [];
-        this.interviews.set(items);
+        const items: any[] = (res.data as any)?.items ?? [];
+        const mapped: Interview[] = items.map(item => this.mapInterviewData(item));
+        this.interviews.set(mapped);
         this.loading.set(false);
       },
       error: () => {
@@ -85,6 +86,57 @@ export class InterviewListComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  private mapInterviewData(r: any): Interview {
+    let application = r.application;
+    const applicantName = r.application?.applicant?.user?.fullName || 'N/A';
+    if (!application) {
+      const apps = this.mockData.getApplications();
+      const found = apps.find((a) => String(a.id) === String(r.applicationId));
+      if (found) {
+        application = {
+          ...found,
+          id: String(found.id),
+          applicantId: String(found.applicantId),
+          vacancyId: String(found.vacancyId),
+        };
+      }
+    }
+    const formatTime = (isoString: string) => {
+      if (!isoString) return '';
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return isoString;
+      return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    };
+    const datePart = r.startTime ? new Date(r.startTime).toISOString().split('T')[0] : '';
+    const app = r.application || {};
+    const applicant = app.applicant || {};
+    const vacancy = app.vacancy || {};
+
+    return {
+      id: String(r.id),
+      applicationId: String(r.applicationId),
+      application: application as any,
+      title: r.title ?? 'Interview with ${r.applicantName}',
+      description: r.description ?? '',
+      googleMeetLink: r.googleMeetLink ?? r.meetLink,
+      interviewDate: datePart,
+      startTime: formatTime(r.startTime),
+      endTime: formatTime(r.endTime),
+      platform: r.platform ?? 'Google Meet',
+      meetLink: r.meetLink,
+      status: r.status ?? 'Scheduled',
+      panel: (r.panels || r.panel || []).map((p: any) => ({
+        ...p,
+        employeeId: p.employeeId || p.employee?.id,
+        fullName: p.employee?.user?.fullName || p.employee?.fullName || p.fullName || 'Interviewer',
+        role: p.role || 'Interviewer',
+        vote: p.vote || 'Pending'
+      })),
+      createdAt: r.createdAt ?? '',
+      updatedAt: r.updatedAt ?? '',
+    };
   }
 
   private mapMockInterview(r: any): Interview {
@@ -105,49 +157,33 @@ export class InterviewListComponent implements OnInit {
     }
 
     // Format HH:mm for the UI display
-    const formatTime = (dateObj: Date) => {
-      if (isNaN(dateObj.getTime())) return '';
-      return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const formatTime = (isoString: string) => {
+      if (!isoString) return '';
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     };
-    // const formatTime = (isoString: string) => {
-    //   if (!isoString) return '';
-    //   const date = new Date(isoString);
-    //   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    // };
 
-    // return {
-    //   id: String(r.id),
-    //   applicationId: String(r.applicationId),
-    //   application: application as any,
-    //   title: r.title ?? 'Interview with ${r.applicantName}',
-    //   description: r.description ?? '',
-    //   googleMeetLink: r.googleMeetLink ?? r.meetLink,
-    //   interviewDate: (r.date ?? r.interviewDate ?? '').substring(0, 10),
-    //   startTime: r.startTime ?? r.time ?? '',
-    //   endTime: r.endTime ?? '',
-    //   platform: r.platform ?? 'Google Meet',
-    //   meetLink: r.meetLink,
-    //   status: r.status ?? 'Scheduled',
-    //   panel: Array.isArray(r.panel)
-    //     ? r.panel
-    //     : (Array.isArray(r.interviewers)
-    //       ? r.interviewers.map((name: string) => ({ employeeId: name, fullName: name, role: 'Interviewer', vote: 'Pending' as any }))
-    //       : []),
-    //   createdAt: r.createdAt ?? '',
-    //   updatedAt: r.updatedAt ?? '',
-    // };
     return {
-      ...r,
       id: String(r.id),
-      title: r.title || `Interview with ${applicantName}`,
-      interviewDate: r.startTime ? new Date(r.startTime).toISOString().split('T')[0] : '',
-      startTime: formatTime(r.startTime),
-      endTime: formatTime(r.endTime),
-      status: r.status || 'Scheduled',
-      panel: r.panels || [],
-      googleMeetLink: r.meetLink || r.googleMeetLink
+      applicationId: String(r.applicationId),
+      application: application as any,
+      title: r.title ?? 'Interview with ${r.applicantName}',
+      description: r.description ?? '',
+      googleMeetLink: r.googleMeetLink ?? r.meetLink,
+      interviewDate: (r.date ?? r.interviewDate ?? '').substring(0, 10),
+      startTime: r.startTime ?? r.time ?? '',
+      endTime: r.endTime ?? '',
+      platform: r.platform ?? 'Google Meet',
+      meetLink: r.meetLink,
+      status: r.status ?? 'Scheduled',
+      panel: Array.isArray(r.panel)
+        ? r.panel
+        : (Array.isArray(r.interviewers)
+          ? r.interviewers.map((name: string) => ({ employeeId: name, fullName: name, role: 'Interviewer', vote: 'Pending' as any }))
+          : []),
+      createdAt: r.createdAt ?? '',
+      updatedAt: r.updatedAt ?? '',
     };
-
   }
 
   filteredInterviews(): Interview[] {
@@ -244,44 +280,44 @@ export class InterviewListComponent implements OnInit {
       this.postponeError = 'End time must be after start time.';
       return;
     }
-    if (interview) {
-      const panelIds = interview.panel.map((item) => item.employeeId);
-      const interviewerConflicts = this.mockData.getInterviewerConflicts(
-        panelIds,
-        interviewDate,
-        startTime,
-        endTime,
-        this.postponeInterviewId,
-      );
-      if (interviewerConflicts.length > 0) {
-        this.postponeError = `Conflict: ${interviewerConflicts.join(', ')} already has another interview at this time.`;
-        return;
-      }
+    // if (interview) {
+    //   const panelIds = interview.panel.map((item) => item.employeeId);
+    //   const interviewerConflicts = this.mockData.getInterviewerConflicts(
+    //     panelIds,
+    //     interviewDate,
+    //     startTime,
+    //     endTime,
+    //     this.postponeInterviewId,
+    //   );
+    //   if (interviewerConflicts.length > 0) {
+    //     this.postponeError = `Conflict: ${interviewerConflicts.join(', ')} already has another interview at this time.`;
+    //     return;
+    //   }
 
-      const applicantId =
-        interview.application?.applicantId ?? interview.applicant?.id;
-      if (applicantId) {
-        const applicantConflicts = this.mockData.getApplicantInterviewConflicts(
-          applicantId,
-          interviewDate,
-          startTime,
-          endTime,
-          this.postponeInterviewId,
-        );
-        if (applicantConflicts.length > 0) {
-          this.postponeError =
-            'This applicant already has another interview at the selected time.';
-          return;
-        }
-      }
-    }
+    //   const applicantId =
+    //     interview.application?.applicantId ?? interview.applicant?.id;
+    //   if (applicantId) {
+    //     const applicantConflicts = this.mockData.getApplicantInterviewConflicts(
+    //       applicantId,
+    //       interviewDate,
+    //       startTime,
+    //       endTime,
+    //       this.postponeInterviewId,
+    //     );
+    //     if (applicantConflicts.length > 0) {
+    //       this.postponeError =
+    //         'This applicant already has another interview at the selected time.';
+    //       return;
+    //     }
+    //   }
+    // }
 
     const startISO = `${interviewDate}T${startTime}:00`;
     const endISO = `${interviewDate}T${endTime}:00`;
 
     const payload = {
       title: this.selectedInterview()?.title || 'Rescheduled Interview',
-      description: reason,
+      description: reason ? String(reason) : '',
       startTime: startISO,
       endTime: endISO
     };
@@ -381,22 +417,22 @@ export class InterviewListComponent implements OnInit {
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   getApplicantName(item: Interview): string {
-    // return item.application?.applicant?.fullName ?? item.applicant?.fullName ?? '—';
-    return item.application?.applicant?.user?.fullName
-      ?? item.applicant?.user?.fullName
-      ?? '—';
+    return item.application?.applicant?.fullName ?? item.applicant?.fullName ?? '—';
   }
 
   applicantDisplayId(id?: string) {
-    return formatDisplayId('A', id);
+    // return formatDisplayId('A', id);
+    return formatDisplayId('A', String(id));
   }
 
   vacancyDisplayId(id?: string) {
-    return formatDisplayId('V', id);
+    // return formatDisplayId('V', id);
+    return formatDisplayId('V', String(id));
   }
 
   applicationDisplayId(id?: string) {
-    return formatDisplayId('R', id);
+    // return formatDisplayId('R', id);
+    return formatDisplayId('R', String(id));
   }
 
   canSubmitResult(): boolean {
@@ -412,31 +448,19 @@ export class InterviewListComponent implements OnInit {
   }
 
   getVacancyTitle(item: Interview): string {
-    // return item.application?.vacancy?.title ?? item.vacancy?.title ?? '—';
-    return item.application?.applicant?.user?.email
-      ?? item.applicant?.user?.email
-      ?? '—';
+    return item.application?.vacancy?.title ?? item.vacancy?.title ?? '—';
   }
 
   getApplicantEmail(item: Interview): string {
-    // return item.application?.applicant?.email ?? item.applicant?.email ?? '—';
-    return item.application?.applicant?.user?.email
-      ?? item.applicant?.user?.email
-      ?? '—';
+    return item.application?.applicant?.email ?? item.applicant?.email ?? '—';
   }
 
   getApplicantId(item: Interview): string | undefined {
-    // return item.application?.applicantId ?? item.applicant?.id;
-    return item.application?.applicantId
-      ?? item.applicant?.id
-      ?? '—';
+    return item.application?.applicantId ?? item.applicant?.id;
   }
 
   getVacancyId(item: Interview): string | undefined {
-    // return item.application?.vacancyId ?? item.vacancy?.id;
-    return item.application?.vacancyId
-      ?? item.vacancy?.id
-      ?? '—';
+    return item.application?.vacancyId ?? item.vacancy?.id;
   }
 
   clearFilters() {

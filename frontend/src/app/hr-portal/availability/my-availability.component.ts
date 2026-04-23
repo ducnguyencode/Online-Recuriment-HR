@@ -36,7 +36,7 @@ export class MyAvailabilityComponent implements OnInit {
             return;
         }
         const payload = {
-            employeeId: this.employeeId,
+            employeeId: String(this.employeeId),
             ...this.newSlot
         };
         this.interviewService.addAvailability(payload).subscribe({

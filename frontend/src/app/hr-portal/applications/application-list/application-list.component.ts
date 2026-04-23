@@ -106,7 +106,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadVacancies();
@@ -580,23 +580,23 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       startTime,
       endTime,
     );
-    if (conflicts.length > 0) {
-      this.interviewError = `Conflict: ${conflicts.join(', ')} already has an interview at this time.`;
-      return;
-    }
-    if (applicantId) {
-      const applicantConflicts = this.mockData.getApplicantInterviewConflicts(
-        applicantId,
-        date,
-        startTime,
-        endTime,
-      );
-      if (applicantConflicts.length > 0) {
-        this.interviewError =
-          'This applicant already has another interview at the selected time.';
-        return;
-      }
-    }
+    // if (conflicts.length > 0) {
+    //   this.interviewError = `Conflict: ${conflicts.join(', ')} already has an interview at this time.`;
+    //   return;
+    // }
+    // if (applicantId) {
+    //   const applicantConflicts = this.mockData.getApplicantInterviewConflicts(
+    //     applicantId,
+    //     date,
+    //     startTime,
+    //     endTime,
+    //   );
+    //   if (applicantConflicts.length > 0) {
+    //     this.interviewError =
+    //       'This applicant already has another interview at the selected time.';
+    //     return;
+    //   }
+    // }
 
     const startISO = `${date}T${startTime}:00`;
     const endISO = `${date}T${endTime}:00`;
@@ -615,18 +615,18 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     //   platform,
     // };
     const dto: any = {
-      applicationId: Number(applicationId), // BẮT BUỘC ÉP KIỂU SỐ (Vì Backend DTO dùng @IsNumber)
+      applicationId: Number(applicationId),
       title,
-      description: description || '',
+      description: description ? String(description) : 'Interview Session',
       panel: this.selectedPanelIds.map((id) => ({
-        employeeId: String(id), // Ép kiểu chuỗi cho chắc chắn
+        employeeId: String(id),
         role:
           this.availableInterviewers().find((e) => e.id === id)?.position ??
           'Interviewer',
       })),
       startTime: startISO,
       endTime: endISO,
-      platform,
+      // platform,
     };
 
     // this.interviewService.schedule(dto).subscribe({
