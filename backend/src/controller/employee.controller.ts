@@ -4,6 +4,7 @@ import {
   Get,
   HttpStatus,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -48,7 +49,7 @@ export class EmployeeController {
     };
   }
 
-  @Post('update-account')
+  @Put('update-account')
   @UseGuards(JwtAuthGuard)
   async updateAccount(
     @Body() employeeUpdateDto: EmployeeUpdateDto,

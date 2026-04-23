@@ -30,7 +30,7 @@ export class UserService {
     private jwtService: JwtService,
     private mailService: MailService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   async findByEmail(email: string) {
     return await this.userTable.findOne({ where: { email } });

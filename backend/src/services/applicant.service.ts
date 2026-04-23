@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Applicant } from 'src/entities/applicant.entity';
 import { Brackets, Repository } from 'typeorm';
@@ -9,11 +13,16 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
 import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
 import { ApplicantStatus, UserRole } from 'src/common/enum';
+import { SafeUserDto } from 'src/dto/user/safe.user.dto';
+import { User } from 'src/entities/user.entity';
+import { signToken } from 'src/helper/function.helper';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class ApplicantService {
   constructor(
     @InjectRepository(Applicant) private applicantsTable: Repository<Applicant>,
+    private jwtService: JwtService,
   ) {}
 
   async findAll(
@@ -105,14 +114,45 @@ export class ApplicantService {
     return this.applicantsTable.save(applicant);
   }
 
-  update(id: number, data: ApplicantUpdateDto) {
-    return this.applicantsTable.manager.transaction(async (manager) => {
-      const applicant = await this.applicantsTable.findOneBy({ id });
-      if (!applicant) {
-        throw new NotFoundException('Applicant not found');
-      }
-      Object.assign(applicant, data);
-      return await manager.save(applicant);
-    });
+  async updateAccount(data: ApplicantUpdateDto, safeUser: SafeUserDto) {
+    if (
+      data.email == safeUser.email &&
+      data.fullName == safeUser.fullName &&
+      data.phone == safeUser.phone
+    ) {
+      return null;
+    }
+    const user = await this.applicantsTable.manager.transaction(
+      async (manager) => {
+        const currentUser = await manager
+          .createQueryBuilder(User, 'user')
+          .setLock('pessimistic_write')
+          .where('user.email = :email', { email: safeUser.email })
+          .getOneOrFail();
+
+        const exising = await manager
+          .createQueryBuilder(User, 'user')
+          .setLock('pessimistic_write')
+          .where('user.email = :email', { email: data.email })
+          .getOne();
+
+        if (exising && exising.id != currentUser.id) {
+          throw new ConflictException('Email already exist');
+        }
+
+        currentUser.email = data.email;
+        currentUser.fullName = data.fullName;
+
+        try {
+          return await manager.save(currentUser);
+        } catch (e: any) {
+          if (e.code === '23505') {
+            throw new ConflictException('Email already exist');
+          }
+          throw e;
+        }
+      },
+    );
+    return signToken(user, this.jwtService);
   }
 }

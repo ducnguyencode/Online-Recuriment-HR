@@ -240,12 +240,12 @@ export class ProfileComponent {
       .subscribe({
         next: (res) => {
           this.auth.handleUpdateAccountSuccess(res);
+          this.detailMessage.set('Profile details updated successfully.');
         },
         error: (err) => {
           this.detailMessage.set(err.error.message);
         },
       });
-    this.detailMessage.set('Profile details updated successfully.');
     setTimeout(() => this.detailMessage.set(''), 2500);
   }
 

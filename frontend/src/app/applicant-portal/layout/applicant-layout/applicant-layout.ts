@@ -8,34 +8,34 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './applicant-layout.html',
-  styleUrls: ['./applicant-layout.scss']
+  styleUrls: ['./applicant-layout.scss'],
 })
 export class ApplicantLayoutComponent implements OnInit {
-  private auth = inject(AuthService);
+  protected auth = inject(AuthService);
   private router = inject(Router);
 
-  userName: string = 'Applicant';
-  isLoggedIn: boolean = false;
+  // userName: string = 'Applicant';
+  // isLoggedIn: boolean = false;
 
   ngOnInit() {
-    // Khôi phục logic check đăng nhập thật từ AuthService
-    this.isLoggedIn = this.auth.isLoggedIn() && this.auth.isApplicant();
-
-    if (this.isLoggedIn) {
-      this.userName = localStorage.getItem('userFullName') || 'Applicant';
-    }
+    // // Khôi phục logic check đăng nhập thật từ AuthService
+    // this.isLoggedIn = this.auth.isLoggedIn() && this.auth.isApplicant();
+    // if (this.isLoggedIn) {
+    //   this.userName = localStorage.getItem('userFullName') || 'Applicant';
+    // }
   }
 
   logout() {
-    localStorage.removeItem('userFullName');
+    this.auth.logout();
+    //   localStorage.removeItem('userFullName');
 
-    if (typeof this.auth.logout === 'function') {
-      this.auth.logout();
-    } else {
-      localStorage.removeItem('token');
-    }
+    //   if (typeof this.auth.logout === 'function') {
+    //     this.auth.logout();
+    //   } else {
+    //     localStorage.removeItem('token');
+    //   }
 
-    this.isLoggedIn = false;
-    this.router.navigate(['/login']);
+    //   this.isLoggedIn = false;
+    //   this.router.navigate(['/login']);
   }
 }
