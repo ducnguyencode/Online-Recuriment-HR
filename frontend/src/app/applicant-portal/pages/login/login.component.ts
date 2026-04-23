@@ -66,15 +66,15 @@ export class LoginComponent implements OnInit {
         // ==========================================
         // ĐIỂM CHẶN 2FA CHO HR NẰM Ở ĐÂY
         // ==========================================
-        if (this.selectedRole === UserRoleLogin.HR) {
-          this.isLoading = false;
-          this.tempLoginRes = res; // Lưu tạm cái cục token/data lại
+        // if (this.selectedRole === UserRoleLogin.HR) {
+        //   this.isLoading = false;
+        //   this.tempLoginRes = res; // Lưu tạm cái cục token/data lại
 
-          // Tạm thời bật giao diện SETUP_2FA để ông test UI.
-          // Sau này Backend trả thêm cờ (vd: res.data.requires2FA) thì ông if/else ở đây
-          this.currentStep = 'SETUP_2FA';
-          return;
-        }
+        //   // Tạm thời bật giao diện SETUP_2FA để ông test UI.
+        //   // Sau này Backend trả thêm cờ (vd: res.data.requires2FA) thì ông if/else ở đây
+        //   this.currentStep = 'SETUP_2FA';
+        //   return;
+        // }
 
         // Nếu là Ứng viên thì vô thẳng như cũ
         this.auth.handleLoginSuccess(res, this.selectedRole);
