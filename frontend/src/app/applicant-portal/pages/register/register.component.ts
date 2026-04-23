@@ -1,48 +1,54 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
-  templateUrl: './register.component.html',
-  styleUrls: ['./register.component.scss']
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  templateUrl: './register.component.html'
 })
 export class RegisterComponent {
-  private auth = inject(AuthService);
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
   private router = inject(Router);
 
-  // Model to bind registration form data
-  form = {
-    fullName: '',
-    email: '',
-    password: '',
-    phone: ''
-  };
-
   isLoading = false;
-  errorMessage = '';
+  formError = '';
 
-  /**
-   * Submit registration data to the server via AuthService
-   */
+  // 1. Thêm trường 'phone' vào group để hết lỗi TS2345
+  registerForm = this.fb.group({
+    fullName: ['', [Validators.required]],
+    email: ['', [Validators.required, Validators.email]],
+    phone: ['', [Validators.required, Validators.pattern('^[0-9]{10,11}$')]], // Thêm phone ở đây
+    password: ['', [Validators.required, Validators.minLength(6)]]
+  });
+
   onSubmit() {
-    this.isLoading = true;
-    this.errorMessage = '';
+    if (this.registerForm.invalid) {
+      this.formError = 'Vui lòng kiểm tra lại thông tin nhập liệu.';
+      return;
+    }
 
-    this.auth.register(this.form).subscribe({
+    this.isLoading = true;
+    this.formError = '';
+
+    // 2. Ép kiểu 'as any' để bypass qua cái Partial của Reactive Form
+    const signUpData = this.registerForm.value as any;
+
+    this.authService.register(signUpData).subscribe({
       next: (res) => {
         this.isLoading = false;
-        // Notify user and redirect to login for email verification
-        alert('Registration successful! Please check your email to verify your account.');
-        this.router.navigate(['/login']);
+        // Điều hướng sang trang verify kèm thông tin email
+        this.router.navigate(['/verify-email'], {
+          queryParams: { email: signUpData.email, registered: 'true' }
+        });
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.error?.message || 'Registration failed. Please try again.';
+        this.formError = err.error?.message || 'Đăng ký thất bại, vui lòng thử lại.';
       }
     });
   }
