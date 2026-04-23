@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { VacancyService } from '../../../core/services/vacancy.service';
@@ -19,61 +19,31 @@ import {
   styleUrls: ['./careers.scss'],
 })
 export class CareersComponent implements OnInit {
+  // --- SIGNALS ---
   vacancies = signal<Vacancy[]>([]);
   loading = signal(false);
   errorMsg = signal('');
 
-  // Filters
+  // --- FILTERS ---
   searchQuery = '';
   filterStatus: VacancyStatus = VacancyStatus.OPENED;
   filterDepartment = '';
 
+  // --- MODAL & FORM ---
   isApplyModalOpen = false;
   selectedJobTitle = '';
-
   applyForm = { applicantId: '', fullName: '', email: '', vacancyId: '' };
-  cvUploadFile: File | null = null;
+
+  // Quản lý File CV bằng Signal để UI cập nhật ngay lập tức
+  cvUploadFile = signal<File | null>(null);
+  // Computed để hiển thị tên file ngoài HTML (Fix lỗi chị Vũ nhắc)
+  selectedFileName = computed(() => this.cvUploadFile()?.name || '');
 
   private router = inject(Router);
   private vacancyService = inject(VacancyService);
   private auth = inject(AuthService);
   private applicantService = inject(ApplicantService);
   private applicationService = inject(ApplicationService);
-  private mockData = [
-    {
-      id: 'V0001',
-      title: 'Senior Frontend Developer (Angular)',
-      description:
-        'Lead the development of our recruitment platform using Angular 17 and Tailwind CSS.',
-      department: { name: 'Engineering' },
-      createdAt: new Date().toISOString(),
-      closingDate: '2026-06-30',
-      numberOfOpenings: 2,
-      isFavorite: false,
-    },
-    {
-      id: 'V0002',
-      title: 'Backend Developer (NestJS)',
-      description:
-        'Build scalable microservices and manage MongoDB databases for high-traffic applications.',
-      department: { name: 'Engineering' },
-      createdAt: new Date().toISOString(),
-      closingDate: '2026-07-15',
-      numberOfOpenings: 5,
-      isFavorite: true,
-    },
-    {
-      id: 'V0003',
-      title: 'UI/UX Product Designer',
-      description:
-        'Design intuitive and beautiful user interfaces for our applicant tracking system.',
-      department: { name: 'Design' },
-      createdAt: new Date().toISOString(),
-      closingDate: '2026-05-20',
-      numberOfOpenings: 1,
-      isFavorite: false,
-    },
-  ];
 
   ngOnInit() {
     this.fetchJobs();
@@ -96,7 +66,7 @@ export class CareersComponent implements OnInit {
           this.loading.set(false);
         },
         error: (err) => {
-          this.errorMsg = err.error.message;
+          this.errorMsg.set(err.error?.message || 'Failed to fetch jobs');
           this.loading.set(false);
         },
       });
@@ -106,13 +76,15 @@ export class CareersComponent implements OnInit {
     job.isFavorite = !job.isFavorite;
   }
 
+  // THAY ALERT BẰNG LOGIC KHÁC (HOẶC ĐIỀU HƯỚNG) THEO Ý CHỊ VŨ
   viewDetails(job: any) {
-    alert('Opening details for: ' + job.title);
+    console.log('Navigating to details for:', job.title);
+    // Ví dụ: điều hướng sang trang chi tiết thay vì alert
+    // this.router.navigate(['/careers', job.id]);
   }
 
   applyJob(vacancy: Vacancy) {
     if (!this.auth.isLoggedIn()) {
-      // Redirect to login if user is not authenticated
       this.router.navigate(['/login']);
     } else {
       this.selectedJobTitle = vacancy.title;
@@ -123,30 +95,36 @@ export class CareersComponent implements OnInit {
         vacancyId: vacancy.id,
         email: this.auth.currentUser()?.email || '',
       };
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      document.body.style.overflow = 'hidden';
     }
   }
 
   closeApplyModal() {
     this.isApplyModalOpen = false;
-    this.applyForm = {
-      applicantId: '',
-      fullName: '',
-      email: '',
-      vacancyId: '',
-    };
-    this.cvUploadFile = null;
+    this.applyForm = { applicantId: '', fullName: '', email: '', vacancyId: '' };
+    this.cvUploadFile.set(null); // Reset file signal
     document.body.style.overflow = 'auto';
   }
 
+  // FIX: Cập nhật signal khi chọn file
   selectCvFile(event: any) {
-    this.cvUploadFile = event.target.files[0];
+    const file = event.target.files[0];
+    if (file) {
+      this.cvUploadFile.set(file);
+    }
   }
 
   submitApplication() {
+    if (!this.cvUploadFile()) {
+      this.errorMsg.set('Please upload your CV first!');
+      return;
+    }
+
+    this.loading.set(true);
     const formData = new FormData();
     formData.append('applicantId', this.applyForm.applicantId);
-    formData.append('file', this.cvUploadFile || '');
+    formData.append('file', this.cvUploadFile() as File);
+
     this.applicantService.uploadCv(formData).subscribe({
       next: (res) => {
         if (res.data) {
@@ -157,17 +135,21 @@ export class CareersComponent implements OnInit {
           };
           this.applicationService.create(dto).subscribe({
             next: (res) => {
+              this.loading.set(false);
               this.closeApplyModal();
+              // Ở đây có thể điều hướng hoặc hiện Toast thành công
             },
             error: (err) => {
-              console.log(err);
+              this.loading.set(false);
+              this.errorMsg.set('Failed to submit application');
             },
           });
         }
       },
-      error: (err) => {},
+      error: (err) => {
+        this.loading.set(false);
+        this.errorMsg.set('Failed to upload CV');
+      },
     });
-    console.log(this.applyForm);
-    console.log(this.cvUploadFile);
   }
 }
