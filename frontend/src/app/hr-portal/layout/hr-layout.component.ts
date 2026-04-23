@@ -58,16 +58,16 @@ import { NotificationService } from '../../core/services/notification.service';
             </button>
             <div class="header-user">
               <div class="header-avatar">
-                {{ authService.currentUser()?.fullName?.charAt(0) || '?' }}
+                {{ authService.currentUser()!.fullName!.charAt(0) || '?' }}
               </div>
               <div class="header-user-copy">
                 <span class="header-username">{{
-                  authService.currentUser()?.fullName
+                  authService.currentUser()!.fullName
                 }}</span>
                 <span class="header-user-meta">{{
-                  authService.currentUser()?.employeeId ||
-                    authService.currentUser()?.applicantId ||
-                    authService.currentUser()?.role
+                  authService.currentUser()!.employeeId ||
+                    authService.currentUser()!.applicantId ||
+                    authService.currentUser()!.role
                 }}</span>
               </div>
             </div>

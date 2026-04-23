@@ -29,6 +29,10 @@ export class User {
   @JoinColumn({ name: 'applicantId' })
   applicant!: Applicant;
 
+  @Expose()
+  @Column({ nullable: true })
+  applicantId!: number;
+
   @OneToOne(() => Employee, (e) => e.user, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'employeeId' })
   employee!: Employee;

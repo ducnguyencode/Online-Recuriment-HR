@@ -3,8 +3,8 @@
     <div>
       <h1 class="page-title">Employee Accounts</h1>
       <p class="page-subtitle">
-        Create and manage HR and Interviewer accounts. Login credentials are
-        emailed automatically on creation.
+        Create and manage HR and Interviewer accounts. Activation instructions
+        are emailed automatically on creation.
       </p>
     </div>
     <button class="btn-primary header-action" (click)="openCreateDialog()">
@@ -78,12 +78,13 @@
 
   @if (loading()) {
     <div class="loading-state">Loading accounts…</div>
-  } @else if (staffAccounts().length === 0) {
+  } @else if (employees().length === 0) {
     <div class="empty-state">
       <p class="empty-title">No staff accounts yet</p>
       <p class="empty-hint">
         Click <strong>Create staff account</strong> to add your first HR or
-        Interviewer. The system will email login instructions automatically.
+        Interviewer. The system will email activation instructions
+        automatically.
       </p>
     </div>
   } @else {
@@ -100,48 +101,56 @@
           </tr>
         </thead>
         <tbody>
-          @for (staff of staffAccounts(); track staff.id) {
+          @for (employee of employees(); track employee.id) {
             <tr>
               <td>
                 <div class="user-cell">
                   <div class="avatar">
-                    {{ getInitials(staff.fullName) }}
+                    {{ getInitials(employee.user!.fullName) }}
                   </div>
                   <div>
-                    <div class="user-name">{{ staff.fullName }}</div>
-                    <div class="user-meta">ID: {{ staff.id }}</div>
+                    <div class="user-name">{{ employee.user!.fullName }}</div>
+                    <div class="user-meta">ID: {{ employee.code }}</div>
                   </div>
                 </div>
               </td>
-              <td>{{ staff.email }}</td>
+              <td>{{ employee.user!.email }}</td>
               <td>
                 <span
                   class="badge"
-                  [class]="roleBadgeClass(staff.role)"
+                  [class]="roleBadgeClass(employee.user!.role)"
                 >
-                  {{ staff.role }}
+                  {{ employee.user!.role }}
                 </span>
               </td>
               <td>
-                @if (staff.isVerified) {
+                @if (employee.user?.isVerified) {
                   <span class="badge badge-success">Verified</span>
                 } @else {
                   <span class="badge badge-danger">Unverified</span>
                 }
               </td>
-              <td>{{ staff.createdAt | date: "MM/dd/yyyy" }}</td>
+              <td>{{ employee.createdAt | date: "MM/dd/yyyy" }}</td>
               <td class="actions-cell">
-                <button class="btn-ghost btn-sm" (click)="openEditDialog(staff)">
-                  Edit
-                </button>
+                @if (!employee.user!.isVerified) {
+                  <button
+                    class="btn-ghost btn-sm"
+                    (click)="resendCredentials(employee.user)"
+                    title="Resend activation email"
+                  >
+                    Resend invite
+                  </button>
+                }
                 <button
                   class="btn-ghost btn-sm"
-                  (click)="toggleActive(staff)"
+                  (click)="toggleActive(employee.user)"
                   [title]="
-                    staff.isActive ? 'Deactivate account' : 'Activate account'
+                    employee.user!.isVerified
+                      ? 'Unverify account'
+                      : 'Verify account'
                   "
                 >
-                  {{ staff.isActive ? "Deactivate" : "Activate" }}
+                  {{ employee.user!.isVerified ? "Unverify" : "Verify" }}
                 </button>
               </td>
             </tr>
@@ -185,19 +194,16 @@
   <div class="modal-backdrop" (click)="closeCreateDialog()"></div>
   <div class="modal">
     <div class="modal-header">
-      <h2>{{ isEditingMode() ? "Edit staff account" : "Create staff account" }}</h2>
+      <h2>Create staff account</h2>
       <button class="btn-ghost btn-icon" (click)="closeCreateDialog()">
         ×
       </button>
     </div>
     <div class="modal-body">
       <p class="help-text">
-        @if (isEditingMode()) {
-          Update staff information and keep account settings aligned.
-        } @else {
-          The system sends an activation email to the address below. The new user
-          will set an initial password after verification.
-        }
+        The system will send an activation email to the address below. After
+        verifying the invite, the new user will set an initial password before
+        signing in.
       </p>
 
       <label class="form-label" for="staff-email"
@@ -209,7 +215,6 @@
         class="form-input"
         placeholder="new.staff@abc.com"
         [(ngModel)]="formData.email"
-        [disabled]="isEditingMode()"
       />
 
       <label class="form-label" for="staff-name"
@@ -276,15 +281,7 @@
         Cancel
       </button>
       <button class="btn-primary" (click)="saveStaff()" [disabled]="creating()">
-        {{
-          creating()
-            ? isEditingMode()
-              ? "Saving..."
-              : "Creating..."
-            : isEditingMode()
-              ? "Save changes"
-              : "Create account"
-        }}
+        {{ creating() ? "Creating…" : "Create account" }}
       </button>
     </div>
   </div>

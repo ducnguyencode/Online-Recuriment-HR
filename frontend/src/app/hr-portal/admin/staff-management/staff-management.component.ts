@@ -4,25 +4,20 @@ import { FormsModule } from '@angular/forms';
 import {
   AdminUserService,
   CreateStaffAccountDto,
-  UpdateStaffAccountDto,
 } from '../../../core/services/admin-user.service';
 import { DepartmentService } from '../../../core/services/department.service';
-import { Department, UserRole } from '../../../core/models';
+import {
+  Department,
+  Employee,
+  UserAccount,
+  UserRole,
+} from '../../../core/models';
+import {
+  CreateEmployeeDto,
+  EmployeeService,
+} from '../../../core/services/employee.service';
 
 type StaffRole = Extract<UserRole, 'HR' | 'Interviewer'>;
-type StaffAccountRow = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: UserRole;
-  isVerified: boolean;
-  isActive: boolean;
-  createdAt?: string | Date;
-  phone?: string;
-  departmentId?: string;
-  departmentName?: string;
-  position?: string;
-};
 
 @Component({
   selector: 'app-staff-management',
@@ -33,7 +28,7 @@ type StaffAccountRow = {
 })
 export class StaffManagementComponent implements OnInit {
   UserRole = UserRole;
-  staffAccounts = signal<StaffAccountRow[]>([]);
+  employees = signal<Employee[]>([]);
   departments = signal<Department[]>([]);
   loading = signal(false);
   errorMsg = signal('');
@@ -58,11 +53,11 @@ export class StaffManagementComponent implements OnInit {
     position: '',
     phone: '',
   };
-  editingUserId = signal<string | null>(null);
 
   constructor(
     private adminService: AdminUserService,
     private departmentService: DepartmentService,
+    private employeeService: EmployeeService,
   ) {}
 
   ngOnInit() {
@@ -81,7 +76,7 @@ export class StaffManagementComponent implements OnInit {
   loadUsers() {
     this.loading.set(true);
     this.errorMsg.set('');
-    this.adminService
+    this.employeeService
       .getAll({
         role: this.filterRole() || undefined,
         departmentId: this.filterDepartment() || undefined,
@@ -100,29 +95,13 @@ export class StaffManagementComponent implements OnInit {
             (res.data as any)?.totalPage ??
             (res.data as any)?.totalPages ??
             Math.max(1, Math.ceil(totalItems / this.pageSize));
-          this.staffAccounts.set(
-            items.map((row: any) => ({
-              id: String(row.id),
-              fullName: row.fullName,
-              email: row.email,
-              role: row.role,
-              isVerified: !!row.isVerified,
-              isActive: !!row.isActive,
-              createdAt: row.createdAt,
-              phone: row.phone ?? '',
-              departmentId: row.employee?.department?.id
-                ? String(row.employee.department.id)
-                : '',
-              departmentName: row.employee?.department?.name ?? '',
-              position: row.employee?.jobTitle ?? '',
-            })),
-          );
+          this.employees.set(items);
           this.totalItems.set(totalItems);
           this.totalPages.set(totalPages);
           this.loading.set(false);
         },
         error: () => {
-          this.staffAccounts.set([]);
+          this.employees.set([]);
           this.totalItems.set(0);
           this.totalPages.set(1);
           this.errorMsg.set('');
@@ -160,22 +139,6 @@ export class StaffManagementComponent implements OnInit {
     };
     this.formError.set('');
     this.formSuccess.set('');
-    this.editingUserId.set(null);
-    this.showCreateDialog.set(true);
-  }
-
-  openEditDialog(staff: StaffAccountRow) {
-    this.formData = {
-      email: staff.email,
-      fullName: staff.fullName,
-      role: staff.role as StaffRole,
-      departmentId: staff.departmentId ?? '',
-      position: staff.position ?? '',
-      phone: staff.phone ?? '',
-    };
-    this.formError.set('');
-    this.formSuccess.set('');
-    this.editingUserId.set(staff.id);
     this.showCreateDialog.set(true);
   }
 
@@ -183,7 +146,6 @@ export class StaffManagementComponent implements OnInit {
     this.showCreateDialog.set(false);
     this.formError.set('');
     this.formSuccess.set('');
-    this.editingUserId.set(null);
   }
 
   saveStaff() {
@@ -207,37 +169,24 @@ export class StaffManagementComponent implements OnInit {
       return;
     }
 
-    const createDto: CreateStaffAccountDto = {
+    const dto: CreateEmployeeDto = {
       ...this.formData,
       email,
       fullName,
       departmentId: this.formData.departmentId,
-      position: this.formData.position?.trim() || undefined,
-      phone: this.formData.phone?.trim() || undefined,
-    };
-    const updateDto: UpdateStaffAccountDto = {
-      fullName,
-      role: this.formData.role,
-      departmentId: this.formData.departmentId,
-      position: this.formData.position?.trim() || undefined,
+      jobTitle: this.formData.position?.trim() || undefined,
       phone: this.formData.phone?.trim() || undefined,
     };
 
     this.creating.set(true);
     this.formError.set('');
-    const editingUserId = this.editingUserId();
-    const request$ = editingUserId
-      ? this.adminService.updateStaff(editingUserId, updateDto)
-      : this.adminService.createStaff(createDto);
-    request$.subscribe({
+    this.employeeService.create(dto).subscribe({
       next: () => {
         this.creating.set(false);
         this.formSuccess.set(
-          editingUserId
-            ? 'Staff account updated successfully.'
-            : `Account created. An activation email has been sent to ${email}.`,
+          `Invitation sent to ${email}. ` +
+            `After verifying the email, the user will set an initial password before signing in.`,
         );
-        this.closeCreateDialog();
         this.loadUsers();
       },
       error: (err) => {
@@ -250,18 +199,27 @@ export class StaffManagementComponent implements OnInit {
     });
   }
 
-  roleBadgeClass(role?: string): string {
-    if (role === 'HR') return 'badge-info';
-    if (role === 'Interviewer') return 'badge-warning';
-    if (role === 'Superadmin') return 'badge-success';
-    return 'badge-neutral';
+  resendCredentials(user: UserAccount | undefined) {
+    if (!user) return;
+    if (!confirm(`Resend the activation email to ${user.email}?`)) return;
+    this.adminService.resendTemporaryPassword(user.id).subscribe({
+      next: () =>
+        this.formSuccess.set(
+          `A new activation email has been sent to ${user.email}.`,
+        ),
+      error: (err) =>
+        this.errorMsg.set(
+          err?.error?.message ??
+            'Unable to resend credentials. Please try again.',
+        ),
+    });
   }
 
-  toggleActive(staff: StaffAccountRow | undefined) {
-    if (!staff) return;
-    const fn = staff.isActive
-      ? this.adminService.deactivate(staff.id)
-      : this.adminService.activate(staff.id);
+  toggleActive(user: UserAccount | undefined) {
+    if (!user) return;
+    const fn = user.isActive
+      ? this.adminService.deactivate(user.id)
+      : this.adminService.activate(user.id);
     fn.subscribe({
       next: () => this.loadUsers(),
       error: (err) =>
@@ -272,8 +230,11 @@ export class StaffManagementComponent implements OnInit {
     });
   }
 
-  isEditingMode() {
-    return !!this.editingUserId();
+  roleBadgeClass(role?: string): string {
+    if (role === 'HR') return 'badge-info';
+    if (role === 'Interviewer') return 'badge-warning';
+    if (role === 'Superadmin') return 'badge-success';
+    return 'badge-neutral';
   }
 
   getInitials(name: string | undefined): string {

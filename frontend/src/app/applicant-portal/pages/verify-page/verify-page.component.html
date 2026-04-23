@@ -20,6 +20,11 @@
       <div class="mb-4">
         {{ description() }}
       </div>
+      @if (verifiedEmail(); as email) {
+        <div class="text-sm text-slate-500">
+          Account: <strong class="text-slate-700">{{ email }}</strong>
+        </div>
+      }
 
       @if (needsInitialPassword()) {
         <div class="text-left">
@@ -48,9 +53,9 @@
 
       <button
         class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
-        (click)="returnLogin()"
+        (click)="handlePrimaryAction()"
       >
-        Return to login
+        {{ actionLabel() }}
       </button>
     </div>
   </div>

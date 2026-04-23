@@ -7,6 +7,7 @@ import {
   PaginatedResponse,
   Applicant,
   ApplicantStatus,
+  UpdateAccountResponse,
 } from '../models';
 
 export interface ApplicantFilters {
@@ -49,11 +50,25 @@ export class ApplicantService {
     return this.http.post<ApiResponse<Applicant>>(`${this.base}/create`, dto);
   }
 
+  uploadCv(formData: FormData): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(
+      `${environment.apiUrl}/cv/create`,
+      formData,
+    );
+  }
+
   update(
     id: string,
     dto: Partial<CreateApplicantDto>,
   ): Observable<ApiResponse<Applicant>> {
     return this.http.put<ApiResponse<Applicant>>(`${this.base}/${id}`, dto);
+  }
+
+  updateAccount(dto: { email: string; fullName: string; phone: string }) {
+    return this.http.put<UpdateAccountResponse>(
+      `${this.base}/update-account`,
+      dto,
+    );
   }
 
   changeStatus(

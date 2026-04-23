@@ -1,17 +1,10 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
-import { RouterModule } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 import { UserRole, UserRoleLogin } from '../../../core/models';
 
-enum AuthView {
-  LOGIN = 'Login',
-  REGISTER = 'Register',
-  FORGOT = 'Forgot',
-  VERIFY_EMAIL = 'Verify email',
-}
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -21,114 +14,98 @@ enum AuthView {
 })
 export class LoginComponent implements OnInit {
   private auth = inject(AuthService);
-  private route = inject(ActivatedRoute);
-  AuthView = AuthView;
+  private router = inject(Router);
+
+  // Expose enum to HTML template
   UserRoleLogin = UserRoleLogin;
-  currentView: AuthView = AuthView.LOGIN;
+
   selectedRole: UserRoleLogin = UserRoleLogin.APPLICANT;
-  verify_email: string = '';
-  forgot_email: string = '';
-  resetToken: string = '';
-  form = {
-    email: 'applicant@test.com',
-    password: '123456',
-    fullName: '',
-    phone: '',
-  };
+  form = { email: '', password: '' };
   formError = '';
+  isLoading = false;
 
-  constructor() {}
+  // --- BIẾN CHO LUỒNG 2FA ---
+  currentStep: 'LOGIN' | 'SETUP_2FA' | 'VERIFY_2FA' = 'LOGIN';
+  twoFactorCode = '';
+  mockQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=HR_Portal_Auth_Test';
+  tempLoginRes: any; // Biến lưu tạm kết quả login bước 1 để xài cho bước 2
+
   ngOnInit(): void {
-    const resetToken = this.route.snapshot.queryParamMap.get('resetToken');
-    if (resetToken) {
-      this.resetToken = resetToken;
-      this.currentView = AuthView.FORGOT;
-      this.formError = '';
-      this.form.password = '';
+    const path = this.router.url;
+    this.selectedRole = path.includes('hr/login')
+      ? UserRoleLogin.HR
+      : UserRoleLogin.APPLICANT;
+
+    if (this.selectedRole == UserRoleLogin.HR) {
+      this.form = { email: 'admin@test.com', password: '123456' };
+    } else {
+      this.form = { email: 'applicant@test.com', password: '123456' };
     }
-  }
-
-  switchView(view: AuthView) {
-    this.currentView = view;
-    this.verify_email = '';
-    this.forgot_email = '';
-    this.resetToken = '';
-    this.formError = '';
-    this.form = {
-      email: 'applicant@test.com',
-      password: '123456',
-      fullName: '',
-      phone: '',
-    };
-  }
-
-  setRole(role: UserRoleLogin) {
-    this.selectedRole = role;
   }
 
   submit() {
-    switch (this.currentView) {
-      case AuthView.LOGIN:
-        this.auth.login(this.form).subscribe({
-          next: (res) => {
-            if (this.selectedRole == UserRoleLogin.HR) {
-              if (res.data.user.role == UserRole.APPLICANT) {
-                this.formError = 'Email or password not correct!';
-                return;
-              }
-            }
-            this.auth.handleLoginSuccess(res, this.selectedRole);
-          },
-          error: (err) => {
-            this.formError = err.error.message;
-          },
-        });
-        break;
-      case AuthView.REGISTER:
-        this.auth.register(this.form).subscribe({
-          next: (res) => {
-            this.verify_email = res.data.email;
-            this.currentView = AuthView.VERIFY_EMAIL;
-          },
-          error: (err) => {
-            this.formError = err.error.message;
-          },
-        });
-        break;
-      case AuthView.FORGOT:
-        if (this.resetToken) {
-          this.auth.resetPassword(this.resetToken, this.form.password).subscribe({
-            next: () => {
-              this.resetToken = '';
-              this.form.password = '';
-              this.currentView = AuthView.LOGIN;
-              this.formError = '';
-            },
-            error: (err: any) => {
-              this.formError = err.error?.message ?? 'Reset password failed.';
-            },
-          });
-        } else {
-          if (this.forgot_email) {
-            this.switchView(AuthView.LOGIN);
-            return;
-          }
-          this.auth.forgotPassword(this.form.email).subscribe({
-            next: () => {
-              this.formError = '';
-              this.forgot_email = this.form.email.trim();
-            },
-            error: (err: any) => {
-              this.formError =
-                err.error?.message ?? 'Failed to send reset email.';
-              this.forgot_email = '';
-            },
-          });
+    this.formError = '';
+    this.isLoading = true;
+
+    this.auth.login(this.form).subscribe({
+      next: (res) => {
+        const userRole = res.data.user.role;
+
+        if (this.selectedRole === UserRoleLogin.HR && userRole === UserRole.APPLICANT) {
+          this.formError = 'Email or password not correct!';
+          this.isLoading = false;
+          return;
         }
-        break;
-      default:
-        this.switchView(AuthView.LOGIN);
-        break;
+
+        if (this.selectedRole === UserRoleLogin.APPLICANT && userRole !== UserRole.APPLICANT) {
+          this.formError = 'Email or password not correct!';
+          this.isLoading = false;
+          return;
+        }
+
+        // ==========================================
+        // ĐIỂM CHẶN 2FA CHO HR NẰM Ở ĐÂY
+        // ==========================================
+        // if (this.selectedRole === UserRoleLogin.HR) {
+        //   this.isLoading = false;
+        //   this.tempLoginRes = res; // Lưu tạm cái cục token/data lại
+
+        //   // Tạm thời bật giao diện SETUP_2FA để ông test UI.
+        //   // Sau này Backend trả thêm cờ (vd: res.data.requires2FA) thì ông if/else ở đây
+        //   this.currentStep = 'SETUP_2FA';
+        //   return;
+        // }
+
+        // Nếu là Ứng viên thì vô thẳng như cũ
+        this.auth.handleLoginSuccess(res, this.selectedRole);
+      },
+      error: (err) => {
+        this.formError = err.error?.message || 'Email or password not correct!';
+        this.isLoading = false;
+      },
+    });
+  }
+
+  // --- HÀM XÁC THỰC MÃ 6 SỐ CỦA HR ---
+  submit2FA() {
+    this.formError = '';
+    if (this.twoFactorCode.length !== 6) {
+       this.formError = 'Mã xác thực phải gồm 6 chữ số.';
+       return;
     }
+
+    this.isLoading = true;
+
+    // Giả lập gọi API /verify-2fa của anh Đức
+    setTimeout(() => {
+      this.isLoading = false;
+
+      // Sau khi verify thành công, lấy cái cục data đã lưu tạm gọi hàm Success thật!
+      if (this.tempLoginRes) {
+        this.auth.handleLoginSuccess(this.tempLoginRes, this.selectedRole);
+      } else {
+        this.router.navigate(['/hr-portal']);
+      }
+    }, 1500);
   }
 }

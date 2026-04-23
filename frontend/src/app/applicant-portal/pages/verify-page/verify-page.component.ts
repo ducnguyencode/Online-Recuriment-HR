@@ -1,11 +1,11 @@
 import { Component, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { UserRole } from '../../../core/models';
 
 @Component({
   selector: 'app-verify-page',
-  imports: [FormsModule],
+  imports: [],
   templateUrl: './verify-page.component.html',
   styleUrl: './verify-page.component.scss',
 })
@@ -14,38 +14,40 @@ export class VerifyPageComponent {
   readonly description = signal(
     'Please wait while we validate your verification token.',
   );
-  readonly needsInitialPassword = signal(false);
-  readonly activationToken = signal('');
-  readonly formError = signal('');
-  readonly submitting = signal(false);
-  readonly password = signal('');
+  readonly actionLabel = signal('Return to login');
+  readonly verifiedEmail = signal<string | null>(null);
+  readonly goToInitialPassword = signal(false);
+  private token: string | null = null;
 
   constructor(
     private router: Router,
     route: ActivatedRoute,
-    private authService: AuthService,
+    authService: AuthService,
   ) {
-    const token = route.snapshot.queryParamMap.get('token');
+    this.token = route.snapshot.queryParamMap.get('token');
 
-    if (!token) {
+    if (!this.token) {
       this.title.set('Verification token is missing');
       this.description.set('Open the verification link from your email again.');
       return;
     }
 
-    this.authService.verifyEmail(token).subscribe({
+    authService.verifyEmail(this.token).subscribe({
       next: (res) => {
-        const nextStep = (res.data as any)?.nextStep;
-        const activationToken = (res.data as any)?.token as string | undefined;
-        if (nextStep === 'SET_INITIAL_PASSWORD' && activationToken) {
-          this.needsInitialPassword.set(true);
-          this.activationToken.set(activationToken);
+        this.verifiedEmail.set(res.data?.email ?? null);
+        if (
+          res.data?.role === UserRole.HR ||
+          res.data?.role === UserRole.INTERVIEWER
+        ) {
           this.title.set('Email verified');
           this.description.set(
-            'Set your initial password to activate your staff account.',
+            'Your staff invite has been confirmed. Create your initial password to finish activating the account.',
           );
+          this.actionLabel.set('Set initial password');
+          this.goToInitialPassword.set(true);
           return;
         }
+
         this.title.set('Email verified');
         this.description.set(res.message);
       },
@@ -58,32 +60,16 @@ export class VerifyPageComponent {
     });
   }
 
-  submitInitialPassword() {
-    this.formError.set('');
-    if (this.password().trim().length < 6) {
-      this.formError.set('Password must have at least 6 characters.');
-      return;
-    }
-    this.submitting.set(true);
-    this.authService
-      .setInitialPassword(this.activationToken(), this.password().trim())
-      .subscribe({
-        next: (res) => {
-          this.submitting.set(false);
-          this.needsInitialPassword.set(false);
-          this.title.set('Account activated');
-          this.description.set(res.message);
-        },
-        error: (err) => {
-          this.submitting.set(false);
-          this.formError.set(
-            err?.error?.message ?? 'Unable to set initial password.',
-          );
+  handlePrimaryAction() {
+    if (this.goToInitialPassword() && this.token) {
+      this.router.navigate(['/set-initial-password'], {
+        queryParams: {
+          token: this.token,
+          email: this.verifiedEmail() ?? undefined,
         },
       });
-  }
-
-  returnLogin() {
+      return;
+    }
     this.router.navigate(['/login']);
   }
 }

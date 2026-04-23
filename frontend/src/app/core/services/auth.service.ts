@@ -8,9 +8,10 @@ import {
   UserRoleLogin,
   ApiResponse,
   UpdateAccountResponse,
+  SetInitialPasswordResponse,
 } from '../models';
 import { environment } from '../../../environments/environment';
-import { tap } from 'rxjs';
+import { delay, of, tap } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'hr_token';
@@ -86,7 +87,6 @@ export class AuthService {
     fullName: string;
     email: string;
     password: string;
-    phone: string;
   }) {
     return this.http.post<ApiResponse<UserAccount>>(
       `${environment.apiUrl}/auth/register`,
@@ -126,11 +126,28 @@ export class AuthService {
     localStorage.setItem(this.TOKEN_KEY, access_token);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.currentUser.set(user);
+
     if (userRoleLogin == UserRoleLogin.HR) {
       this.router.navigate(['/hr-portal']);
       return;
     }
     this.router.navigate(['/']);
+  }
+
+  setInitialPassword(dto: { token: string; newPassword: string }) {
+    // TODO: swap to real endpoint when backend ready:
+    // return this.http.post<SetInitialPasswordResponse>(
+    //   `${environment.apiUrl}/auth/set-initial-password`,
+    //   dto,
+    // );
+    const mockResponse: SetInitialPasswordResponse = {
+      statusCode: 200,
+      message: 'Initial password has been set successfully.',
+      data: {
+        redirectTo: '/login',
+      },
+    };
+    return of(mockResponse).pipe(delay(400));
   }
 
   handleUpdateAccountSuccess(response: UpdateAccountResponse) {
