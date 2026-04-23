@@ -5,6 +5,11 @@ import { VacancyService } from '../../../core/services/vacancy.service';
 import { Vacancy, VacancyStatus } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { FormsModule } from '@angular/forms';
+import { ApplicantService } from '../../../core/services/applicant.service';
+import {
+  ApplicationService,
+  CreateApplicationDto,
+} from '../../../core/services/application.service';
 
 @Component({
   selector: 'app-careers',
@@ -23,10 +28,17 @@ export class CareersComponent implements OnInit {
   filterStatus: VacancyStatus = VacancyStatus.OPENED;
   filterDepartment = '';
 
+  isApplyModalOpen = false;
+  selectedJobTitle = '';
+
+  applyForm = { applicantId: '', fullName: '', email: '', vacancyId: '' };
+  cvUploadFile: File | null = null;
+
   private router = inject(Router);
   private vacancyService = inject(VacancyService);
   private auth = inject(AuthService);
-
+  private applicantService = inject(ApplicantService);
+  private applicationService = inject(ApplicationService);
   private mockData = [
     {
       id: 'V0001',
@@ -98,11 +110,64 @@ export class CareersComponent implements OnInit {
     alert('Opening details for: ' + job.title);
   }
 
-  applyJob(job: any) {
+  applyJob(vacancy: Vacancy) {
     if (!this.auth.isLoggedIn()) {
+      // Redirect to login if user is not authenticated
       this.router.navigate(['/login']);
     } else {
-      alert('Applied successfully for: ' + job.title);
+      this.selectedJobTitle = vacancy.title;
+      this.isApplyModalOpen = true;
+      this.applyForm = {
+        fullName: this.auth.currentUser()?.fullName || '',
+        applicantId: this.auth.currentUser()?.applicantId || '',
+        vacancyId: vacancy.id,
+        email: this.auth.currentUser()?.email || '',
+      };
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
     }
+  }
+
+  closeApplyModal() {
+    this.isApplyModalOpen = false;
+    this.applyForm = {
+      applicantId: '',
+      fullName: '',
+      email: '',
+      vacancyId: '',
+    };
+    this.cvUploadFile = null;
+    document.body.style.overflow = 'auto';
+  }
+
+  selectCvFile(event: any) {
+    this.cvUploadFile = event.target.files[0];
+  }
+
+  submitApplication() {
+    const formData = new FormData();
+    formData.append('applicantId', this.applyForm.applicantId);
+    formData.append('file', this.cvUploadFile || '');
+    this.applicantService.uploadCv(formData).subscribe({
+      next: (res) => {
+        if (res.data) {
+          const dto: CreateApplicationDto = {
+            applicantId: this.applyForm.applicantId,
+            vacancyId: this.applyForm.vacancyId,
+            cvId: res.data.id,
+          };
+          this.applicationService.create(dto).subscribe({
+            next: (res) => {
+              this.closeApplyModal();
+            },
+            error: (err) => {
+              console.log(err);
+            },
+          });
+        }
+      },
+      error: (err) => {},
+    });
+    console.log(this.applyForm);
+    console.log(this.cvUploadFile);
   }
 }

@@ -3,8 +3,8 @@
     <div>
       <h1 class="page-title">Employee Accounts</h1>
       <p class="page-subtitle">
-        Create and manage HR and Interviewer accounts. Login credentials are
-        emailed automatically on creation.
+        Create and manage HR and Interviewer accounts. Activation instructions
+        are emailed automatically on creation.
       </p>
     </div>
     <button class="btn-primary header-action" (click)="openCreateDialog()">
@@ -83,7 +83,8 @@
       <p class="empty-title">No staff accounts yet</p>
       <p class="empty-hint">
         Click <strong>Create staff account</strong> to add your first HR or
-        Interviewer. The system will email login instructions automatically.
+        Interviewer. The system will email activation instructions
+        automatically.
       </p>
     </div>
   } @else {
@@ -135,9 +136,9 @@
                   <button
                     class="btn-ghost btn-sm"
                     (click)="resendCredentials(employee.user)"
-                    title="Send a fresh temporary password"
+                    title="Resend activation email"
                   >
-                    Resend pass
+                    Resend invite
                   </button>
                 }
                 <button
@@ -200,9 +201,9 @@
     </div>
     <div class="modal-body">
       <p class="help-text">
-        The system will generate a one-time password and email it to the address
-        below. The new user will be required to change it on first login. You
-        will never see that password.
+        The system will send an activation email to the address below. After
+        verifying the invite, the new user will set an initial password before
+        signing in.
       </p>
 
       <label class="form-label" for="staff-email"

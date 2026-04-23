@@ -50,14 +50,14 @@
           <div
             class="w-8 h-8 bg-blue-100 text-blue-500 flex items-center justify-center font-bold rounded-xl text-sm border border-blue-200"
           >
-            {{ auth.currentUser()?.fullName?.charAt(0) || 'K' }}
+            {{ auth.currentUser()!.fullName!.charAt(0) || 'K' }}
           </div>
           <div class="hidden sm:flex flex-col">
             <span class="text-[12px] font-bold text-slate-900 leading-none"
-              >{{auth.currentUser()?.fullName}}</span
+              >{{auth.currentUser()!.fullName}}</span
             >
             <span class="text-[10px] text-slate-400 font-medium"
-              >{{auth.currentUser()?.role}}</span
+              >{{auth.currentUser()!.role}}</span
             >
           </div>
           <button
