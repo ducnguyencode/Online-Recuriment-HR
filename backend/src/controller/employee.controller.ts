@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorator/decorator';
+import { EmployeeChangePasswordDto } from 'src/dto/employee/employee.change-password.dto';
 import { EmployeeCreateDto } from 'src/dto/employee/employee.create.dto';
 import { EmployeeFindDto } from 'src/dto/employee/employee.find.dto';
 import { EmployeeUpdateDto } from 'src/dto/employee/employee.update.dto';
@@ -54,14 +55,31 @@ export class EmployeeController {
   async updateAccount(
     @Body() employeeUpdateDto: EmployeeUpdateDto,
     @CurrentUser() user: SafeUserDto,
-  ) {
+  ): Promise<ApiResponse<any>> {
     const data = await this.employeeService.updateAccount(
       employeeUpdateDto,
       user,
     );
     return {
       statusCode: HttpStatus.OK,
-      message: 'Success create a employee',
+      message: 'Success update an employee details',
+      data,
+    };
+  }
+
+  @Put('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @Body() employeeChangePasswordDto: EmployeeChangePasswordDto,
+    @CurrentUser() user: SafeUserDto,
+  ): Promise<ApiResponse<any>> {
+    const data = await this.employeeService.changePassword(
+      employeeChangePasswordDto,
+      user,
+    );
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Success change password of an employee',
       data,
     };
   }
