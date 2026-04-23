@@ -8,10 +8,9 @@ import {
   UserRoleLogin,
   ApiResponse,
   UpdateAccountResponse,
-  SetInitialPasswordResponse,
 } from '../models';
 import { environment } from '../../../environments/environment';
-import { delay, of, tap } from 'rxjs';
+import { tap } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'hr_token';
@@ -100,13 +99,6 @@ export class AuthService {
     );
   }
 
-  setInitialPassword(token: string, password: string) {
-    return this.http.post<ApiResponse<{ message: string }>>(
-      `${environment.apiUrl}/auth/set-initial-password`,
-      { token, password },
-    );
-  }
-
   forgotPassword(email: string) {
     return this.http.post<ApiResponse<{ message: string }>>(
       `${environment.apiUrl}/auth/forgot-password`,
@@ -135,19 +127,13 @@ export class AuthService {
   }
 
   setInitialPassword(dto: { token: string; newPassword: string }) {
-    // TODO: swap to real endpoint when backend ready:
-    // return this.http.post<SetInitialPasswordResponse>(
-    //   `${environment.apiUrl}/auth/set-initial-password`,
-    //   dto,
-    // );
-    const mockResponse: SetInitialPasswordResponse = {
-      statusCode: 200,
-      message: 'Initial password has been set successfully.',
-      data: {
-        redirectTo: '/login',
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/set-initial-password`,
+      {
+        token: dto.token,
+        password: dto.newPassword,
       },
-    };
-    return of(mockResponse).pipe(delay(400));
+    );
   }
 
   handleUpdateAccountSuccess(response: UpdateAccountResponse) {

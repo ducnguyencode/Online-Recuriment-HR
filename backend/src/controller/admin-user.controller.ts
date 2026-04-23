@@ -27,15 +27,16 @@ import { User } from 'src/entities/user.entity';
 
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.SUPER_ADMIN)
+@Roles(UserRole.SUPER_ADMIN, UserRole.HR)
 export class AdminUserController {
   constructor(private readonly adminUserService: AdminUserService) {}
 
   @Get()
   async findAll(
+    @CurrentUser() actor: SafeUserDto,
     @Query() query: AdminUserFindDto,
   ): Promise<ApiResponse<FindResponseDto<User>>> {
-    const data = await this.adminUserService.findAll(query);
+    const data = await this.adminUserService.findAll(actor, query);
     return {
       statusCode: HttpStatus.OK,
       message: 'Success load staff accounts',
@@ -44,10 +45,12 @@ export class AdminUserController {
   }
 
   @Post()
+  @Roles(UserRole.SUPER_ADMIN)
   async createStaff(
+    @CurrentUser() actor: SafeUserDto,
     @Body() dto: CreateStaffAccountDto,
   ): Promise<ApiResponse<User>> {
-    const data = await this.adminUserService.createStaff(dto);
+    const data = await this.adminUserService.createStaff(actor, dto);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Staff account created',
@@ -57,10 +60,11 @@ export class AdminUserController {
 
   @Patch(':id')
   async updateStaff(
+    @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateStaffAccountDto,
   ): Promise<ApiResponse<User>> {
-    const data = await this.adminUserService.updateStaff(id, dto);
+    const data = await this.adminUserService.updateStaff(actor, id, dto);
     return {
       statusCode: HttpStatus.OK,
       message: 'Staff account updated',
@@ -69,6 +73,7 @@ export class AdminUserController {
   }
 
   @Get(':id/role-change-preconditions')
+  @Roles(UserRole.SUPER_ADMIN)
   async getRolePreconditions(
     @Param('id', ParseIntPipe) id: number,
     @Query('newRole') newRole: UserRole,
@@ -85,6 +90,7 @@ export class AdminUserController {
   }
 
   @Patch(':id/role')
+  @Roles(UserRole.SUPER_ADMIN)
   async updateRole(
     @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,
@@ -100,10 +106,12 @@ export class AdminUserController {
   }
 
   @Patch(':id/deactivate')
+  @Roles(UserRole.SUPER_ADMIN)
   async deactivate(
+    @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponse<User>> {
-    const data = await this.adminUserService.deactivate(id);
+    const data = await this.adminUserService.deactivate(actor, id);
     return {
       statusCode: HttpStatus.OK,
       message: 'Staff account disabled',
@@ -112,8 +120,12 @@ export class AdminUserController {
   }
 
   @Patch(':id/activate')
-  async activate(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<User>> {
-    const data = await this.adminUserService.activate(id);
+  @Roles(UserRole.SUPER_ADMIN)
+  async activate(
+    @CurrentUser() actor: SafeUserDto,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponse<User>> {
+    const data = await this.adminUserService.activate(actor, id);
     return {
       statusCode: HttpStatus.OK,
       message: 'Staff account enabled',
@@ -122,8 +134,12 @@ export class AdminUserController {
   }
 
   @Post(':id/resend-invite')
-  async resendInvite(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<null>> {
-    await this.adminUserService.resendInvite(id);
+  @Roles(UserRole.SUPER_ADMIN)
+  async resendInvite(
+    @CurrentUser() actor: SafeUserDto,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponse<null>> {
+    await this.adminUserService.resendInvite(actor, id);
     return {
       statusCode: HttpStatus.OK,
       message: 'Invitation re-sent',
@@ -131,16 +147,4 @@ export class AdminUserController {
     };
   }
 
-  // Backward compatibility for existing frontend action.
-  @Post(':id/resend-credentials')
-  async resendCredentials(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<ApiResponse<null>> {
-    await this.adminUserService.resendInvite(id);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Invitation re-sent',
-      data: null,
-    };
-  }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuditLog } from 'src/entities/audit-log.entity';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class AuditLogService {
@@ -19,6 +19,7 @@ export class AuditLogService {
     reason: string;
     ipAddress?: string;
     userAgent?: string;
+    manager?: EntityManager;
   }): Promise<void> {
     const row = this.auditLogs.create({
       actorId: input.actorId,
@@ -34,13 +35,40 @@ export class AuditLogService {
         userAgent: input.userAgent ?? null,
       },
     });
+    if (input.manager) {
+      await input.manager.save(AuditLog, row);
+      return;
+    }
     await this.auditLogs.save(row);
   }
 
-  async list(limit = 200): Promise<AuditLog[]> {
-    return this.auditLogs.find({
-      order: { createdAt: 'DESC' },
-      take: limit,
-    });
+  async list(input: {
+    limit?: number;
+    actorId?: number;
+    targetId?: number;
+    action?: string;
+    from?: Date;
+    to?: Date;
+  }): Promise<AuditLog[]> {
+    const qb = this.auditLogs.createQueryBuilder('log');
+
+    if (typeof input.actorId === 'number') {
+      qb.andWhere('log.actorId = :actorId', { actorId: input.actorId });
+    }
+    if (typeof input.targetId === 'number') {
+      qb.andWhere('log.targetId = :targetId', { targetId: input.targetId });
+    }
+    if (input.action?.trim()) {
+      qb.andWhere('log.action = :action', { action: input.action.trim() });
+    }
+    if (input.from) {
+      qb.andWhere('log.createdAt >= :from', { from: input.from });
+    }
+    if (input.to) {
+      qb.andWhere('log.createdAt <= :to', { to: input.to });
+    }
+
+    qb.orderBy('log.createdAt', 'DESC').take(input.limit ?? 200);
+    return qb.getMany();
   }
 }

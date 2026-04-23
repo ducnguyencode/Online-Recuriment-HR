@@ -217,6 +217,17 @@ export class UserService {
     await this.mailService.sendPasswordResetEmail(email, name, resetUrl);
   }
 
+  async sendRoleChangedNotification(input: {
+    email: string;
+    name: string;
+    actorName: string;
+    fromRole: string;
+    toRole: string;
+    reason: string;
+  }) {
+    await this.mailService.sendRoleChangedEmail(input);
+  }
+
   generateEmailToken(
     user: { id: number; email: string; role: UserRole },
     departmentId: number | null,

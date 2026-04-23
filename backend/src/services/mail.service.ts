@@ -125,4 +125,68 @@ export class MailService {
       }
     });
   }
+
+  async sendRoleChangedEmail(input: {
+    email: string;
+    name: string;
+    actorName: string;
+    fromRole: string;
+    toRole: string;
+    reason: string;
+  }) {
+    const senderEmail = this.configService.get<string>(
+      'BREVO_SENDER_EMAIL',
+      'no-reply@example.com',
+    );
+    const senderName = this.configService.get<string>(
+      'BREVO_SENDER_NAME',
+      'Authorize App',
+    );
+    const apiKey = this.configService.get<string>('BREVO_API_KEY');
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Hello ${input.name},</h2>
+        <p>A staff role update has been recorded by <strong>${input.actorName}</strong>.</p>
+        <p><strong>From:</strong> ${input.fromRole}</p>
+        <p><strong>To:</strong> ${input.toRole}</p>
+        <p><strong>Reason:</strong> ${input.reason}</p>
+        <p>This notification is for audit awareness only.</p>
+      </div>
+    `;
+
+    if (!apiKey) {
+      this.logger.warn(
+        `BREVO_API_KEY is missing. Role-change email for ${input.email} skipped.`,
+      );
+      return;
+    }
+
+    await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        sender: {
+          email: senderEmail,
+          name: senderName,
+        },
+        to: [
+          {
+            email: input.email,
+            name: input.name,
+          },
+        ],
+        subject: 'Staff role updated',
+        htmlContent,
+      }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        const body = await response.text();
+        this.logger.error(`Brevo role-change email send failed: ${body}`);
+      }
+    });
+  }
 }

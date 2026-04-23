@@ -22,6 +22,7 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { UserService } from 'src/services/user.service';
 import { Repository } from 'typeorm';
 import { AuditLogService } from './audit-log.service';
+import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 
 @Injectable()
 export class AdminUserService {
@@ -41,7 +42,10 @@ export class AdminUserService {
     private readonly auditLogs: AuditLogService,
   ) {}
 
-  async findAll(query: AdminUserFindDto): Promise<FindResponseDto<User>> {
+  async findAll(
+    actor: SafeUserDto,
+    query: AdminUserFindDto,
+  ): Promise<FindResponseDto<User>> {
     const { page, limit, role, departmentId, isActive, search } = query;
     const qb = this.users
       .createQueryBuilder('user')
@@ -50,6 +54,13 @@ export class AdminUserService {
       .where('user.role IN (:...staffRoles)', {
         staffRoles: [UserRole.HR, UserRole.INTERVIEWER],
       });
+
+    this.assertActorCanManageRole(actor, role);
+    if (actor.role === UserRole.HR) {
+      qb.andWhere('user.role = :onlyInterviewer', {
+        onlyInterviewer: UserRole.INTERVIEWER,
+      });
+    }
 
     if (role) {
       qb.andWhere('user.role = :role', { role });
@@ -77,8 +88,9 @@ export class AdminUserService {
     };
   }
 
-  async createStaff(dto: CreateStaffAccountDto): Promise<User> {
+  async createStaff(actor: SafeUserDto, dto: CreateStaffAccountDto): Promise<User> {
     this.assertStaffRole(dto.role);
+    this.assertActorCanManageRole(actor, dto.role);
     const email = dto.email.trim().toLowerCase();
     const fullName = dto.fullName.trim();
     const department = await this.departments.findOne({
@@ -135,9 +147,15 @@ export class AdminUserService {
     return this.findByIdOrThrow(saved.id);
   }
 
-  async updateStaff(userId: number, dto: UpdateStaffAccountDto): Promise<User> {
+  async updateStaff(
+    actor: SafeUserDto,
+    userId: number,
+    dto: UpdateStaffAccountDto,
+  ): Promise<User> {
     this.assertStaffRole(dto.role);
+    this.assertActorCanManageRole(actor, dto.role);
     const user = await this.findByIdOrThrow(userId);
+    this.assertActorCanManageRole(actor, user.role);
     if (user.role === UserRole.SUPER_ADMIN) {
       throw new ForbiddenException('Superadmin cannot be edited here');
     }
@@ -224,59 +242,103 @@ export class AdminUserService {
   ): Promise<User> {
     this.assertStaffRole(dto.role);
     const actor = await this.findByIdOrThrow(actorUserId);
-    const user = await this.findByIdOrThrow(userId);
+    const reason = dto.reason.trim();
+    if (reason.length < 10) {
+      throw new BadRequestException('Reason must be at least 10 characters');
+    }
 
     if (actorUserId === userId) {
       throw new ForbiddenException('You cannot change your own role');
     }
-    if (user.role === UserRole.SUPER_ADMIN) {
-      throw new ForbiddenException('Superadmin role cannot be changed here');
-    }
+    let fromRole: UserRole = UserRole.APPLICANT;
+    await this.users.manager.transaction(async (manager) => {
+      const user = await manager
+        .createQueryBuilder(User, 'user')
+        .setLock('pessimistic_write')
+        .leftJoinAndSelect('user.employee', 'employee')
+        .leftJoinAndSelect('employee.department', 'department')
+        .where('user.id = :id', { id: userId })
+        .getOne();
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
 
-    const preconditions = await this.getRoleChangePreconditions(userId, dto.role);
-    if (!preconditions.canProceed) {
-      throw new BadRequestException({
-        message: 'Role change preconditions are not satisfied',
-        ...preconditions,
+      if (user.role === UserRole.SUPER_ADMIN) {
+        throw new ForbiddenException('Superadmin role cannot be changed here');
+      }
+
+      const preconditions = await this.getRoleChangePreconditions(userId, dto.role);
+      if (!preconditions.canProceed) {
+        throw new BadRequestException({
+          message: 'Role change preconditions are not satisfied',
+          ...preconditions,
+        });
+      }
+
+      fromRole = user.role;
+      user.role = dto.role;
+      user.roles = dto.role === UserRole.HR ? UserRole.HR : UserRole.INTERVIEWER;
+      await manager.save(User, user);
+
+      await this.auditLogs.createRoleChangedLog({
+        actorId: actor.id,
+        actorRoleSnapshot: actor.role,
+        targetId: user.id,
+        fromRole,
+        toRole: dto.role,
+        reason,
+        ipAddress: req?.ip,
+        userAgent: req?.headers?.['user-agent'],
+        manager,
       });
-    }
-
-    const fromRole = user.role;
-    user.role = dto.role;
-    user.roles = dto.role === UserRole.HR ? UserRole.HR : UserRole.INTERVIEWER;
-    await this.users.save(user);
-
-    await this.auditLogs.createRoleChangedLog({
-      actorId: actor.id,
-      actorRoleSnapshot: actor.role,
-      targetId: user.id,
-      fromRole,
-      toRole: dto.role,
-      reason: dto.reason.trim(),
-      ipAddress: req?.ip,
-      userAgent: req?.headers?.['user-agent'],
     });
 
-    return this.findByIdOrThrow(userId);
+    const updatedUser = await this.findByIdOrThrow(userId);
+    const otherSuperAdmins = await this.users.find({
+      where: { role: UserRole.SUPER_ADMIN },
+      select: ['id', 'email', 'fullName'],
+    });
+    const notifyList = [updatedUser, ...otherSuperAdmins].filter(
+      (candidate, idx, arr) =>
+        candidate.id !== actor.id &&
+        arr.findIndex((u) => u.id === candidate.id) === idx,
+    );
+    await Promise.all(
+      notifyList.map((receiver) =>
+        this.userService.sendRoleChangedNotification({
+          email: receiver.email,
+          name: receiver.fullName,
+          actorName: actor.fullName,
+          fromRole,
+          toRole: dto.role,
+          reason,
+        }),
+      ),
+    );
+
+    return updatedUser;
   }
 
-  async deactivate(userId: number): Promise<User> {
+  async deactivate(actor: SafeUserDto, userId: number): Promise<User> {
     const user = await this.findByIdOrThrow(userId);
+    this.assertActorCanManageRole(actor, user.role);
     user.isActive = false;
     await this.users.save(user);
     return user;
   }
 
-  async activate(userId: number): Promise<User> {
+  async activate(actor: SafeUserDto, userId: number): Promise<User> {
     const user = await this.findByIdOrThrow(userId);
+    this.assertActorCanManageRole(actor, user.role);
     user.isActive = true;
     await this.users.save(user);
     return user;
   }
 
-  async resendInvite(userId: number): Promise<void> {
+  async resendInvite(actor: SafeUserDto, userId: number): Promise<void> {
     const user = await this.findByIdOrThrow(userId);
     this.assertStaffRole(user.role);
+    this.assertActorCanManageRole(actor, user.role);
     if (user.isVerified) {
       throw new BadRequestException('Account already verified');
     }
@@ -314,5 +376,25 @@ export class AdminUserService {
     if (role !== UserRole.HR && role !== UserRole.INTERVIEWER) {
       throw new BadRequestException('Only HR or Interviewer role is allowed');
     }
+  }
+
+  private assertActorCanManageRole(
+    actor: SafeUserDto,
+    targetRole?: UserRole | '',
+  ): void {
+    if (actor.role === UserRole.SUPER_ADMIN) {
+      return;
+    }
+    if (actor.role === UserRole.HR) {
+      if (!targetRole || targetRole === UserRole.INTERVIEWER) {
+        return;
+      }
+      throw new ForbiddenException(
+        'HR can only manage Interviewer staff accounts',
+      );
+    }
+    throw new ForbiddenException(
+      'You do not have permission to manage staff accounts',
+    );
   }
 }
