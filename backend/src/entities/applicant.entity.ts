@@ -46,6 +46,16 @@ export class Applicant {
 
   @UpdateDateColumn()
   updatedAt!: Date;
-    email: any;
-    fullName: any;
+  // email: any;
+  // fullName: any;
+
+  @Expose()
+  get email(): string {
+    return this.user?.email || '';
+  }
+
+  @Expose()
+  get fullName(): string {
+    return this.user?.fullName || '';
+  }
 }
