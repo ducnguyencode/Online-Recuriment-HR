@@ -35,6 +35,9 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.userService.findUserVerifiedByEmail(email);
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is deactivated');
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
@@ -44,23 +47,20 @@ export class AuthService {
   }
 
   async verifyEmailToken(token: string) {
-    try {
-      const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_EMAIL_SECRET,
-      });
-
-      if (!Object.values(TokenType).includes(payload.type)) {
-        throw new UnauthorizedException('Invalid token type');
-      }
-
-      return await this.userService.verifyAccount(payload);
-    } catch (err) {
-      if (err instanceof TokenExpiredError) {
-        throw new RequestTimeoutException('Token expired');
-      }
-
+    if (!token?.trim()) {
       throw new UnauthorizedException('Invalid token');
     }
+
+    const payload = this.verifyEmailJwtToken(token);
+    const allowedVerifyTypes = [
+      TokenType.EMAIL_REGISTER_VERIFY,
+      TokenType.EMAIL_INVITE_VERIFY,
+    ];
+    if (!allowedVerifyTypes.includes(payload.type as TokenType)) {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    return this.userService.verifyAccount(payload);
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
@@ -70,6 +70,11 @@ export class AuthService {
     // Keep response generic to avoid leaking account existence.
     if (!user) {
       return { message: 'If your account exists, a reset link has been sent.' };
+    }
+    if (!user.isActive) {
+      throw new BadRequestException(
+        'This account is deactivated and cannot receive password reset email.',
+      );
     }
 
     const resetToken = this.userService.generateEmailToken(
@@ -181,5 +186,18 @@ export class AuthService {
     await this.userService.save(user);
 
     return { message: 'Password changed successfully.' };
+  }
+
+  private verifyEmailJwtToken(token: string): any {
+    try {
+      return this.jwtService.verify(token, {
+        secret: this.configService.getOrThrow<string>('JWT_EMAIL_SECRET'),
+      });
+    } catch (err) {
+      if (err instanceof TokenExpiredError) {
+        throw new RequestTimeoutException('Token expired');
+      }
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 }

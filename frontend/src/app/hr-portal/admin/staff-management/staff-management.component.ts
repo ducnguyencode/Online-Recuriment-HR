@@ -61,6 +61,13 @@ export class StaffManagementComponent implements OnInit {
     position: '',
     phone: '',
   };
+  private readonly defaultEditFormData: UpdateStaffAccountDto = {
+    fullName: '',
+    role: UserRole.HR,
+    departmentId: 0,
+    position: '',
+    phone: '',
+  };
 
   constructor(
     private authService: AuthService,
@@ -127,7 +134,7 @@ export class StaffManagementComponent implements OnInit {
           this.employees.set([]);
           this.totalItems.set(0);
           this.totalPages.set(1);
-          this.errorMsg.set('');
+          this.errorMsg.set('Unable to load staff accounts. Please try again.');
           this.loading.set(false);
         },
       });
@@ -207,6 +214,7 @@ export class StaffManagementComponent implements OnInit {
     this.adminService.createStaff(dto).subscribe({
       next: () => {
         this.creating.set(false);
+        this.closeCreateDialog();
         this.formSuccess.set(
           `Invitation sent to ${email}. ` +
             `After verifying the email, the user will set an initial password before signing in.`,
@@ -226,6 +234,8 @@ export class StaffManagementComponent implements OnInit {
   resendCredentials(user: UserAccount | undefined) {
     if (!user) return;
     if (!confirm(`Resend the activation email to ${user.email}?`)) return;
+    this.errorMsg.set('');
+    this.formSuccess.set('');
     this.adminService.resendTemporaryPassword(user.id).subscribe({
       next: () =>
         this.formSuccess.set(
@@ -264,6 +274,7 @@ export class StaffManagementComponent implements OnInit {
     this.showEditDialog.set(false);
     this.selectedStaff.set(null);
     this.formError.set('');
+    this.editFormData = { ...this.defaultEditFormData };
   }
 
   saveEditedStaff() {
@@ -292,7 +303,7 @@ export class StaffManagementComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.updating.set(false);
-          this.showEditDialog.set(false);
+          this.closeEditDialog();
           this.formSuccess.set('Staff account updated successfully.');
           const updated = this.toStaffRow(res.data as any);
           this.employees.update((rows) =>

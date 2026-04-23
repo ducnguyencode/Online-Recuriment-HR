@@ -202,6 +202,13 @@
       <button class="toast-close" (click)="formSuccess.set('')">×</button>
     </div>
   }
+
+  @if (errorMsg()) {
+    <div class="toast toast-error">
+      {{ errorMsg() }}
+      <button class="toast-close" (click)="errorMsg.set('')">×</button>
+    </div>
+  }
 </div>
 
 @if (showCreateDialog()) {

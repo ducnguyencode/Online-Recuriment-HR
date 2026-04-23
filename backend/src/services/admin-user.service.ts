@@ -104,7 +104,7 @@ export class AdminUserService {
       relations: ['employee', 'employee.department'],
     });
     if (exists) {
-      if (exists.isVerified || !exists.isActive) {
+      if (exists.isVerified) {
         throw new ConflictException('Email already exists');
       }
       if (exists.role !== UserRole.HR && exists.role !== UserRole.INTERVIEWER) {
@@ -125,7 +125,7 @@ export class AdminUserService {
       exists.phone = dto.phone?.trim() || '';
       exists.role = dto.role;
       exists.roles = dto.role === UserRole.HR ? UserRole.HR : UserRole.INTERVIEWER;
-      exists.isActive = true;
+      exists.isActive = false;
       exists.mustChangePassword = true;
       exists.verificationToken = this.userService.generateEmailToken(
         { id: exists.id, email: exists.email, role: dto.role },
@@ -146,26 +146,13 @@ export class AdminUserService {
         }
         employee.department = department;
         employee.jobTitle = dto.position?.trim() || '';
-        employee.isActive = true;
+        employee.isActive = false;
         await manager.save(Employee, employee);
         return exists;
       });
       await this.userService.sendVerification(saved);
       return this.findByIdOrThrow(saved.id);
     }
-
-    const tempUser: Pick<User, 'id' | 'email' | 'role'> = {
-      id: 0,
-      email,
-      role: dto.role,
-    };
-    const verifyToken = this.userService.generateEmailToken(
-      tempUser,
-      dto.departmentId,
-      dto.role,
-      '24h',
-      TokenType.EMAIL_INVITE_VERIFY,
-    );
 
     const saved = await this.users.manager.transaction(async (manager) => {
       const user = manager.create(User, {
@@ -178,16 +165,24 @@ export class AdminUserService {
         password:
           '$2b$10$FfLdr1b6vkbWgJmnM9yY2u7EZw8iN88Q/xnE64DZPV4f7n6i5Ql6W',
         isVerified: false,
-        isActive: true,
+        isActive: false,
         mustChangePassword: true,
-        verificationToken: verifyToken,
+        verificationToken: null,
       });
       const createdUser = await manager.save(User, user);
+      createdUser.verificationToken = this.userService.generateEmailToken(
+        { id: createdUser.id, email: createdUser.email, role: createdUser.role },
+        dto.departmentId,
+        dto.role,
+        '24h',
+        TokenType.EMAIL_INVITE_VERIFY,
+      );
+      await manager.save(User, createdUser);
       const employee = manager.create(Employee, {
         user: createdUser,
         department,
         jobTitle: dto.position?.trim() || undefined,
-        isActive: true,
+        isActive: false,
       });
       await manager.save(Employee, employee);
       return createdUser;
@@ -392,7 +387,7 @@ export class AdminUserService {
     if (user.isVerified) {
       throw new BadRequestException('Account already verified');
     }
-    if (!user.isActive) {
+    if (!user.isActive && user.isVerified) {
       throw new BadRequestException('Deactivated account cannot receive invite');
     }
     const employee = await this.employees.findOne({

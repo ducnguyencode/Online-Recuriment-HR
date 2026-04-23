@@ -7,7 +7,6 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -130,7 +129,12 @@ export class UserService {
     if (!user) {
       return;
     }
-    if (!user.isActive || user.isVerified || user.role !== UserRole.APPLICANT) {
+    if (!user.isActive) {
+      throw new BadRequestException(
+        'This account is deactivated and cannot receive verification email.',
+      );
+    }
+    if (user.isVerified || user.role !== UserRole.APPLICANT) {
       return;
     }
 
@@ -160,41 +164,42 @@ export class UserService {
         throw new NotFoundException('Account not found!');
       }
       if (user.isVerified == true) {
-        if (payload.type == TokenType.EMAIL_REGISTER_VERIFY) {
-          throw new ServiceUnavailableException('Account is already verified!');
-        }
         if (
-          payload.type == TokenType.EMAIL_INVITE_VERIFY &&
-          user.role == payload.role
+          payload.type == TokenType.EMAIL_REGISTER_VERIFY ||
+          (payload.type == TokenType.EMAIL_INVITE_VERIFY &&
+            user.role == payload.role)
         ) {
-          throw new ServiceUnavailableException(
-            'Employee account is already verified!',
-          );
+          return user;
         }
       }
 
       user.role = payload.role;
       user.isVerified = true;
+      user.isActive = true;
       user.verifiedAt = new Date();
       user.verificationToken = null;
 
       if (user.role == UserRole.APPLICANT) {
-        let applicant = await manager.findOne(Applicant, { where: { user } });
+        let applicant = await manager.findOne(Applicant, {
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
         if (!applicant) {
           applicant = manager.create(Applicant, { user: user });
         }
 
-        applicant = await manager.save(applicant);
-        user.applicant = applicant;
+        await manager.save(applicant);
       } else {
-        let employee = await manager.findOne(Employee, { where: { user } });
+        let employee = await manager.findOne(Employee, {
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
         if (!employee) {
           employee = manager.create(Employee, { user: user });
         }
         employee.isActive = true;
         employee.department = { id: payload.departmentId } as Department;
-        employee = await manager.save(employee);
-        user.employee = employee;
+        await manager.save(employee);
       }
 
       return await manager.save(user);
@@ -216,6 +221,7 @@ export class UserService {
 
       user.role = payload.role;
       user.isVerified = true;
+      user.isActive = true;
       user.verifiedAt = new Date();
       user.verificationToken = null;
 
@@ -228,8 +234,7 @@ export class UserService {
       }
       employee.isActive = true;
       employee.department = { id: payload.departmentId } as Department;
-      employee = await manager.save(employee);
-      user.employee = employee;
+      await manager.save(employee);
 
       return await manager.save(user);
     });
