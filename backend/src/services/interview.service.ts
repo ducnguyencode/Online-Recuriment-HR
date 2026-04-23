@@ -418,4 +418,47 @@ export class InterviewService {
       await queryRunner.release();
     }
   }
+
+  async findAll(query: any) {
+    const { status, search, page = 1, limit = 10 } = query;
+
+    const [items, totalItems] = await this.interviewRepo.findAndCount({
+      where: status ? { status } : {},
+      relations: [
+        'application',
+        'application.applicant',
+        'application.applicant.user',
+        'application.vacancy',
+        'panels',
+        'panels.employee',
+      ],
+      order: { startTime: 'DESC' },
+      take: limit,
+      skip: (page - 1) * limit,
+    });
+
+    return {
+      items,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      currentPage: Number(page),
+    };
+  }
+
+  async findOne(id: string) {
+    const interview = await this.interviewRepo.findOne({
+      where: { id },
+      relations: [
+        'application',
+        'application.applicant',
+        'application.applicant.user', // Lấy email/fullName qua User
+        'application.vacancy',
+        'panels',
+        'panels.employee',
+      ],
+    });
+
+    if (!interview) throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
+    return interview;
+  }
 }

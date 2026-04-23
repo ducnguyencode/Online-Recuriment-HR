@@ -83,4 +83,12 @@ export class InterviewService {
       .set('endDate', filters.endDate);
     return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/interviewer-availability`, { params });
   }
+
+  addAvailability(dto: { employeeId: string; availableDate: string; startTime: string; endTime: string }): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${environment.apiUrl}/interviewer-availability`, dto);
+  }
+
+  deleteAvailability(id: string): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/interviewer-availability/${id}`);
+  }
 }

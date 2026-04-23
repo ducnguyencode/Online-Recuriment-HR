@@ -90,6 +90,7 @@ export class InterviewListComponent implements OnInit {
   private mapMockInterview(r: any): Interview {
     // r.application is undefined in mock data — look up from mock store
     let application = r.application;
+    const applicantName = r.application?.applicant?.user?.fullName || 'N/A';
     if (!application) {
       const apps = this.mockData.getApplications();
       const found = apps.find((a) => String(a.id) === String(r.applicationId));
@@ -103,37 +104,50 @@ export class InterviewListComponent implements OnInit {
       }
     }
 
-    // Backend returns ISO strings. We need to parse them for the UI to display properly
-    const startObj = new Date(r.startTime);
-    const endObj = new Date(r.endTime);
-
     // Format HH:mm for the UI display
     const formatTime = (dateObj: Date) => {
       if (isNaN(dateObj.getTime())) return '';
       return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     };
+    // const formatTime = (isoString: string) => {
+    //   if (!isoString) return '';
+    //   const date = new Date(isoString);
+    //   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    // };
 
+    // return {
+    //   id: String(r.id),
+    //   applicationId: String(r.applicationId),
+    //   application: application as any,
+    //   title: r.title ?? 'Interview with ${r.applicantName}',
+    //   description: r.description ?? '',
+    //   googleMeetLink: r.googleMeetLink ?? r.meetLink,
+    //   interviewDate: (r.date ?? r.interviewDate ?? '').substring(0, 10),
+    //   startTime: r.startTime ?? r.time ?? '',
+    //   endTime: r.endTime ?? '',
+    //   platform: r.platform ?? 'Google Meet',
+    //   meetLink: r.meetLink,
+    //   status: r.status ?? 'Scheduled',
+    //   panel: Array.isArray(r.panel)
+    //     ? r.panel
+    //     : (Array.isArray(r.interviewers)
+    //       ? r.interviewers.map((name: string) => ({ employeeId: name, fullName: name, role: 'Interviewer', vote: 'Pending' as any }))
+    //       : []),
+    //   createdAt: r.createdAt ?? '',
+    //   updatedAt: r.updatedAt ?? '',
+    // };
     return {
+      ...r,
       id: String(r.id),
-      applicationId: String(r.applicationId),
-      application: application as any,
-      title: r.title ?? 'Interview with ${r.applicantName}',
-      description: r.description ?? '',
-      googleMeetLink: r.googleMeetLink ?? r.meetLink,
-      interviewDate: (r.date ?? r.interviewDate ?? '').substring(0, 10),
-      startTime: r.startTime ?? r.time ?? '',
-      endTime: r.endTime ?? '',
-      platform: r.platform ?? 'Google Meet',
-      meetLink: r.meetLink,
-      status: r.status ?? 'Scheduled',
-      panel: Array.isArray(r.panel)
-        ? r.panel
-        : (Array.isArray(r.interviewers)
-          ? r.interviewers.map((name: string) => ({ employeeId: name, fullName: name, role: 'Interviewer', vote: 'Pending' as any }))
-          : []),
-      createdAt: r.createdAt ?? '',
-      updatedAt: r.updatedAt ?? '',
+      title: r.title || `Interview with ${applicantName}`,
+      interviewDate: r.startTime ? new Date(r.startTime).toISOString().split('T')[0] : '',
+      startTime: formatTime(r.startTime),
+      endTime: formatTime(r.endTime),
+      status: r.status || 'Scheduled',
+      panel: r.panels || [],
+      googleMeetLink: r.meetLink || r.googleMeetLink
     };
+
   }
 
   filteredInterviews(): Interview[] {
@@ -329,14 +343,14 @@ export class InterviewListComponent implements OnInit {
               i.id !== this.resultInterviewId
                 ? i
                 : {
-                    ...i,
-                    status: 'Completed' as InterviewStatus,
-                    panel: i.panel.map((p) => ({
-                      ...p,
-                      vote: this.resultData.vote as any,
-                      feedback: this.resultData.feedback,
-                    })),
-                  },
+                  ...i,
+                  status: 'Completed' as InterviewStatus,
+                  panel: i.panel.map((p) => ({
+                    ...p,
+                    vote: this.resultData.vote as any,
+                    feedback: this.resultData.feedback,
+                  })),
+                },
             ),
           );
           this.closeResultDialog();
@@ -367,7 +381,10 @@ export class InterviewListComponent implements OnInit {
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   getApplicantName(item: Interview): string {
-    return item.application?.applicant?.fullName ?? item.applicant?.fullName ?? '—';
+    // return item.application?.applicant?.fullName ?? item.applicant?.fullName ?? '—';
+    return item.application?.applicant?.user?.fullName
+      ?? item.applicant?.user?.fullName
+      ?? '—';
   }
 
   applicantDisplayId(id?: string) {
@@ -395,19 +412,31 @@ export class InterviewListComponent implements OnInit {
   }
 
   getVacancyTitle(item: Interview): string {
-    return item.application?.vacancy?.title ?? item.vacancy?.title ?? '—';
+    // return item.application?.vacancy?.title ?? item.vacancy?.title ?? '—';
+    return item.application?.applicant?.user?.email
+      ?? item.applicant?.user?.email
+      ?? '—';
   }
 
   getApplicantEmail(item: Interview): string {
-    return item.application?.applicant?.email ?? item.applicant?.email ?? '—';
+    // return item.application?.applicant?.email ?? item.applicant?.email ?? '—';
+    return item.application?.applicant?.user?.email
+      ?? item.applicant?.user?.email
+      ?? '—';
   }
 
   getApplicantId(item: Interview): string | undefined {
-    return item.application?.applicantId ?? item.applicant?.id;
+    // return item.application?.applicantId ?? item.applicant?.id;
+    return item.application?.applicantId
+      ?? item.applicant?.id
+      ?? '—';
   }
 
   getVacancyId(item: Interview): string | undefined {
-    return item.application?.vacancyId ?? item.vacancy?.id;
+    // return item.application?.vacancyId ?? item.vacancy?.id;
+    return item.application?.vacancyId
+      ?? item.vacancy?.id
+      ?? '—';
   }
 
   clearFilters() {
