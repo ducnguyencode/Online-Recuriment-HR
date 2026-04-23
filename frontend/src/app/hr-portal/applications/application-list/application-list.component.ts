@@ -106,7 +106,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
-  ) { }
+  ) {}
 
   ngOnInit() {
     this.loadVacancies();
@@ -620,7 +620,9 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       description: description || '',
       panel: this.selectedPanelIds.map((id) => ({
         employeeId: String(id), // Ép kiểu chuỗi cho chắc chắn
-        role: this.availableInterviewers().find((e) => e.id === id)?.position ?? 'Interviewer',
+        role:
+          this.availableInterviewers().find((e) => e.id === id)?.position ??
+          'Interviewer',
       })),
       startTime: startISO,
       endTime: endISO,
@@ -653,17 +655,20 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.interviewService.schedule(dto).subscribe({
       next: () => {
         this.loading.set(false);
-        alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
+        alert(
+          'Interview scheduled successfully! Emails and Google Meet links are being sent.',
+        );
         this.closeInterviewDialog();
         this.loadApplications();
       },
       error: (err) => {
         console.error('Error:', err);
         this.loading.set(false);
-        this.interviewError = err.error?.message || 'Conflict detected or HR/Interviewer is not available at this time.';
+        this.interviewError =
+          err.error?.message ||
+          'Conflict detected or HR/Interviewer is not available at this time.';
       },
     });
-
   }
 
   private getApplicantNameByAppId(appId: string): string {
@@ -749,10 +754,13 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     const departmentId = app.vacancy?.departmentId ?? '';
     if (departmentId) {
       this.employeeService.getInterviewersByDepartment(departmentId).subscribe({
-        next: (res) =>
+        next: (res) => {
+          console.log(res.data.items);
           this.availableInterviewers.set(
-            Array.isArray(res.data) ? res.data : [],
-          ),
+            Array.isArray(res.data.items) ? res.data.items : [],
+          );
+          console.log(this.availableInterviewers());
+        },
         error: () => this.availableInterviewers.set(this.getMockInterviewers()),
       });
       return;
@@ -774,10 +782,11 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
         this.employeeService
           .getInterviewersByDepartment(resolvedDepartmentId)
           .subscribe({
-            next: (employeeRes) =>
+            next: (employeeRes) => {
               this.availableInterviewers.set(
                 Array.isArray(employeeRes.data) ? employeeRes.data : [],
-              ),
+              );
+            },
             error: () =>
               this.availableInterviewers.set(this.getMockInterviewers()),
           });

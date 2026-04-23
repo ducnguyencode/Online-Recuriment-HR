@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   ApiResponse,
   Employee,
+  PaginatedResponse,
   UpdateAccountResponse,
   UserAccount,
   UserRole,
@@ -33,7 +34,9 @@ export class EmployeeService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(filters: EmployeeFilters = {}): Observable<ApiResponse<Employee[]>> {
+  getAll(
+    filters: EmployeeFilters = {},
+  ): Observable<ApiResponse<PaginatedResponse<Employee>>> {
     let params = new HttpParams();
     if (filters.departmentId)
       params = params.set('departmentId', filters.departmentId);
@@ -41,7 +44,9 @@ export class EmployeeService {
     if (filters.search) params = params.set('search', filters.search);
     if (filters.page) params = params.set('page', String(filters.page));
     if (filters.limit) params = params.set('limit', String(filters.limit));
-    return this.http.get<ApiResponse<Employee[]>>(this.base, { params });
+    return this.http.get<ApiResponse<PaginatedResponse<Employee>>>(this.base, {
+      params,
+    });
   }
 
   create(dto: CreateEmployeeDto): Observable<ApiResponse<UserAccount>> {
@@ -55,7 +60,7 @@ export class EmployeeService {
   /** Get interviewers from a specific department — required by spec */
   getInterviewersByDepartment(
     departmentId: string,
-  ): Observable<ApiResponse<Employee[]>> {
+  ): Observable<ApiResponse<PaginatedResponse<Employee>>> {
     return this.getAll({ departmentId, role: 'Interviewer' });
   }
 
