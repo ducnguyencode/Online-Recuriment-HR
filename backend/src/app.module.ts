@@ -52,6 +52,8 @@ import { EmployeeController } from './controller/employee.controller';
 import { EmployeeService } from './services/employee.service';
 import { EmailQueue } from './entities/email-queue.entity';
 import { EmailCronService } from './cron/email.cron';
+import { InterviewerAvailabilityController } from './controller/interviewer-availability.controller';
+import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
 
 @Module({
   imports: [
@@ -158,6 +160,7 @@ import { EmailCronService } from './cron/email.cron';
     AuthController,
     EmployeeController,
     NotificationsController,
+    InterviewerAvailabilityController,
   ],
   providers: [
     VacanciesService,
@@ -181,6 +184,7 @@ import { EmailCronService } from './cron/email.cron';
     NotificationsService,
     EmployeeService,
     EmailCronService,
+    InterviewerAvailabilityService,
   ],
 })
 export class AppModule { }
