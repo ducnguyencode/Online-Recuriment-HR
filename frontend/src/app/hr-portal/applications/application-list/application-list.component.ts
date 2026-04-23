@@ -106,7 +106,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadVacancies();
@@ -614,15 +614,13 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     //   endTime,
     //   platform,
     // };
-    const dto: ScheduleInterviewDto = {
-      applicationId,
+    const dto: any = {
+      applicationId: Number(applicationId), // BẮT BUỘC ÉP KIỂU SỐ (Vì Backend DTO dùng @IsNumber)
       title,
       description: description || '',
       panel: this.selectedPanelIds.map((id) => ({
-        employeeId: id,
-        role:
-          this.availableInterviewers().find((e) => e.id === id)?.position ??
-          'Interviewer',
+        employeeId: String(id), // Ép kiểu chuỗi cho chắc chắn
+        role: this.availableInterviewers().find((e) => e.id === id)?.position ?? 'Interviewer',
       })),
       startTime: startISO,
       endTime: endISO,
@@ -654,19 +652,18 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.interviewService.schedule(dto).subscribe({
       next: () => {
-        alert(
-          'Interview scheduled successfully! Emails and Google Meet links are being sent.',
-        );
+        this.loading.set(false);
+        alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
         this.closeInterviewDialog();
         this.loadApplications();
       },
       error: (err) => {
         console.error('Error:', err);
-        this.interviewError =
-          err.error?.message ||
-          'Conflict detected or HR/Interviewer is not available at this time.';
+        this.loading.set(false);
+        this.interviewError = err.error?.message || 'Conflict detected or HR/Interviewer is not available at this time.';
       },
     });
+
   }
 
   private getApplicantNameByAppId(appId: string): string {

@@ -3,223 +3,114 @@
     <h1 class="text-3xl font-extrabold text-slate-900 mb-4">
       Explore <span class="text-blue-600">Career</span> Opportunities
     </h1>
-    <p class="text-slate-500 font-medium">
-      Join our team and build the future together.
-    </p>
+    <p class="text-slate-500 font-medium">Join our team and build the future together.</p>
   </div>
+
+  @if (errorMsg()) {
+    <div class="max-w-4xl mx-auto mb-6 p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold animate-in fade-in">
+      {{ errorMsg() }}
+    </div>
+  }
 
   <div class="max-w-4xl mx-auto space-y-5">
     @if (loading()) {
-    <div class="text-center py-10 text-slate-500 font-bold animate-pulse">
-      Loading jobs...
-    </div>
-    } @for (vacancy of vacancies(); track vacancy.id) {
-    <div
-      class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
-    >
-      <div class="flex justify-between items-start">
-        <div>
-          <span
-            class="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider rounded-md mb-2"
-          >
-            {{ vacancy.department?.name || 'General' }}
-          </span>
-          <h2 class="text-xl font-bold text-slate-900 mb-2">
-            {{ vacancy.title }}
-          </h2>
-          <p class="text-sm text-slate-500 mb-4 line-clamp-2">
-            {{ vacancy.description }}
-          </p>
+      <div class="text-center py-10 text-slate-500 font-bold animate-pulse">Loading jobs...</div>
+    }
 
-          <div class="flex items-center gap-4 text-xs font-bold text-slate-500">
-            <span class="bg-slate-100 px-2 py-1 rounded"
-              >Code: {{ vacancy.code }}</span
-            >
-            <span class="text-red-500">Closing: {{ vacancy.closingDate }}</span>
-            <span>Openings: {{ vacancy.numberOfOpenings }}</span>
+    @for (job of vacancies(); track job.id) {
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider rounded-md mb-2">
+              {{ job.department?.name || 'General' }}
+            </span>
+            <h2 class="text-xl font-bold text-slate-900 mb-2">{{ job.title }}</h2>
+            <p class="text-sm text-slate-500 mb-4 line-clamp-2">{{ job.description }}</p>
+            <div class="flex items-center gap-4 text-xs font-bold text-slate-500">
+              <span class="bg-slate-100 px-2 py-1 rounded">Code: {{ job.code }}</span>
+              <span class="text-red-500">Closing: {{ job.closingDate }}</span>
+              <span>Openings: {{ job.numberOfOpenings }}</span>
+            </div>
+          </div>
+
+          <div class="flex flex-col items-end gap-3 shrink-0">
+            <button (click)="applyJob(job)" class="px-6 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-colors shadow-lg">
+              Apply Now
+            </button>
+            <button (click)="toggleFavorite(job)" class="text-sm font-bold flex items-center gap-1 transition-colors"
+              [ngClass]="$any(job).isFavorite ? 'text-red-500' : 'text-slate-400 hover:text-red-500'">
+              <svg class="w-5 h-5" [attr.fill]="$any(job).isFavorite ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+              {{ $any(job).isFavorite ? 'Saved' : 'Save Job' }}
+            </button>
           </div>
         </div>
-
-        <div class="flex flex-col items-end gap-3 shrink-0">
-          <button
-            (click)="applyJob(vacancy)"
-            class="px-6 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-colors shadow-lg shadow-slate-900/10"
-          >
-            Apply Now
-          </button>
-
-          <button
-            (click)="toggleFavorite(vacancy)"
-            class="text-sm font-bold flex items-center gap-1 transition-colors"
-            [ngClass]="vacancy ? 'text-red-500' : 'text-slate-400 hover:text-red-500'"
-          >
-            <svg
-              class="w-5 h-5"
-              [attr.fill]="vacancy ? 'currentColor' : 'none'"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              ></path>
-            </svg>
-            {{ vacancy ? 'Saved' : 'Save Job' }}
-          </button>
-        </div>
       </div>
-    </div>
-    } @if (!loading() && vacancies().length === 0) {
-    <div class="text-center py-10 text-slate-500 font-medium">
-      No open vacancies at the moment. Please check back later.
-    </div>
     }
   </div>
 </div>
 
 @if (isApplyModalOpen) {
-<div
-  class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
->
-  <div
-    class="relative w-full max-w-2xl bg-white rounded-[24px] shadow-2xl m-4 animate-in zoom-in-95 duration-300"
-  >
-    <div
-      class="flex items-center justify-between p-6 border-b border-slate-100"
-    >
-      <h3 class="text-xl font-extrabold text-slate-900">
-        Apply for <span class="text-blue-600">{{ selectedJobTitle }}</span>
-      </h3>
-      <button
-        (click)="closeApplyModal()"
-        class="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full p-2 transition-colors"
-      >
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
-          ></path>
-        </svg>
-      </button>
-    </div>
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div class="relative w-full max-w-2xl bg-white rounded-[24px] shadow-2xl m-4 animate-in zoom-in-95 duration-300">
+      <div class="flex items-center justify-between p-6 border-b border-slate-100">
+        <h3 class="text-xl font-extrabold text-slate-900">Apply for <span class="text-blue-600">{{ selectedJobTitle }}</span></h3>
+        <button (click)="closeApplyModal()" class="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full p-2 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
 
-    <div class="p-6 max-h-[70vh] overflow-y-auto">
-      <div class="space-y-6">
-        <div
-          class="p-6 border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-2xl text-center hover:bg-blue-50 transition-colors cursor-pointer group relative"
-        >
-          <div
-            class="w-12 h-12 bg-white text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:scale-110 transition-transform"
-          >
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-              ></path>
-            </svg>
+      <div class="p-6 max-h-[70vh] overflow-y-auto">
+        <div class="space-y-6">
+          @if (applyError()) {
+            <div class="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-bold animate-in zoom-in">
+              {{ applyError() }}
+            </div>
+          }
+
+          <div class="p-6 border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-2xl text-center hover:bg-blue-50 transition-colors cursor-pointer group relative">
+            @if (selectedFileName()) {
+              <div class="flex flex-col items-center animate-in zoom-in">
+                <div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <div class="text-blue-600 font-bold">{{ selectedFileName() }}</div>
+                <p class="text-xs text-slate-400 mt-1">Click to change file</p>
+              </div>
+            } @else {
+              <div class="w-12 h-12 bg-white text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+              </div>
+              <p class="text-sm font-bold text-slate-700">Upload CV from your computer</p>
+            }
+            <input type="file" (change)="selectCvFile($event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf" />
           </div>
-          <p class="text-sm font-bold text-slate-700">
-            Upload CV from your computer
-          </p>
-          <p class="text-xs text-slate-500 mt-1">
-            Supported formats: .pdf (Max 5MB)
-          </p>
-          <input
-            type="file"
-            (change)="selectCvFile($event)"
-            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            accept=".pdf"
-          />
-        </div>
 
-        <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
+              <input type="text" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-sm" [value]="applyForm.fullName" readonly />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Email *</label>
+              <input type="email" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-sm" [value]="applyForm.email" readonly />
+            </div>
+          </div>
+
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1"
-              >Full Name *</label
-            >
-            <input
-              type="text"
-              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm bg-slate-50 text-slate-500"
-              [(ngModel)]="applyForm.fullName"
-              readonly
-            />
+            <label class="block text-xs font-bold text-slate-700 mb-1">Introduction</label>
+            <textarea rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Write something about yourself..."></textarea>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1"
-              >Email *</label
-            >
-            <input
-              type="email"
-              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm bg-slate-50 text-slate-500"
-              [(ngModel)]="applyForm.email"
-              readonly
-            />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1"
-            >Cover Letter / Introduction</label
-          >
-          <textarea
-            rows="3"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
-            placeholder="Write a brief introduction about yourself..."
-          ></textarea>
-        </div>
-
-        <div class="space-y-3">
-          <label class="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              class="mt-1 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span class="text-sm text-slate-600"
-              >Allow AI to analyze my CV for better matching.</span
-            >
-          </label>
-          <label class="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              class="mt-1 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span class="text-sm text-slate-600"
-              >I agree to the
-              <a href="#" class="text-blue-600 font-bold hover:underline"
-                >Terms of Service</a
-              >
-              and Data Privacy Policy.</span
-            >
-          </label>
         </div>
       </div>
-    </div>
 
-    <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[24px]">
-      <button
-        type="button"
-        (click)="submitApplication()"
-        class="w-full py-4 px-6 bg-slate-900 hover:bg-blue-600 text-white font-bold text-sm rounded-xl transition-colors shadow-lg shadow-slate-900/10"
-      >
-        Submit Application
-      </button>
+      <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[24px]">
+        <button type="button" (click)="submitApplication()" [disabled]="loading()"
+          class="w-full py-4 px-6 bg-slate-900 hover:bg-blue-600 text-white font-bold text-sm rounded-xl transition-all shadow-lg disabled:opacity-50">
+          {{ loading() ? 'Submitting...' : 'Submit Application' }}
+        </button>
+      </div>
     </div>
   </div>
-</div>
 }
