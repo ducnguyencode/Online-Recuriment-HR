@@ -19,7 +19,7 @@ import { AiService } from './services/ai.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationGateway } from './notification/notification.gateway';
-import { BullModule } from '@nestjs/bull';
+// import { BullModule } from '@nestjs/bull';
 import { EmailQueueService } from './services/email-queue.service';
 import { DevToolsController } from './controller/dev-tools.controller';
 import { GoogleMeetService } from './services/google-meet.service';
@@ -27,9 +27,7 @@ import { InterviewController } from './controller/interview.controller';
 import { InterviewService } from './services/interview.service';
 import { Interview } from './entities/interview.entity';
 import { InterviewListener } from './listeners/interview.listener';
-import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
-import { join } from 'path';
+// import { MailerModule } from '@nestjs-modules/mailer';
 import { InAppNotification } from './entities/notification.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomValidator } from './common/validator/custom.validator';
@@ -51,6 +49,16 @@ import { InterviewerAvailability } from './entities/interviewer-availability.ent
 import { EmployeeController } from './controller/employee.controller';
 import { EmployeeService } from './services/employee.service';
 import { EmailQueue } from './entities/email-queue.entity';
+import { AdminUserController } from './controller/admin-user.controller';
+import { AdminUserService } from './services/admin-user.service';
+import { RolesGuard } from './common/guards/roles.guard';
+import { AuditLog } from './entities/audit-log.entity';
+import { AuditLogService } from './services/audit-log.service';
+import { AuditLogController } from './controller/audit-log.controller';
+import { EmailCronService } from './cron/email.cron';
+import { AccountCleanupCronService } from './cron/account-cleanup.cron';
+import { InterviewerAvailabilityController } from './controller/interviewer-availability.controller';
+import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
 
 @Module({
   imports: [
@@ -59,52 +67,7 @@ import { EmailQueue } from './entities/email-queue.entity';
     }),
 
     ScheduleModule.forRoot(),
-
-    MailerModule.forRootAsync({
-      imports: [ConfigModule], // Import này để lấy được các biến .env
-      useFactory: (configService: ConfigService) => ({
-        transport: {
-          host: configService.get('SMTP_HOST'), // Ví dụ: smtp.gmail.com
-          port: configService.get('SMTP_PORT'),
-          auth: {
-            user: configService.get('SMTP_USER'),
-            pass: configService.get('SMTP_PASS'),
-          },
-        },
-        defaults: {
-          from: '"HR Recruitment" <noreply@example.com>',
-        },
-        template: {
-          // Lưu ý: join(__dirname, 'mail', 'templates') nếu thư mục mail nằm trong src
-          dir: join(__dirname, 'mail', 'templates'),
-          adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
-          },
-        },
-      }),
-      inject: [ConfigService],
-    }),
-
     EventEmitterModule.forRoot(),
-
-    // Kết nối tới Cỗ máy Redis trong Docker của bạn
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get('REDIS_HOST'),
-          port: configService.get('REDIS_PORT'),
-        },
-      }),
-    }),
-
-    // Khởi tạo Bảng công việc
-    BullModule.registerQueue({
-      name: 'email-queue',
-    }),
-
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -113,7 +76,7 @@ import { EmailQueue } from './entities/email-queue.entity';
         host: configService.get<string>('DB_HOST'),
         port: configService.get<number>('DB_PORT'),
         username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
+        password: String(configService.get<string>('DB_PASSWORD')),
         database: configService.get<string>('DB_NAME'),
 
         autoLoadEntities: true,
@@ -135,6 +98,7 @@ import { EmailQueue } from './entities/email-queue.entity';
       InterviewerAvailability,
       InAppNotification,
       EmailQueue,
+      AuditLog,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -157,6 +121,9 @@ import { EmailQueue } from './entities/email-queue.entity';
     AuthController,
     EmployeeController,
     NotificationsController,
+    AdminUserController,
+    AuditLogController,
+    InterviewerAvailabilityController,
   ],
   providers: [
     VacanciesService,
@@ -179,6 +146,12 @@ import { EmailQueue } from './entities/email-queue.entity';
     MailService,
     NotificationsService,
     EmployeeService,
+    AdminUserService,
+    RolesGuard,
+    AuditLogService,
+    EmailCronService,
+    AccountCleanupCronService,
+    InterviewerAvailabilityService,
   ],
 })
 export class AppModule {}

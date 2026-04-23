@@ -8,18 +8,37 @@ export interface CreateStaffAccountDto {
   email: string;
   fullName: string;
   role: Extract<UserRole, 'HR' | 'Interviewer'>;
-  departmentId: string;
+  departmentId: number;
+  position?: string;
+  phone?: string;
+}
+
+export interface UpdateStaffAccountDto {
+  fullName: string;
+  role: Extract<UserRole, 'HR' | 'Interviewer'>;
+  departmentId: number;
   position?: string;
   phone?: string;
 }
 
 export interface StaffAccountFilters {
   role?: UserRole | '';
-  departmentId?: string;
+  departmentId?: number;
   search?: string;
   isActive?: boolean;
   page?: number;
   limit?: number;
+}
+
+export interface UpdateStaffRoleDto {
+  role: Extract<UserRole, 'HR' | 'Interviewer'>;
+  reason: string;
+}
+
+export interface RoleChangePreconditions {
+  blockingVacancies: number[];
+  blockingInterviews: string[];
+  canProceed: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -39,13 +58,15 @@ export class AdminUserService {
     return this.http.get<ApiResponse<PaginatedResponse<UserAccount>>>(this.base, { params });
   }
 
-  /**
-   * Superadmin creates a HR/Interviewer account from email only.
-   * Backend generates a temporary password, hashes it, sets MustChangePassword=TRUE,
-   * and sends the credentials to the recipient email via the email queue.
-   */
   createStaff(dto: CreateStaffAccountDto): Observable<ApiResponse<UserAccount>> {
     return this.http.post<ApiResponse<UserAccount>>(this.base, dto);
+  }
+
+  updateStaff(
+    userId: string,
+    dto: UpdateStaffAccountDto,
+  ): Observable<ApiResponse<UserAccount>> {
+    return this.http.patch<ApiResponse<UserAccount>>(`${this.base}/${userId}`, dto);
   }
 
   deactivate(userId: string): Observable<ApiResponse<UserAccount>> {
@@ -58,6 +79,27 @@ export class AdminUserService {
 
   /** Force-send a fresh temporary password if user lost the welcome email. */
   resendTemporaryPassword(userId: string): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>(`${this.base}/${userId}/resend-credentials`, {});
+    return this.http.post<ApiResponse<void>>(`${this.base}/${userId}/resend-invite`, {});
+  }
+
+  getRoleChangePreconditions(
+    userId: string,
+    role: Extract<UserRole, 'HR' | 'Interviewer'>,
+  ): Observable<ApiResponse<RoleChangePreconditions>> {
+    const params = new HttpParams().set('newRole', role);
+    return this.http.get<ApiResponse<RoleChangePreconditions>>(
+      `${this.base}/${userId}/role-change-preconditions`,
+      { params },
+    );
+  }
+
+  updateRole(
+    userId: string,
+    dto: UpdateStaffRoleDto,
+  ): Observable<ApiResponse<UserAccount>> {
+    return this.http.patch<ApiResponse<UserAccount>>(
+      `${this.base}/${userId}/role`,
+      dto,
+    );
   }
 }

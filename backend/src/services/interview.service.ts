@@ -43,7 +43,7 @@ export class InterviewService {
     // Inject other services
     private googleMeetService: GoogleMeetService,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   // HELPER METHOD: Check Availability & Lock Slots
   // We pass 'EntityManager' so this runs inside the transaction
@@ -128,7 +128,7 @@ export class InterviewService {
       // 3. Validate Application (Inside transaction)
       const application = await queryRunner.manager.findOne(Application, {
         where: { id: data.applicationId },
-        relations: ['applicant'], // Need applicant info for the email queue
+        relations: ['applicant', 'applicant.user'], // Need applicant info for the email queue
       });
 
       if (
@@ -262,7 +262,7 @@ export class InterviewService {
       // 1. Fetch existing interview with necessary relations
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id },
-        relations: ['application', 'application.applicant', 'panels'],
+        relations: ['application', 'application.applicant', 'application.applicant.user', 'panels'],
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -342,7 +342,7 @@ export class InterviewService {
     try {
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id },
-        relations: ['application', 'application.applicant', 'panels'],
+        relations: ['application', 'application.applicant', 'application.applicant.user', 'panels'],
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -417,5 +417,48 @@ export class InterviewService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async findAll(query: any) {
+    const { status, search, page = 1, limit = 10 } = query;
+
+    const [items, totalItems] = await this.interviewRepo.findAndCount({
+      where: status ? { status } : {},
+      relations: [
+        'application',
+        'application.applicant',
+        'application.applicant.user',
+        'application.vacancy',
+        'panels',
+        'panels.employee',
+      ],
+      order: { startTime: 'DESC' },
+      take: limit,
+      skip: (page - 1) * limit,
+    });
+
+    return {
+      items,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      currentPage: Number(page),
+    };
+  }
+
+  async findOne(id: string) {
+    const interview = await this.interviewRepo.findOne({
+      where: { id },
+      relations: [
+        'application',
+        'application.applicant',
+        'application.applicant.user', // Lấy email/fullName qua User
+        'application.vacancy',
+        'panels',
+        'panels.employee',
+      ],
+    });
+
+    if (!interview) throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
+    return interview;
   }
 }

@@ -72,8 +72,8 @@ export const hrPortalRoutes: Routes = [
           ),
       },
       {
-        path: 'admin/staff',
-        canActivate: [superadminGuard],
+        path: 'staff',
+        canActivate: [hrGuard],
         loadComponent: () =>
           import('./admin/staff-management/staff-management.component').then(
             m => m.StaffManagementComponent,

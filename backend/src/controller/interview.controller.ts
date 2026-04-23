@@ -5,6 +5,9 @@ import {
   Patch,
   Param,
   UseGuards,
+  Get,
+  Query,
+  HttpStatus,
 } from '@nestjs/common';
 import { InterviewService } from '../services/interview.service';
 import { InterviewCreateDto } from '../dto/interview-create.dto';
@@ -19,7 +22,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 @Controller('interviews')
 @UseGuards(JwtAuthGuard) // Protect all interview endpoints
 export class InterviewController {
-  constructor(private readonly interviewService: InterviewService) {}
+  constructor(private readonly interviewService: InterviewService) { }
 
   // POST /interviews
   @Post()
@@ -67,6 +70,25 @@ export class InterviewController {
       statusCode: 200,
       message: `Interview status updated to ${data.status}`,
       data: result,
+    };
+  }
+
+  @Get()
+  async findAll(@Query() query: any) {
+    const data = await this.interviewService.findAll(query);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Success load interviews',
+      data,
+    };
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const data = await this.interviewService.findOne(id);
+    return {
+      statusCode: HttpStatus.OK,
+      data,
     };
   }
 }

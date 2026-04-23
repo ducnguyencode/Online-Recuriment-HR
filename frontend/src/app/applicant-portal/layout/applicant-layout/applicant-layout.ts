@@ -12,16 +12,8 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class ApplicantLayoutComponent {
   protected auth = inject(AuthService);
-  private router = inject(Router);
-
-  // Lấy thẳng trạng thái từ AuthService (chuẩn Signal, không xài LocalStorage)
-  isLoggedIn = this.auth.isLoggedIn;
-
-  // Trỏ thẳng vào tên user hiện tại
-  userName = () => this.auth.currentUser()?.fullName || 'Applicant';
 
   logout() {
     this.auth.logout(); // Service lo việc xóa token
-    this.router.navigate(['/login']); // Chỉ cần điều hướng về trang Login
   }
 }

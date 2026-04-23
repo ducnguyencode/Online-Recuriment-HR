@@ -8,10 +8,9 @@ import {
   UserRoleLogin,
   ApiResponse,
   UpdateAccountResponse,
-  SetInitialPasswordResponse,
 } from '../models';
 import { environment } from '../../../environments/environment';
-import { delay, of, tap } from 'rxjs';
+import { tap } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'hr_token';
@@ -100,6 +99,20 @@ export class AuthService {
     );
   }
 
+  forgotPassword(email: string) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/forgot-password`,
+      { email },
+    );
+  }
+
+  resetPassword(token: string, newPassword: string) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/reset-password`,
+      { token, newPassword },
+    );
+  }
+
   handleLoginSuccess(response: LoginResponse, userRoleLogin: UserRoleLogin) {
     const { access_token, user } = response.data;
     localStorage.setItem(this.TOKEN_KEY, access_token);
@@ -114,19 +127,13 @@ export class AuthService {
   }
 
   setInitialPassword(dto: { token: string; newPassword: string }) {
-    // TODO: swap to real endpoint when backend ready:
-    // return this.http.post<SetInitialPasswordResponse>(
-    //   `${environment.apiUrl}/auth/set-initial-password`,
-    //   dto,
-    // );
-    const mockResponse: SetInitialPasswordResponse = {
-      statusCode: 200,
-      message: 'Initial password has been set successfully.',
-      data: {
-        redirectTo: '/login',
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/set-initial-password`,
+      {
+        token: dto.token,
+        password: dto.newPassword,
       },
-    };
-    return of(mockResponse).pipe(delay(400));
+    );
   }
 
   handleUpdateAccountSuccess(response: UpdateAccountResponse) {
@@ -140,7 +147,7 @@ export class AuthService {
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.DEV_ROLE_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/']);
+    this.router.navigate(['/login']);
   }
 
   getToken(): string | null {

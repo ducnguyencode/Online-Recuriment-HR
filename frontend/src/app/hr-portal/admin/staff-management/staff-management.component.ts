@@ -1,9 +1,11 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   AdminUserService,
   CreateStaffAccountDto,
+  UpdateStaffAccountDto,
 } from '../../../core/services/admin-user.service';
 import { DepartmentService } from '../../../core/services/department.service';
 import {
@@ -12,10 +14,6 @@ import {
   UserAccount,
   UserRole,
 } from '../../../core/models';
-import {
-  CreateEmployeeDto,
-  EmployeeService,
-} from '../../../core/services/employee.service';
 
 type StaffRole = Extract<UserRole, 'HR' | 'Interviewer'>;
 
@@ -38,29 +36,58 @@ export class StaffManagementComponent implements OnInit {
   readonly pageSize = 15;
 
   filterRole = signal<'' | StaffRole>('');
-  filterDepartment = signal('');
+  filterDepartment = signal<number | ''>('');
   searchQuery = signal('');
 
   showCreateDialog = signal(false);
+  showEditDialog = signal(false);
   creating = signal(false);
+  updating = signal(false);
   formError = signal('');
   formSuccess = signal('');
+  selectedStaff = signal<UserAccount | null>(null);
   formData: CreateStaffAccountDto = {
     email: '',
     fullName: '',
     role: UserRole.HR,
-    departmentId: '',
+    departmentId: 0,
+    position: '',
+    phone: '',
+  };
+  editFormData: UpdateStaffAccountDto = {
+    fullName: '',
+    role: UserRole.HR,
+    departmentId: 0,
+    position: '',
+    phone: '',
+  };
+  private readonly defaultEditFormData: UpdateStaffAccountDto = {
+    fullName: '',
+    role: UserRole.HR,
+    departmentId: 0,
     position: '',
     phone: '',
   };
 
   constructor(
+    private authService: AuthService,
     private adminService: AdminUserService,
     private departmentService: DepartmentService,
-    private employeeService: EmployeeService,
   ) {}
 
+  get isSuperadminView(): boolean {
+    return this.authService.isSuperadmin();
+  }
+
+  get pageTitle(): string {
+    return this.isSuperadminView ? 'Employee Accounts' : 'Interviewer Accounts';
+  }
+
   ngOnInit() {
+    if (!this.isSuperadminView) {
+      this.filterRole.set(UserRole.INTERVIEWER);
+      this.formData.role = UserRole.INTERVIEWER;
+    }
     this.loadDepartments();
     this.loadUsers();
   }
@@ -76,9 +103,11 @@ export class StaffManagementComponent implements OnInit {
   loadUsers() {
     this.loading.set(true);
     this.errorMsg.set('');
-    this.employeeService
+    this.adminService
       .getAll({
-        role: this.filterRole() || undefined,
+        role: this.isSuperadminView
+          ? this.filterRole() || undefined
+          : UserRole.INTERVIEWER,
         departmentId: this.filterDepartment() || undefined,
         search: this.searchQuery().trim() || undefined,
         page: this.currentPage(),
@@ -86,7 +115,8 @@ export class StaffManagementComponent implements OnInit {
       })
       .subscribe({
         next: (res) => {
-          const items = (res.data as any)?.items ?? [];
+          const rawItems = (res.data as any)?.items ?? [];
+          const items = rawItems.map((item: any) => this.toStaffRow(item));
           const totalItems =
             (res.data as any)?.totalItems ??
             (res.data as any)?.total ??
@@ -104,7 +134,7 @@ export class StaffManagementComponent implements OnInit {
           this.employees.set([]);
           this.totalItems.set(0);
           this.totalPages.set(1);
-          this.errorMsg.set('');
+          this.errorMsg.set('Unable to load staff accounts. Please try again.');
           this.loading.set(false);
         },
       });
@@ -116,7 +146,7 @@ export class StaffManagementComponent implements OnInit {
   }
 
   clearFilters() {
-    this.filterRole.set('');
+    this.filterRole.set(this.isSuperadminView ? '' : UserRole.INTERVIEWER);
     this.filterDepartment.set('');
     this.searchQuery.set('');
     this.currentPage.set(1);
@@ -132,8 +162,8 @@ export class StaffManagementComponent implements OnInit {
     this.formData = {
       email: '',
       fullName: '',
-      role: UserRole.HR,
-      departmentId: '',
+      role: this.isSuperadminView ? UserRole.HR : UserRole.INTERVIEWER,
+      departmentId: 0,
       position: '',
       phone: '',
     };
@@ -164,25 +194,27 @@ export class StaffManagementComponent implements OnInit {
       this.formError.set('Full name is required.');
       return;
     }
-    if (!this.formData.departmentId) {
+    if (!this.formData.departmentId || Number(this.formData.departmentId) <= 0) {
       this.formError.set('Department is required.');
       return;
     }
 
-    const dto: CreateEmployeeDto = {
+    const dto: CreateStaffAccountDto = {
       ...this.formData,
       email,
       fullName,
-      departmentId: this.formData.departmentId,
-      jobTitle: this.formData.position?.trim() || undefined,
+      role: this.isSuperadminView ? this.formData.role : UserRole.INTERVIEWER,
+      departmentId: Number(this.formData.departmentId),
+      position: this.formData.position?.trim() || undefined,
       phone: this.formData.phone?.trim() || undefined,
     };
 
     this.creating.set(true);
     this.formError.set('');
-    this.employeeService.create(dto).subscribe({
+    this.adminService.createStaff(dto).subscribe({
       next: () => {
         this.creating.set(false);
+        this.closeCreateDialog();
         this.formSuccess.set(
           `Invitation sent to ${email}. ` +
             `After verifying the email, the user will set an initial password before signing in.`,
@@ -202,6 +234,8 @@ export class StaffManagementComponent implements OnInit {
   resendCredentials(user: UserAccount | undefined) {
     if (!user) return;
     if (!confirm(`Resend the activation email to ${user.email}?`)) return;
+    this.errorMsg.set('');
+    this.formSuccess.set('');
     this.adminService.resendTemporaryPassword(user.id).subscribe({
       next: () =>
         this.formSuccess.set(
@@ -213,6 +247,97 @@ export class StaffManagementComponent implements OnInit {
             'Unable to resend credentials. Please try again.',
         ),
     });
+  }
+
+  openEditDialog(employee: Employee) {
+    const user = employee.user;
+    if (!user || user.role === UserRole.SUPER_ADMIN) return;
+    const resolvedDepartmentId = Number(
+      employee.department?.id ??
+        employee.departmentId ??
+        (employee as any)?.department?.id ??
+        0,
+    );
+    this.selectedStaff.set(user);
+    this.editFormData = {
+      fullName: user.fullName ?? '',
+      role: (user.role as StaffRole) ?? UserRole.HR,
+      departmentId: resolvedDepartmentId,
+      position: employee.position ?? (employee as any)?.jobTitle ?? '',
+      phone: user.phone ?? '',
+    };
+    this.formError.set('');
+    this.showEditDialog.set(true);
+  }
+
+  closeEditDialog() {
+    this.showEditDialog.set(false);
+    this.selectedStaff.set(null);
+    this.formError.set('');
+    this.editFormData = { ...this.defaultEditFormData };
+  }
+
+  saveEditedStaff() {
+    const staff = this.selectedStaff();
+    if (!staff) return;
+    const fullName = this.editFormData.fullName.trim();
+    if (!fullName) {
+      this.formError.set('Full name is required.');
+      return;
+    }
+    if (!this.editFormData.departmentId || Number(this.editFormData.departmentId) <= 0) {
+      this.formError.set('Department is required.');
+      return;
+    }
+
+    this.updating.set(true);
+    this.formError.set('');
+    this.adminService
+      .updateStaff(staff.id, {
+        ...this.editFormData,
+        fullName,
+        departmentId: Number(this.editFormData.departmentId),
+        position: this.editFormData.position?.trim() || undefined,
+        phone: this.editFormData.phone?.trim() || undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          this.updating.set(false);
+          this.closeEditDialog();
+          this.formSuccess.set('Staff account updated successfully.');
+          const updated = this.toStaffRow(res.data as any);
+          this.employees.update((rows) =>
+            rows.map((row) =>
+              String(row.user?.id ?? row.id) === String(staff.id) ? updated : row,
+            ),
+          );
+          this.loadUsers();
+        },
+        error: (err) => {
+          this.updating.set(false);
+          this.formError.set(
+            err?.error?.message ?? 'Unable to update staff account.',
+          );
+        },
+      });
+  }
+
+  private toStaffRow(item: any): Employee {
+    if (item?.user) {
+      return {
+        ...item,
+        departmentId: Number(item.department?.id ?? item.departmentId ?? 0),
+        position: item.position ?? item.jobTitle ?? '',
+      } as Employee;
+    }
+    return {
+      ...item.employee,
+      user: item,
+      department: item.employee?.department,
+      departmentId: Number(item.employee?.department?.id ?? 0),
+      position: item.employee?.jobTitle ?? '',
+      createdAt: item.createdAt,
+    } as Employee;
   }
 
   toggleActive(user: UserAccount | undefined) {
@@ -233,7 +358,7 @@ export class StaffManagementComponent implements OnInit {
   roleBadgeClass(role?: string): string {
     if (role === 'HR') return 'badge-info';
     if (role === 'Interviewer') return 'badge-warning';
-    if (role === 'Superadmin') return 'badge-success';
+    if (role === 'Super Admin') return 'badge-danger';
     return 'badge-neutral';
   }
 

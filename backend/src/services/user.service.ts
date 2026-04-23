@@ -7,7 +7,6 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -25,6 +24,8 @@ import { StringValue } from 'ms';
 import { Department } from 'src/entities/department.entity';
 @Injectable()
 export class UserService {
+  private static readonly APPLICANT_VERIFY_EXPIRES = '15m';
+
   constructor(
     @InjectRepository(User) private userTable: Repository<User>,
     private jwtService: JwtService,
@@ -34,6 +35,10 @@ export class UserService {
 
   async findByEmail(email: string) {
     return await this.userTable.findOne({ where: { email } });
+  }
+
+  async findByResetToken(token: string) {
+    return await this.userTable.findOne({ where: { resetPasswordToken: token } });
   }
 
   async findUserVerifiedByEmail(email: string) {
@@ -50,6 +55,10 @@ export class UserService {
     return await this.userTable.findOne({ where: { id } });
   }
 
+  async save(user: User) {
+    return await this.userTable.save(user);
+  }
+
   async createRegisterApplicant(data: UserCreateDto) {
     let user: User;
     await this.userTable.manager.transaction(async (manager) => {
@@ -61,23 +70,35 @@ export class UserService {
           ...data,
           role: UserRole.APPLICANT,
           password: bcrypt.hashSync(data.password, 10),
+          isActive: true,
         });
       } else {
+        if (!existing.isActive) {
+          throw new ConflictException(
+            'This email belongs to a deactivated account and cannot be reused.',
+          );
+        }
         if (existing.isVerified) {
           throw new ConflictException('Account already exist');
         }
 
-        if (existing.verificationToken) {
-          const { expired } = this.getTokenInfo(existing.verificationToken);
-
-          if (!expired) {
+        const tokenInfo = this.getVerificationTokenInfo(existing.verificationToken);
+        if (tokenInfo && !tokenInfo.expired) {
+          // Pending unverified account with valid token must continue existing flow.
+          if (existing.role === UserRole.APPLICANT) {
             throw new ConflictException(
-              'Account already register! Check email to verify.',
+              'Account already registered. Check your email to verify.',
             );
           }
+          throw new ConflictException(
+            'Staff invitation is still pending. Ask admin to resend invite.',
+          );
         }
 
+        // Reclaim is only allowed for unverified + expired/no-token accounts.
         existing.role = UserRole.APPLICANT;
+        existing.isActive = true;
+        existing.verificationToken = null;
         existing.password = bcrypt.hashSync(data.password, 10);
         user = existing;
       }
@@ -86,7 +107,7 @@ export class UserService {
         user,
         null,
         UserRole.APPLICANT,
-        '1m',
+        UserService.APPLICANT_VERIFY_EXPIRES,
         TokenType.EMAIL_REGISTER_VERIFY,
       );
       user.verificationToken = token;
@@ -100,6 +121,32 @@ export class UserService {
     }
 
     return user!;
+  }
+
+  async resendApplicantVerification(email: string): Promise<void> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.findByEmail(normalizedEmail);
+    if (!user) {
+      return;
+    }
+    if (!user.isActive) {
+      throw new BadRequestException(
+        'This account is deactivated and cannot receive verification email.',
+      );
+    }
+    if (user.isVerified || user.role !== UserRole.APPLICANT) {
+      return;
+    }
+
+    user.verificationToken = this.generateEmailToken(
+      { id: user.id, email: user.email, role: user.role },
+      null,
+      UserRole.APPLICANT,
+      UserService.APPLICANT_VERIFY_EXPIRES,
+      TokenType.EMAIL_REGISTER_VERIFY,
+    );
+    await this.save(user);
+    await this.sendVerification(user);
   }
 
   async verifyAccount(payload: {
@@ -117,42 +164,77 @@ export class UserService {
         throw new NotFoundException('Account not found!');
       }
       if (user.isVerified == true) {
-        if (payload.type == TokenType.EMAIL_REGISTER_VERIFY) {
-          throw new ServiceUnavailableException('Account is already verified!');
-        }
         if (
-          payload.type == TokenType.EMAIL_INVITE_VERIFY &&
-          user.role == payload.role
+          payload.type == TokenType.EMAIL_REGISTER_VERIFY ||
+          (payload.type == TokenType.EMAIL_INVITE_VERIFY &&
+            user.role == payload.role)
         ) {
-          throw new ServiceUnavailableException(
-            'Employee account is already verified!',
-          );
+          return user;
         }
       }
 
       user.role = payload.role;
       user.isVerified = true;
+      user.isActive = true;
       user.verifiedAt = new Date();
       user.verificationToken = null;
 
       if (user.role == UserRole.APPLICANT) {
-        let applicant = await manager.findOne(Applicant, { where: { user } });
+        let applicant = await manager.findOne(Applicant, {
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
         if (!applicant) {
           applicant = manager.create(Applicant, { user: user });
         }
 
-        applicant = await manager.save(applicant);
-        user.applicant = applicant;
+        await manager.save(applicant);
       } else {
-        let employee = await manager.findOne(Employee, { where: { user } });
+        let employee = await manager.findOne(Employee, {
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
         if (!employee) {
           employee = manager.create(Employee, { user: user });
         }
         employee.isActive = true;
         employee.department = { id: payload.departmentId } as Department;
-        employee = await manager.save(employee);
-        user.employee = employee;
+        await manager.save(employee);
       }
+
+      return await manager.save(user);
+    });
+  }
+
+  async activateInvitedAccount(payload: {
+    email: string;
+    departmentId: number;
+    role: UserRole;
+  }) {
+    return this.userTable.manager.transaction(async (manager) => {
+      const user = await manager.findOne(User, {
+        where: { email: payload.email },
+      });
+      if (!user) {
+        throw new NotFoundException('Account not found!');
+      }
+
+      user.role = payload.role;
+      user.isVerified = true;
+      user.isActive = true;
+      user.verifiedAt = new Date();
+      user.verificationToken = null;
+
+      let employee = await manager.findOne(Employee, {
+        where: { user: { id: user.id } },
+        relations: ['user'],
+      });
+      if (!employee) {
+        employee = manager.create(Employee, { user });
+      }
+      employee.isActive = true;
+      employee.department = { id: payload.departmentId } as Department;
+      await manager.save(employee);
 
       return await manager.save(user);
     });
@@ -169,6 +251,21 @@ export class UserService {
       verifyUrl,
       rawPassword,
     );
+  }
+
+  async sendPasswordReset(email: string, name: string, resetUrl: string) {
+    await this.mailService.sendPasswordResetEmail(email, name, resetUrl);
+  }
+
+  async sendRoleChangedNotification(input: {
+    email: string;
+    name: string;
+    actorName: string;
+    fromRole: string;
+    toRole: string;
+    reason: string;
+  }) {
+    await this.mailService.sendRoleChangedEmail(input);
   }
 
   generateEmailToken(
@@ -208,6 +305,48 @@ export class UserService {
       remaining: Math.max(0, remaining),
       type,
     };
+  }
+
+  getVerificationTokenInfo(token: string | null | undefined): {
+    expired: boolean;
+    remaining: number;
+    type: TokenType;
+    expiresAt: Date;
+  } | null {
+    if (!token) {
+      return null;
+    }
+    const decoded = this.jwtService.decode(token) as { exp?: number } | null;
+    const info = this.getTokenInfo(token);
+    const expiresAt = decoded?.exp
+      ? new Date(decoded.exp * 1000)
+      : new Date(Date.now() + info.remaining * 1000);
+    return {
+      ...info,
+      expiresAt,
+    };
+  }
+
+  async cleanupExpiredUnverifiedAccounts(graceDays: number): Promise<number> {
+    const cutoff = new Date(Date.now() - graceDays * 24 * 60 * 60 * 1000);
+    const candidates = await this.userTable.find({
+      where: { isVerified: false, isActive: true },
+      relations: ['employee', 'applicant'],
+    });
+
+    const staleUsers = candidates.filter((user) => {
+      const tokenInfo = this.getVerificationTokenInfo(user.verificationToken);
+      if (!tokenInfo) {
+        return user.createdAt <= cutoff;
+      }
+      return tokenInfo.expired && tokenInfo.expiresAt <= cutoff;
+    });
+    if (staleUsers.length === 0) {
+      return 0;
+    }
+
+    await this.userTable.remove(staleUsers);
+    return staleUsers.length;
   }
 
   async ensureDefaultAdmin() {
