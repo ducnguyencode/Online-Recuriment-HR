@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -8,34 +8,20 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './applicant-layout.html',
-  styleUrls: ['./applicant-layout.scss'],
+  styleUrls: ['./applicant-layout.scss'], // Giữ nguyên file style của ông
 })
-export class ApplicantLayoutComponent implements OnInit {
+export class ApplicantLayoutComponent {
   protected auth = inject(AuthService);
   private router = inject(Router);
 
-  // userName: string = 'Applicant';
-  // isLoggedIn: boolean = false;
+  // Lấy thẳng trạng thái từ AuthService (chuẩn Signal, không xài LocalStorage)
+  isLoggedIn = this.auth.isLoggedIn;
 
-  ngOnInit() {
-    // // Khôi phục logic check đăng nhập thật từ AuthService
-    // this.isLoggedIn = this.auth.isLoggedIn() && this.auth.isApplicant();
-    // if (this.isLoggedIn) {
-    //   this.userName = localStorage.getItem('userFullName') || 'Applicant';
-    // }
-  }
+  // Trỏ thẳng vào tên user hiện tại
+  userName = () => this.auth.currentUser()?.fullName || 'Applicant';
 
   logout() {
-    this.auth.logout();
-    //   localStorage.removeItem('userFullName');
-
-    //   if (typeof this.auth.logout === 'function') {
-    //     this.auth.logout();
-    //   } else {
-    //     localStorage.removeItem('token');
-    //   }
-
-    //   this.isLoggedIn = false;
-    //   this.router.navigate(['/login']);
+    this.auth.logout(); // Service lo việc xóa token
+    this.router.navigate(['/login']); // Chỉ cần điều hướng về trang Login
   }
 }
