@@ -78,7 +78,7 @@ export class EmployeeService {
 
   async create(data: EmployeeCreateDto) {
     let user: User;
-    let mailData: { user: User; rawPassword?: string };
+    let mailData: { user: User };
     const password = generatePassword();
     await this.employeeTable.manager
       .transaction(async (manager) => {
@@ -92,7 +92,7 @@ export class EmployeeService {
             fullName: data.fullName,
             phone: data.phone,
           });
-          mailData = { user, rawPassword: password };
+          mailData = { user };
         } else {
           if (existing.isVerified) {
             if (existing.role != UserRole.APPLICANT) {
@@ -114,7 +114,7 @@ export class EmployeeService {
                 }
               } else {
                 user = { ...existing, password: password };
-                mailData = { user, rawPassword: password };
+                mailData = { user };
               }
             }
           }
@@ -132,7 +132,7 @@ export class EmployeeService {
       })
       .then(() => {
         this.userService
-          .sendVerification(mailData.user, mailData.rawPassword)
+          .sendVerification(mailData.user)
           .catch((err) => {
             console.error('Send verification failed', err);
           });
