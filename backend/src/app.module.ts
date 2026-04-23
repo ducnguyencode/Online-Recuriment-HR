@@ -28,8 +28,6 @@ import { InterviewService } from './services/interview.service';
 import { Interview } from './entities/interview.entity';
 import { InterviewListener } from './listeners/interview.listener';
 // import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
-import { join } from 'path';
 import { InAppNotification } from './entities/notification.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomValidator } from './common/validator/custom.validator';
@@ -68,52 +66,7 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
     }),
 
     ScheduleModule.forRoot(),
-
-    // MailerModule.forRootAsync({
-    //   imports: [ConfigModule], // Import này để lấy được các biến .env
-    //   useFactory: (configService: ConfigService) => ({
-    //     transport: {
-    //       host: configService.get('SMTP_HOST'), // Ví dụ: smtp.gmail.com
-    //       port: configService.get('SMTP_PORT'),
-    //       auth: {
-    //         user: configService.get('SMTP_USER'),
-    //         pass: configService.get('SMTP_PASS'),
-    //       },
-    //     },
-    //     defaults: {
-    //       from: '"HR Recruitment" <noreply@example.com>',
-    //     },
-    //     template: {
-    //       // Lưu ý: join(__dirname, 'mail', 'templates') nếu thư mục mail nằm trong src
-    //       dir: join(__dirname, 'mail', 'templates'),
-    //       adapter: new HandlebarsAdapter(),
-    //       options: {
-    //         strict: true,
-    //       },
-    //     },
-    //   }),
-    //   inject: [ConfigService],
-    // }),
-
     EventEmitterModule.forRoot(),
-
-    // Kết nối tới Cỗ máy Redis trong Docker của bạn
-    // BullModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: (configService: ConfigService) => ({
-    //     redis: {
-    //       host: configService.get('REDIS_HOST'),
-    //       port: configService.get('REDIS_PORT'),
-    //     },
-    //   }),
-    // }),
-
-    // Khởi tạo Bảng công việc
-    // BullModule.registerQueue({
-    //   name: 'email-queue',
-    // }),
-
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -199,4 +152,4 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
     InterviewerAvailabilityService,
   ],
 })
-export class AppModule { }
+export class AppModule {}
