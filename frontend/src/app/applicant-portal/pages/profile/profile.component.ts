@@ -1,10 +1,18 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 
 @Component({
   selector: 'app-profile',
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './profile.component.html',
-  styleUrls: ['./profile.component.scss'] // (Hoặc .css tùy dự án của bạn)
+  styleUrls: ['./profile.component.scss'], // (Hoặc .css tùy dự án của bạn)
 })
 export class ProfileComponent implements OnInit {
   profileForm!: FormGroup;
@@ -19,14 +27,14 @@ export class ProfileComponent implements OnInit {
       role: [{ value: 'Super Admin', disabled: true }], // Disabled vì thường user không tự đổi Role
       email: ['admin@test.com', [Validators.required, Validators.email]],
       employeeId: [{ value: '---', disabled: true }],
-      applicantId: [{ value: '---', disabled: true }]
+      applicantId: [{ value: '---', disabled: true }],
     });
 
     // FORM 2: Xử lý Đổi mật khẩu
     this.passwordForm = this.fb.group({
       currentPassword: ['', Validators.required],
       newPassword: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['', Validators.required]
+      confirmPassword: ['', Validators.required],
     });
   }
 
@@ -50,7 +58,8 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    const { currentPassword, newPassword, confirmPassword } = this.passwordForm.value;
+    const { currentPassword, newPassword, confirmPassword } =
+      this.passwordForm.value;
 
     // Validate phía FE trước khi gọi API
     if (newPassword !== confirmPassword) {
@@ -59,7 +68,10 @@ export class ProfileComponent implements OnInit {
     }
 
     const passwordPayload = { currentPassword, newPassword };
-    console.log('Gọi API PUT /users/change-password với data:', passwordPayload);
+    console.log(
+      'Gọi API PUT /users/change-password với data:',
+      passwordPayload,
+    );
     // TODO: Gắn service gọi API đổi mật khẩu tại đây
 
     // Đổi xong thì reset form cho sạch sẽ

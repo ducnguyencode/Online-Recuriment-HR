@@ -40,4 +40,14 @@ export class DateUtil {
       end: dayjs.tz(endInput, tz).endOf('day').utc().toDate(),
     };
   }
+
+  static todayUTC(tz = DEFAULT_TZ) {
+    const start = dayjs().tz(tz).startOf('day');
+    const end = dayjs().tz(tz).endOf('day');
+
+    return {
+      start: start.utc().toDate(),
+      end: end.utc().toDate(),
+    };
+  }
 }

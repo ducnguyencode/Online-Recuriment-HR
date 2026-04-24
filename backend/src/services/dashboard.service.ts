@@ -6,6 +6,7 @@ import { Between, Not, Repository } from 'typeorm';
 import { OverviewDto } from 'src/dto/dashboard/overview.dto';
 import { Application } from 'src/entities/application.entity';
 import { ApplicationStatus } from 'src/common/enum';
+import { Interview } from 'src/entities/interview.entity';
 
 @Injectable()
 export class DashboardService {
@@ -13,9 +14,11 @@ export class DashboardService {
     @InjectRepository(Vacancy) private vacancyTable: Repository<Vacancy>,
     @InjectRepository(Application)
     private applicationTable: Repository<Application>,
+    @InjectRepository(Interview) private interviewTable: Repository<Interview>,
   ) {}
 
-  async vacancyOverview(): Promise<OverviewDto> {
+  async activityOverview(): Promise<OverviewDto> {
+    const today = DateUtil.todayUTC();
     const thisMonth = DateUtil.monthRangeUTC(0);
     const lastMonth = DateUtil.monthRangeUTC(-1);
     const vacanciesThisMonth = await this.vacancyTable.count({
@@ -25,24 +28,51 @@ export class DashboardService {
       where: { createdAt: Between(lastMonth.start, lastMonth.end) },
     });
 
-    const applicationProcessingThisMonth = await this.applicationTable.count({
+    const applicationsProcessingThisMonth = await this.applicationTable.count({
       where: {
         createdAt: Between(thisMonth.start, thisMonth.end),
         status: Not(ApplicationStatus.PENDING),
       },
     });
-    const applicationProcessingLastMonth = await this.applicationTable.count({
+
+    const applicationsProcessingLastMonth = await this.applicationTable.count({
       where: {
-        createdAt: Between(lastMonth.start, lastMonth.end),
+        updatedAt: Between(lastMonth.start, lastMonth.end),
         status: Not(ApplicationStatus.PENDING),
+      },
+    });
+
+    const interviewToday = await this.interviewTable.count({
+      where: { startTime: Between(today.start, today.end) },
+    });
+
+    const applicationsThisMonth = await this.applicationTable.count({
+      where: { createdAt: Between(thisMonth.start, thisMonth.end) },
+    });
+
+    const applicantsHiredThisMonth = await this.applicationTable.count({
+      where: {
+        updatedAt: Between(thisMonth.start, thisMonth.end),
+        status: ApplicationStatus.SELECTED,
+      },
+    });
+
+    const applicantsHiredLastMonth = await this.applicationTable.count({
+      where: {
+        updatedAt: Between(lastMonth.start, lastMonth.end),
+        status: ApplicationStatus.SELECTED,
       },
     });
 
     return {
       vacanciesLastMonth,
       vacanciesThisMonth,
-      applicationProcessingLastMonth,
-      applicationProcessingThisMonth,
+      applicationsProcessingLastMonth,
+      applicationsProcessingThisMonth,
+      interviewToday,
+      applicationsThisMonth,
+      applicantsHiredThisMonth,
+      applicantsHiredLastMonth,
     };
   }
 }
