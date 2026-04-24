@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   BadRequestException,
@@ -131,11 +129,9 @@ export class EmployeeService {
         await manager.save(user);
       })
       .then(() => {
-        this.userService
-          .sendVerification(mailData.user)
-          .catch((err) => {
-            console.error('Send verification failed', err);
-          });
+        this.userService.sendVerification(mailData.user).catch((err) => {
+          console.error('Send verification failed', err);
+        });
       });
 
     return user!;

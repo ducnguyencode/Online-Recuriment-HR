@@ -60,6 +60,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid token type');
     }
 
+    const user = await this.userService.findByEmail(payload.email);
+    if (!user) {
+      throw new NotFoundException('Account not found!');
+    }
+
+    // Verification link is one-time use: token must match current token on account.
+    if (!user.verificationToken || user.verificationToken !== token) {
+      throw new UnauthorizedException(
+        'Verification link is invalid or has already been used.',
+      );
+    }
+
     return this.userService.verifyAccount(payload);
   }
 
@@ -91,14 +103,20 @@ export class AuthService {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
     const resetUrl = `${frontendUrl}/forgot-password?token=${resetToken}`;
-    await this.userService.sendPasswordReset(user.email, user.fullName, resetUrl);
+    await this.userService.sendPasswordReset(
+      user.email,
+      user.fullName,
+      resetUrl,
+    );
 
     return { message: 'If your account exists, a reset link has been sent.' };
   }
 
   async resendVerify(dto: ResendVerifyDto) {
     await this.userService.resendApplicantVerification(dto.email);
-    return { message: 'If your account exists, a verification link has been sent.' };
+    return {
+      message: 'If your account exists, a verification link has been sent.',
+    };
   }
 
   async resetPassword(dto: ResetPasswordDto) {

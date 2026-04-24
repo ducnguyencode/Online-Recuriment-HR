@@ -79,3 +79,16 @@ export const authApplicantGuard: CanActivateFn = () => {
   router.navigate(['/login']);
   return false;
 };
+
+export const careersGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  // Restrict careers page to guests/applicants only.
+  if (auth.isLoggedIn() && !auth.isApplicant()) {
+    router.navigate(['/hr-portal']);
+    return false;
+  }
+
+  return true;
+};

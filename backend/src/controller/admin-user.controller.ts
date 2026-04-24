@@ -141,9 +141,8 @@ export class AdminUserController {
     await this.adminUserService.resendInvite(actor, id);
     return {
       statusCode: HttpStatus.OK,
-      message: 'Invitation re-sent',
+      message: 'Activation email sent',
       data: null,
     };
   }
-
 }

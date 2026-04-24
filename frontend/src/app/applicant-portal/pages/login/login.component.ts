@@ -15,6 +15,7 @@ import { UserRole, UserRoleLogin } from '../../../core/models';
 export class LoginComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   // Expose enum to HTML template
   UserRoleLogin = UserRoleLogin;
@@ -22,6 +23,7 @@ export class LoginComponent implements OnInit {
   selectedRole: UserRoleLogin = UserRoleLogin.APPLICANT;
   form = { email: '', password: '' };
   formError = '';
+  successMessage = '';
   isLoading = false;
 
   // --- BIẾN CHO LUỒNG 2FA ---
@@ -40,6 +42,11 @@ export class LoginComponent implements OnInit {
       this.form = { email: 'admin@test.com', password: '123456' };
     } else {
       this.form = { email: 'applicant@test.com', password: '123456' };
+    }
+
+    if (this.route.snapshot.queryParamMap.get('registered') === '1') {
+      this.successMessage =
+        'Registration successful. Please check your email to verify your account.';
     }
   }
 

@@ -1,4 +1,9 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('audit_logs')
 export class AuditLog {
@@ -17,7 +22,12 @@ export class AuditLog {
   @Column({ name: 'target_id', type: 'int', nullable: true })
   targetId!: number | null;
 
-  @Column({ name: 'target_role_snapshot', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'target_role_snapshot',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   targetRoleSnapshot!: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
