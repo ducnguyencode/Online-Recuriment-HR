@@ -6,8 +6,4 @@ export class ReportDto {
   hiringRate!: number;
   applicantsInProcess!: number;
   applicationStatusCount!: Partial<Record<ApplicationStatus, number>>;
-  departmentBreakdown!: Record<
-    string,
-    { vacancies: number; applicants: number }
-  >;
 }

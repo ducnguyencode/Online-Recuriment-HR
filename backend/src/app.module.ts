@@ -62,6 +62,7 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
 import { DashboardService } from './services/dashboard.service';
 import { DashboardController } from './controller/dashboard.controller';
 import { ReportService } from './services/report.service';
+import { ReportController } from './controller/report.controller';
 
 @Module({
   imports: [
@@ -128,6 +129,7 @@ import { ReportService } from './services/report.service';
     AuditLogController,
     InterviewerAvailabilityController,
     DashboardController,
+    ReportController,
   ],
   providers: [
     VacanciesService,
