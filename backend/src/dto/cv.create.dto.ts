@@ -1,6 +1,9 @@
-import { IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsPositive } from 'class-validator';
 
 export class CvCreateDto {
-  @IsString()
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
   applicantId!: number;
 }
