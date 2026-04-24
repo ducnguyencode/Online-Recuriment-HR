@@ -77,7 +77,7 @@ export class AdminUserService {
     return this.http.patch<ApiResponse<UserAccount>>(`${this.base}/${userId}/activate`, {});
   }
 
-  /** Force-send a fresh temporary password if user lost the welcome email. */
+  /** Re-send invite or password setup/reset activation email. */
   resendTemporaryPassword(userId: string): Observable<ApiResponse<void>> {
     return this.http.post<ApiResponse<void>>(`${this.base}/${userId}/resend-invite`, {});
   }

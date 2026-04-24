@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/only-throw-error */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   Body,
   Controller,

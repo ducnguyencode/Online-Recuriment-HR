@@ -34,7 +34,7 @@ export class SubmitResultDto {
 @Controller('interviews')
 @UseGuards(JwtAuthGuard) // Protect all interview endpoints
 export class InterviewController {
-  constructor(private readonly interviewService: InterviewService) { }
+  constructor(private readonly interviewService: InterviewService) {}
 
   // POST /interviews
   @Post()

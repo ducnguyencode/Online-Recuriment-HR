@@ -6,6 +6,10 @@ import { MockDataService } from '../../core/services/mock-data.service';
 import { VacancyService } from '../../core/services/vacancy.service';
 import { Application, Vacancy } from '../../core/models';
 import { ApplicationService } from '../../core/services/application.service';
+import {
+  DashboardService,
+  OverviewDto,
+} from '../../core/services/dasboard.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,12 +23,14 @@ export class DashboardComponent implements OnInit {
   readonly isSuperadmin = computed(() => this.auth.isSuperadmin());
 
   stats = signal({
-    openVacancies: 0,
-    applicantsInProcess: 0,
-    todayInterviews: 0,
-    nearDeadline: 0,
-    totalApplications: 0,
-    hiringRate: 0,
+    applicantsHiredLastMonth: 0,
+    applicantsHiredThisMonth: 0,
+    applicationsProcessingLastMonth: 0,
+    applicationsProcessingThisMonth: 0,
+    applicationsThisMonth: 0,
+    vacanciesLastMonth: 0,
+    vacanciesThisMonth: 0,
+    interviewToday: 0,
   });
 
   recentVacancies = signal<any[]>([]);
@@ -36,11 +42,17 @@ export class DashboardComponent implements OnInit {
     private mockData: MockDataService,
     private vacanciesService: VacancyService,
     private applicationService: ApplicationService,
+    private dashboardService: DashboardService,
   ) {}
 
   ngOnInit() {
     // Load data from MockDataService
-    this.stats.set(this.mockData.getDashboardStats());
+    this.dashboardService.activityOverview().subscribe({
+      next: (res) => {
+        this.stats.set(res.data);
+      },
+      error: (err) => {},
+    });
 
     this.vacanciesService.getAll({ limit: 5 }).subscribe({
       next: (res) => {
@@ -100,5 +112,23 @@ export class DashboardComponent implements OnInit {
     if (hours < 24) return hours + ' giờ trước';
     const days = Math.floor(hours / 24);
     return days + ' ngày trước';
+  }
+
+  percentChange(current: number, previous: number): string {
+    let value: number;
+
+    if (previous === 0) {
+      value = current > 0 ? 100 : 0;
+    } else {
+      value = ((current - previous) / previous) * 100;
+    }
+
+    const formatted = new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    }).format(Math.abs(value));
+
+    const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+    return `${sign}${formatted}%`;
   }
 }

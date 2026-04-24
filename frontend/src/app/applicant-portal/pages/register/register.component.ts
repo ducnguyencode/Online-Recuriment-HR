@@ -33,13 +33,12 @@ export class RegisterComponent {
     this.errorMessage = '';
 
     this.auth.register(this.form).subscribe({
-      next: (res) => {
+      next: () => {
         this.isLoading = false;
-        // Notify user and redirect to login for email verification
-        alert(
-          'Registration successful! Please check your email to verify your account.',
-        );
-        this.router.navigate(['/login']);
+        // Redirect with a query flag so login page can render inline message (no popup).
+        this.router.navigate(['/login'], {
+          queryParams: { registered: '1' },
+        });
       },
       error: (err) => {
         this.isLoading = false;

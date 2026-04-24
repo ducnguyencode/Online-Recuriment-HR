@@ -114,9 +114,16 @@ export class CareersComponent implements OnInit {
       return;
     }
 
+    if (!this.applyForm.applicantId) {
+      this.applyError.set(
+        'Your applicant profile is not ready yet. Please sign out and sign in again, or contact support.',
+      );
+      return;
+    }
+
     this.loading.set(true);
     const formData = new FormData();
-    formData.append('applicantId', this.applyForm.applicantId);
+    formData.append('applicantId', String(this.applyForm.applicantId));
     formData.append('file', this.cvUploadFile() as File);
 
     this.applicantService.uploadCv(formData).subscribe({
