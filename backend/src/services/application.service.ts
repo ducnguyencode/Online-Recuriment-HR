@@ -139,18 +139,20 @@ export class ApplicationService {
         ApplicantStatus.IN_PROCESS,
       );
 
+      application = await manager.save(application);
       // AI preview
       if (application.cv) {
-        try {
-          const aiResponse = await this.aiService.reviewCv(application);
-          if (aiResponse) {
-            application.aiPreview = aiResponse;
-          }
-        } catch (err) {
-          console.log(err);
-        }
+        this.aiService
+          .reviewCv(application)
+          .then(async (res) => {
+            if (res) {
+              await this.applicationsTable.update(application.id, {
+                aiPreview: res,
+              });
+            }
+          })
+          .catch(console.log);
       }
-      application = await manager.save(application);
     });
     try {
       // 1. Phát sự kiện Real-time cho NotificationGateway
