@@ -61,6 +61,7 @@ import { InterviewerAvailabilityController } from './controller/interviewer-avai
 import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
 import { DashboardService } from './services/dashboard.service';
 import { DashboardController } from './controller/dashboard.controller';
+import { ReportService } from './services/report.service';
 
 @Module({
   imports: [
@@ -156,6 +157,7 @@ import { DashboardController } from './controller/dashboard.controller';
     AccountCleanupCronService,
     InterviewerAvailabilityService,
     DashboardService,
+    ReportService,
   ],
 })
 export class AppModule {}
