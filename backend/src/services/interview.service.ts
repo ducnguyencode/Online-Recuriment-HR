@@ -420,10 +420,17 @@ export class InterviewService {
   }
 
   async findAll(query: any) {
-    const { status, search, page = 1, limit = 10 } = query;
+    const { status, search, page = 1, limit = 10, employeeId } = query;
+
+    const whereCondition: any = {};
+    if (status) whereCondition.status = status;
+
+    if (employeeId) {
+      whereCondition.panels = { employeeId: employeeId };
+    }
 
     const [items, totalItems] = await this.interviewRepo.findAndCount({
-      where: status ? { status } : {},
+      where: whereCondition,
       relations: [
         'application',
         'application.applicant',
@@ -431,6 +438,7 @@ export class InterviewService {
         'application.vacancy',
         'panels',
         'panels.employee',
+        'panels.employee.user',
       ],
       order: { startTime: 'DESC' },
       take: limit,
@@ -451,14 +459,59 @@ export class InterviewService {
       relations: [
         'application',
         'application.applicant',
-        'application.applicant.user', // Lấy email/fullName qua User
+        'application.applicant.user',
         'application.vacancy',
         'panels',
         'panels.employee',
+        'panels.employee.user',
       ],
     });
 
     if (!interview) throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
     return interview;
+  }
+
+  // SUBMIT INTERVIEW RESULT (VOTE & FEEDBACK)
+  async submitResult(interviewId: string, userId: number | string, employeeId: string | undefined, vote: 'Pass' | 'Fail', feedback: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const interview = await queryRunner.manager.findOne(Interview, {
+        where: { id: interviewId },
+        relations: ['panels', 'panels.employee', 'panels.employee.user']
+      });
+
+      if (!interview) throw new NotFoundException('Interview not found.');
+
+      const myPanel = interview.panels.find(p =>
+        String(p.employee?.user?.id) === String(userId) ||
+        String(p.employeeId) === String(userId) ||
+        (employeeId && String(p.employeeId) === String(employeeId))
+      );
+
+      if (!myPanel) {
+        throw new BadRequestException('You are not assigned to evaluate this interview session.');
+      }
+
+      myPanel.vote = vote;
+      myPanel.feedback = feedback;
+      await queryRunner.manager.save(InterviewerPanel, myPanel);
+
+      const allVoted = interview.panels.every(p => p.vote === 'Pass' || p.vote === 'Fail');
+      if (allVoted) {
+        interview.status = InterviewStatus.COMPLETED;
+        await queryRunner.manager.save(Interview, interview);
+      }
+
+      await queryRunner.commitTransaction();
+      return myPanel;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

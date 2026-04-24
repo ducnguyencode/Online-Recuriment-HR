@@ -61,11 +61,19 @@ export class InterviewListComponent implements OnInit {
 
   loadData() {
     this.loading.set(true);
-    const params = {
+
+    const params: Record<string, any> = {
       ...(this.filterStatus ? { status: this.filterStatus } : {}),
       ...(this.filterDate ? { date: this.filterDate } : {}),
       ...(this.searchTerm.trim() ? { search: this.searchTerm.trim() } : {}),
     };
+
+    if (this.auth.isInterviewer()) {
+      const myEmployeeId = this.auth.currentUser()?.employeeId;
+      if (myEmployeeId) {
+        params['employeeId'] = myEmployeeId;
+      }
+    }
     this.interviewService.getAll(params).subscribe({
       next: (res) => {
         const items: any[] = (res.data as any)?.items ?? [];
@@ -417,7 +425,11 @@ export class InterviewListComponent implements OnInit {
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   getApplicantName(item: Interview): string {
-    return item.application?.applicant?.fullName ?? item.applicant?.fullName ?? '—';
+    // return item.application?.applicant?.fullName ?? item.applicant?.fullName ?? '—';
+    return item.application?.applicant?.user?.fullName
+      ?? item.application?.applicant?.fullName
+      ?? item.applicant?.fullName
+      ?? '—';
   }
 
   applicantDisplayId(id?: string) {
