@@ -28,3 +28,21 @@ export function signToken(user: User, jwtService: JwtService) {
     user: user,
   };
 }
+
+export function percentChange(current: number, previous: number): string {
+  let value: number;
+
+  if (previous === 0) {
+    value = current > 0 ? 100 : 0;
+  } else {
+    value = ((current - previous) / previous) * 100;
+  }
+
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(Math.abs(value));
+
+  const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+  return `${sign}${formatted}%`;
+}

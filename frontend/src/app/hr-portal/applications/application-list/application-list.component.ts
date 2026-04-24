@@ -739,7 +739,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     if (!fileUrl) return;
     const resolvedUrl = fileUrl.startsWith('http')
       ? fileUrl
-      : `${environment.baseUrl}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+      : `${environment.baseUrl}/uploads${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
     window.open(resolvedUrl, '_blank');
   }
 

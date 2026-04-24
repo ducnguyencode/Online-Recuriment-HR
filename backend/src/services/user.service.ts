@@ -52,7 +52,10 @@ export class UserService {
   }
 
   async findById(id: number) {
-    return await this.userTable.findOne({ where: { id } });
+    return await this.userTable.findOne({
+      where: { id },
+      relations: ['applicant', 'employee'],
+    });
   }
 
   async save(user: User) {
@@ -188,7 +191,8 @@ export class UserService {
           applicant = manager.create(Applicant, { user: user });
         }
 
-        await manager.save(applicant);
+        applicant = await manager.save(applicant);
+        user.applicantId = applicant.id;
       } else {
         let employee = await manager.findOne(Employee, {
           where: { user: { id: user.id } },
