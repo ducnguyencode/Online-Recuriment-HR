@@ -59,6 +59,8 @@ import { EmailCronService } from './cron/email.cron';
 import { AccountCleanupCronService } from './cron/account-cleanup.cron';
 import { InterviewerAvailabilityController } from './controller/interviewer-availability.controller';
 import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
+import { DashboardService } from './services/dashboard.service';
+import { DashboardController } from './controller/dashboard.controller';
 
 @Module({
   imports: [
@@ -124,6 +126,7 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
     AdminUserController,
     AuditLogController,
     InterviewerAvailabilityController,
+    DashboardController,
   ],
   providers: [
     VacanciesService,
@@ -152,6 +155,7 @@ import { InterviewerAvailabilityService } from './services/interviewer-availabil
     EmailCronService,
     AccountCleanupCronService,
     InterviewerAvailabilityService,
+    DashboardService,
   ],
 })
 export class AppModule {}
