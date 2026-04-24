@@ -1,91 +1,59 @@
-<div class="min-h-[calc(100vh-64px)] bg-slate-50 flex items-center justify-center p-4 py-12">
+<div class="min-h-[calc(100vh-64px)] bg-slate-50 flex items-center justify-center p-4 py-12 font-sans">
   <div class="w-full max-w-md bg-white border border-slate-200 rounded-[24px] p-8 shadow-xl shadow-slate-200/50">
 
     @if (currentStep === 'LOGIN') {
       <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 text-white font-black text-xl rounded-2xl shadow-sm mb-4">
-          HR
-        </div>
-        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
-          {{ selectedRole === UserRoleLogin.APPLICANT ? 'Applicant Login' : 'HR Portal Access' }}
-        </h2>
-        <p class="text-sm text-slate-500 mt-2">
-          Enter your details to access your account.
-        </p>
+        <img src="logo-hr-portal.svg" alt="HR Portal" class="w-16 h-16 mx-auto mb-4 drop-shadow-md hover:scale-105 transition-transform duration-300">
+        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">{{ selectedRole === UserRoleLogin.APPLICANT ? 'Applicant Login' : 'HR Portal Access' }}</h2>
+        <p class="text-sm text-slate-500 mt-2 font-medium">Enter your details to access your account.</p>
       </div>
 
-      @if (formError) {
-        <div class="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-bold text-center">
-          {{ formError }}
-        </div>
-      }
-
-      <div class="space-y-4">
+      <div class="space-y-5">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
-          <input type="email" [(ngModel)]="form.email" placeholder="you@example.com"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium" />
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+          <input type="email" [(ngModel)]="form.email" placeholder="you@example.com" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-slate-50/50 hover:bg-slate-50 outline-none transition-all text-sm font-medium" />
         </div>
 
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
-            <a routerLink="/forgot-password" class="text-xs font-bold text-blue-500 hover:text-blue-700 transition">Forgot?</a>
+        <div class="relative">
+          <div class="flex items-center justify-between mb-2 ml-1 pr-1">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest">Password</label>
+            <a routerLink="/forgot-password" class="text-[11px] font-bold text-blue-600 hover:text-blue-500 transition-colors">Forgot?</a>
           </div>
-          <input type="password" [(ngModel)]="form.password" placeholder="••••••••"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50/50 hover:bg-slate-50 outline-none transition text-sm font-medium" />
+          <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="form.password" placeholder="••••••••" class="w-full pl-4 pr-14 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-slate-50/50 hover:bg-slate-50 outline-none transition-all text-sm font-medium" />
+
+          <button type="button" (click)="showPassword.set(!showPassword())" class="absolute bottom-2 right-2 w-10 h-10 rounded-xl border border-slate-100 bg-white flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm">
+            @if (showPassword()) { <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> }
+            @else { <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> }
+          </button>
         </div>
 
-        <button (click)="submit()" [disabled]="isLoading"
-          class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg disabled:opacity-50">
+        <button (click)="submit()" [disabled]="isLoading" class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-md disabled:opacity-50">
           {{ isLoading ? 'Signing in...' : 'Sign In' }}
         </button>
       </div>
 
       @if (selectedRole === UserRoleLogin.APPLICANT) {
-        <div class="mt-8 text-center text-sm font-medium text-slate-500">
-          Don't have an account?
-          <a routerLink="/register" class="text-blue-600 font-bold hover:underline">Sign up now</a>
-        </div>
+        <div class="mt-8 text-center text-sm font-medium text-slate-500">Don't have an account? <a routerLink="/register" class="text-blue-600 font-bold hover:underline">Sign up now</a></div>
       }
 
     } @else if (currentStep === 'SETUP_2FA') {
-      <div class="text-center animate-in zoom-in duration-300">
-        <h3 class="text-xl font-bold text-slate-900 mb-2">Bảo mật 2 Lớp (2FA)</h3>
-        <p class="text-sm text-slate-500 mb-6 px-2">Mở ứng dụng <strong>Google Authenticator</strong> để quét mã QR này.</p>
-
-        <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 inline-block mb-6">
-          <img [src]="mockQrUrl" alt="QR Code" class="w-40 h-40 mx-auto rounded-lg" />
-        </div>
-
-        <button (click)="currentStep = 'VERIFY_2FA'" class="w-full py-3.5 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition shadow-md">
-          Đã quét xong, Tiếp tục &rarr;
-        </button>
-        <button (click)="currentStep = 'LOGIN'" class="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 transition">Quay lại đăng nhập</button>
+      <div class="text-center animate-in zoom-in-95 duration-300">
+        <h3 class="text-2xl font-bold text-slate-900 mb-2">Two-Factor Auth</h3>
+        <p class="text-sm text-slate-500 mb-6 px-2 font-medium">Open <strong>Google Authenticator</strong> to scan this QR.</p>
+        <div class="bg-white p-4 rounded-[16px] shadow-sm border border-slate-200 inline-block mb-6"><img [src]="mockQrUrl" alt="QR Code" class="w-40 h-40 mx-auto rounded-lg" /></div>
+        <button (click)="currentStep = 'VERIFY_2FA'" class="w-full py-3.5 bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-md">I've scanned it &rarr;</button>
+        <button (click)="currentStep = 'LOGIN'" class="mt-5 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors">Back to Login</button>
       </div>
 
     } @else {
-      <div class="text-center animate-in zoom-in duration-300">
-        <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-50 text-blue-500 rounded-full mb-4">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-        </div>
-        <h3 class="text-xl font-bold text-slate-900 mb-2">Xác thực 2 Bước</h3>
-        <p class="text-sm text-slate-500 mb-6 px-4">Nhập mã 6 chữ số từ ứng dụng Google Authenticator của bạn.</p>
-
-        <input type="text" [(ngModel)]="twoFactorCode" maxlength="6" placeholder="000000"
-          class="w-full text-center text-3xl tracking-[0.4em] px-4 py-4 rounded-xl border border-slate-200 focus:border-blue-500 bg-slate-50/50 outline-none transition font-mono font-bold text-slate-800 mb-4" />
-
-        @if (formError) {
-          <p class="text-red-500 text-xs font-bold mb-4">{{ formError }}</p>
-        }
-
-        <button (click)="submit2FA()" [disabled]="isLoading" class="w-full py-3.5 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition shadow-md disabled:opacity-50">
-          {{ isLoading ? 'Đang kiểm tra...' : 'Xác nhận' }}
-        </button>
-
-        <button (click)="currentStep = 'LOGIN'" class="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 transition">&larr; Quay lại</button>
+      <div class="text-center animate-in zoom-in-95 duration-300">
+        <div class="inline-flex items-center justify-center w-14 h-14 bg-blue-50 text-blue-600 border border-blue-100 rounded-[16px] mb-6"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
+        <h3 class="text-2xl font-bold text-slate-900 mb-2">2-Step Verification</h3>
+        <p class="text-sm text-slate-500 mb-8 px-4 font-medium">Enter the 6-digit code from your app.</p>
+        <input type="text" [(ngModel)]="twoFactorCode" maxlength="6" placeholder="000000" class="w-full text-center text-4xl tracking-[0.4em] px-4 py-5 rounded-[16px] border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-slate-50/50 outline-none transition-all font-mono font-bold text-slate-800 mb-4" />
+        <button (click)="submit2FA()" [disabled]="isLoading" class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-md disabled:opacity-50">{{ isLoading ? 'Verifying...' : 'Verify Code' }}</button>
+        <button (click)="currentStep = 'LOGIN'" class="mt-6 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors">&larr; Back</button>
       </div>
     }
-
   </div>
 </div>

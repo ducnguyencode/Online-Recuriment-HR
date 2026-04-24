@@ -1,149 +1,89 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { VacancyService } from '../../../core/services/vacancy.service';
-import { Vacancy, VacancyStatus } from '../../../core/models';
-import { AuthService } from '../../../core/services/auth.service';
 import { FormsModule } from '@angular/forms';
-import { ApplicantService } from '../../../core/services/applicant.service';
-import {
-  ApplicationService,
-  CreateApplicationDto,
-} from '../../../core/services/application.service';
+import { VacancyService } from '../../../core/services/vacancy.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { ApplicationService, CreateApplicationDto } from '../../../core/services/application.service';
+import { ToastService } from '../../../core/services/toast.service';
+// import { ProfileService } from '../../../core/services/profile.service'; // Mở comment này khi có service lấy CV của user
 
 @Component({
   selector: 'app-careers',
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './careers.html',
-  styleUrls: ['./careers.scss'],
 })
 export class CareersComponent implements OnInit {
-  vacancies = signal<Vacancy[]>([]);
+  vacancies = signal<any[]>([]);
   loading = signal(false);
-  errorMsg = signal('');
-  applyError = signal(''); // Biến riêng để hiện lỗi trong Modal
-
   searchQuery = '';
-  filterStatus: VacancyStatus = VacancyStatus.OPENED;
-  filterDepartment = '';
 
   isApplyModalOpen = false;
   selectedJobTitle = '';
-  applyForm = { applicantId: '', fullName: '', email: '', vacancyId: '' };
+  applyForm = { applicantId: '', vacancyId: '' };
 
-  cvUploadFile = signal<File | null>(null);
-  selectedFileName = computed(() => this.cvUploadFile()?.name || '');
+  // Dùng API thật để chứa CV
+  myCvs = signal<any[]>([]);
+  selectedCvId = signal<string | null>(null);
 
   private router = inject(Router);
   private vacancyService = inject(VacancyService);
   private auth = inject(AuthService);
-  private applicantService = inject(ApplicantService);
   private applicationService = inject(ApplicationService);
+  private toast = inject(ToastService);
+  // private profileService = inject(ProfileService);
 
   ngOnInit() {
     this.fetchJobs();
+    this.fetchUserCvs();
   }
 
   fetchJobs() {
     this.loading.set(true);
-    this.errorMsg.set('');
-    this.vacancyService
-      .getAll({
-        status: this.filterStatus || VacancyStatus.OPENED,
-        departmentId: this.filterDepartment || undefined,
-        search: this.searchQuery || undefined,
-      })
-      .subscribe({
-        next: (res) => {
-          const items = (res.data as any)?.items ?? res.data ?? [];
-          this.vacancies.set(items);
-          this.loading.set(false);
-        },
-        error: (err) => {
-          this.errorMsg.set(err.error?.message || 'Failed to fetch jobs');
-          this.loading.set(false);
-        },
-      });
+    this.vacancyService.getAll({ search: this.searchQuery || undefined }).subscribe({
+      next: (res: any) => { this.vacancies.set(res.data?.items ?? res.data ?? []); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load vacancies.'); this.loading.set(false); }
+    });
   }
 
-  toggleFavorite(job: any) {
-    job.isFavorite = !job.isFavorite;
+  fetchUserCvs() {
+    if (this.auth.isLoggedIn()) {
+      // GỌI API THẬT: this.profileService.getMyCvs().subscribe(res => this.myCvs.set(res.data));
+    }
   }
 
-  viewDetails(job: any) {
-    console.log('Navigating to details for:', job.title);
-  }
-
-  applyJob(vacancy: Vacancy) {
+  applyJob(vacancy: any) {
     if (!this.auth.isLoggedIn()) {
       this.router.navigate(['/login']);
     } else {
       this.selectedJobTitle = vacancy.title;
+      this.selectedCvId.set(null);
+      this.applyForm = { applicantId: this.auth.currentUser()?.applicantId || '', vacancyId: vacancy.id };
       this.isApplyModalOpen = true;
-      this.applyError.set(''); // Reset lỗi modal khi mở
-      this.applyForm = {
-        fullName: this.auth.currentUser()?.fullName || '',
-        applicantId: this.auth.currentUser()?.applicantId || '',
-        vacancyId: vacancy.id,
-        email: this.auth.currentUser()?.email || '',
-      };
-      document.body.style.overflow = 'hidden';
     }
   }
 
-  closeApplyModal() {
-    this.isApplyModalOpen = false;
-    this.applyError.set('');
-    this.applyForm = { applicantId: '', fullName: '', email: '', vacancyId: '' };
-    this.cvUploadFile.set(null);
-    document.body.style.overflow = 'auto';
-  }
-
-  selectCvFile(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      this.cvUploadFile.set(file);
-      this.applyError.set(''); // Xóa lỗi khi người dùng chọn lại file
-    }
-  }
+  closeApplyModal() { this.isApplyModalOpen = false; }
 
   submitApplication() {
-    if (!this.cvUploadFile()) {
-      this.applyError.set('Please upload your CV first!');
+    if (!this.selectedCvId()) {
+      this.toast.error('Please select a resume to apply!');
       return;
     }
-
     this.loading.set(true);
-    const formData = new FormData();
-    formData.append('applicantId', this.applyForm.applicantId);
-    formData.append('file', this.cvUploadFile() as File);
+    const dto: CreateApplicationDto = { applicantId: this.applyForm.applicantId, vacancyId: this.applyForm.vacancyId, cvId: this.selectedCvId() as string };
 
-    this.applicantService.uploadCv(formData).subscribe({
-      next: (res) => {
-        if (res.data) {
-          const dto: CreateApplicationDto = {
-            applicantId: this.applyForm.applicantId,
-            vacancyId: this.applyForm.vacancyId,
-            cvId: res.data.id,
-          };
-          this.applicationService.create(dto).subscribe({
-            next: (res) => {
-              this.loading.set(false);
-              this.closeApplyModal();
-            },
-            error: (err) => {
-              this.loading.set(false);
-              // HIỆN LỖI TRONG MODAL: "Applicant already applied..."
-              this.applyError.set(err.error?.message || 'Failed to submit application');
-            },
-          });
-        }
-      },
-      error: (err) => {
+    this.applicationService.create(dto).subscribe({
+      next: () => {
         this.loading.set(false);
-        this.applyError.set('Failed to upload CV');
+        this.closeApplyModal();
+        this.toast.success('Applied successfully!');
       },
+      error: (err: any) => {
+        this.loading.set(false);
+        this.toast.error(err.error?.message || 'Application failed.');
+      }
     });
   }
 }

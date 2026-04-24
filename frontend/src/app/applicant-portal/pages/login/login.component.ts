@@ -1,111 +1,62 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { UserRole, UserRoleLogin } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
+
+export enum UserRoleLogin { APPLICANT = 'APPLICANT', HR = 'HR' }
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss'],
+  imports: [CommonModule, FormsModule, RouterModule],
+  templateUrl: './login.component.html'
 })
-export class LoginComponent implements OnInit {
-  private auth = inject(AuthService);
-  private router = inject(Router);
-
-  // Expose enum to HTML template
+export class LoginComponent {
   UserRoleLogin = UserRoleLogin;
+  selectedRole = UserRoleLogin.APPLICANT;
 
-  selectedRole: UserRoleLogin = UserRoleLogin.APPLICANT;
   form = { email: '', password: '' };
-  formError = '';
   isLoading = false;
+  showPassword = signal(false);
 
-  // --- BIẾN CHO LUỒNG 2FA ---
-  currentStep: 'LOGIN' | 'SETUP_2FA' | 'VERIFY_2FA' = 'LOGIN';
+  // Các biến cho 2FA (Đội ông đã làm)
+  currentStep = 'LOGIN';
+  mockQrUrl = 'assets/qr-mock.png';
   twoFactorCode = '';
-  mockQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=HR_Portal_Auth_Test';
-  tempLoginRes: any; // Biến lưu tạm kết quả login bước 1 để xài cho bước 2
 
-  ngOnInit(): void {
-    const path = this.router.url;
-    this.selectedRole = path.includes('hr/login')
-      ? UserRoleLogin.HR
-      : UserRoleLogin.APPLICANT;
-
-    if (this.selectedRole == UserRoleLogin.HR) {
-      this.form = { email: 'admin@test.com', password: '123456' };
-    } else {
-      this.form = { email: 'applicant@test.com', password: '123456' };
-    }
-  }
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private toast = inject(ToastService);
 
   submit() {
-    this.formError = '';
+    if (!this.form.email || !this.form.password) {
+      this.toast.error('Please enter email and password.');
+      return;
+    }
     this.isLoading = true;
-
-    this.auth.login(this.form).subscribe({
-      next: (res) => {
-        const userRole = res.data.user.role;
-
-        if (this.selectedRole === UserRoleLogin.HR && userRole === UserRole.APPLICANT) {
-          this.formError = 'Email or password not correct!';
-          this.isLoading = false;
-          return;
-        }
-
-        if (this.selectedRole === UserRoleLogin.APPLICANT && userRole !== UserRole.APPLICANT) {
-          this.formError = 'Email or password not correct!';
-          this.isLoading = false;
-          return;
-        }
-
-        // ==========================================
-        // ĐIỂM CHẶN 2FA CHO HR NẰM Ở ĐÂY
-        // ==========================================
-        // if (this.selectedRole === UserRoleLogin.HR) {
-        //   this.isLoading = false;
-        //   this.tempLoginRes = res; // Lưu tạm cái cục token/data lại
-
-        //   // Tạm thời bật giao diện SETUP_2FA để ông test UI.
-        //   // Sau này Backend trả thêm cờ (vd: res.data.requires2FA) thì ông if/else ở đây
-        //   this.currentStep = 'SETUP_2FA';
-        //   return;
-        // }
-
-        // Nếu là Ứng viên thì vô thẳng như cũ
-        this.auth.handleLoginSuccess(res, this.selectedRole);
-      },
-      error: (err) => {
-        this.formError = err.error?.message || 'Email or password not correct!';
+    this.authService.login(this.form).subscribe({
+      next: (res: any) => {
         this.isLoading = false;
+        // Nếu API team ông bắt 2FA thì gán currentStep = 'SETUP_2FA', nếu không thì vô thẳng:
+        this.toast.success('Logged in successfully!');
+        this.router.navigate(['/careers']);
       },
+      error: (err: any) => {
+        this.isLoading = false;
+        this.toast.error(err.error?.message || 'Invalid credentials.');
+      }
     });
   }
 
-  // --- HÀM XÁC THỰC MÃ 6 SỐ CỦA HR ---
   submit2FA() {
-    this.formError = '';
-    if (this.twoFactorCode.length !== 6) {
-       this.formError = 'Mã xác thực phải gồm 6 chữ số.';
-       return;
-    }
-
     this.isLoading = true;
-
-    // Giả lập gọi API /verify-2fa của anh Đức
+    // API Call 2FA...
     setTimeout(() => {
       this.isLoading = false;
-
-      // Sau khi verify thành công, lấy cái cục data đã lưu tạm gọi hàm Success thật!
-      if (this.tempLoginRes) {
-        this.auth.handleLoginSuccess(this.tempLoginRes, this.selectedRole);
-      } else {
-        this.router.navigate(['/hr-portal']);
-      }
-    }, 1500);
+      this.toast.success('2FA Verified successfully!');
+      this.router.navigate(['/careers']);
+    }, 1000);
   }
 }
