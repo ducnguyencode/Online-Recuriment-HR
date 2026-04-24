@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
 
 export class UserCreateDto {
   @IsString()
@@ -10,5 +10,9 @@ export class UserCreateDto {
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/, {
+    message:
+      'Password must be at least 8 characters and include uppercase, lowercase, number, and special symbol',
+  })
   password!: string;
 }
