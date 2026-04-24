@@ -11,7 +11,9 @@ export class MailService {
     email: string,
     name: string,
     verifyUrl: string,
-    rawPassword?: string,
+    options?: {
+      requireInitialPasswordSetup?: boolean;
+    },
   ) {
     const senderEmail = this.configService.get<string>(
       'BREVO_SENDER_EMAIL',
@@ -23,11 +25,16 @@ export class MailService {
     );
     const apiKey = this.configService.get<string>('BREVO_API_KEY');
 
+    const requireInitialPasswordSetup =
+      options?.requireInitialPasswordSetup ?? false;
+    const instructionBlock = requireInitialPasswordSetup
+      ? '<p>After verification, you will continue to set your initial password.</p>'
+      : '<p>After verification, you can sign in with your registered password.</p>';
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; line-height: 1.6;">
         <h2>Hello ${name},</h2>
         <p>Please verify your account by clicking the button below.</p>
-        <p>After verification, you will continue to set your initial password.</p>
+        ${instructionBlock}
         <p><a href="${verifyUrl}" style="display:inline-block;padding:12px 18px;background:#0f766e;color:white;text-decoration:none;border-radius:8px;">Verify Email</a></p>
         <p>If the button does not work, use this link:</p>
         <p>${verifyUrl}</p>
@@ -58,7 +65,9 @@ export class MailService {
             name,
           },
         ],
-        subject: 'Activate your account',
+        subject: requireInitialPasswordSetup
+          ? 'Verify account and set your password'
+          : 'Verify your account',
         htmlContent,
       }),
     }).then(async (response) => {

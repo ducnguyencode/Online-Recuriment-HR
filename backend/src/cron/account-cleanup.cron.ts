@@ -17,7 +17,8 @@ export class AccountCleanupCronService {
     const graceDaysRaw =
       this.config.get<string>('UNVERIFIED_ACCOUNT_CLEANUP_DAYS') ?? '7';
     const graceDays = Math.max(1, Number(graceDaysRaw) || 7);
-    const removed = await this.users.cleanupExpiredUnverifiedAccounts(graceDays);
+    const removed =
+      await this.users.cleanupExpiredUnverifiedAccounts(graceDays);
     if (removed > 0) {
       this.logger.log(
         `Removed ${removed} unverified expired account(s) older than ${graceDays} days.`,

@@ -43,7 +43,7 @@ export class InterviewService {
     // Inject other services
     private googleMeetService: GoogleMeetService,
     private eventEmitter: EventEmitter2,
-  ) { }
+  ) {}
 
   // HELPER METHOD: Check Availability & Lock Slots
   // We pass 'EntityManager' so this runs inside the transaction
@@ -262,7 +262,12 @@ export class InterviewService {
       // 1. Fetch existing interview with necessary relations
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id },
-        relations: ['application', 'application.applicant', 'application.applicant.user', 'panels'],
+        relations: [
+          'application',
+          'application.applicant',
+          'application.applicant.user',
+          'panels',
+        ],
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -342,7 +347,12 @@ export class InterviewService {
     try {
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id },
-        relations: ['application', 'application.applicant', 'application.applicant.user', 'panels'],
+        relations: [
+          'application',
+          'application.applicant',
+          'application.applicant.user',
+          'panels',
+        ],
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -458,7 +468,8 @@ export class InterviewService {
       ],
     });
 
-    if (!interview) throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
+    if (!interview)
+      throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
     return interview;
   }
 }

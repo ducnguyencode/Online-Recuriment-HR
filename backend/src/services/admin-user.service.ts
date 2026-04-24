@@ -88,17 +88,18 @@ export class AdminUserService {
     };
   }
 
-  async createStaff(actor: SafeUserDto, dto: CreateStaffAccountDto): Promise<User> {
+  async createStaff(
+    actor: SafeUserDto,
+    dto: CreateStaffAccountDto,
+  ): Promise<User> {
     this.assertStaffRole(dto.role);
     this.assertActorCanManageRole(actor, dto.role);
     const email = dto.email.trim().toLowerCase();
     const fullName = dto.fullName.trim();
-    const department = await this.departments.findOne({
-      where: { id: dto.departmentId },
-    });
-    if (!department) {
-      throw new NotFoundException('Department not found');
-    }
+    const department = await this.resolveDepartmentForRole(
+      dto.role,
+      dto.departmentId,
+    );
     const exists = await this.users.findOne({
       where: { email },
       relations: ['employee', 'employee.department'],
@@ -124,7 +125,8 @@ export class AdminUserService {
       exists.fullName = fullName;
       exists.phone = dto.phone?.trim() || '';
       exists.role = dto.role;
-      exists.roles = dto.role === UserRole.HR ? UserRole.HR : UserRole.INTERVIEWER;
+      exists.roles =
+        dto.role === UserRole.HR ? UserRole.HR : UserRole.INTERVIEWER;
       exists.isActive = false;
       exists.mustChangePassword = true;
       exists.verificationToken = this.userService.generateEmailToken(
@@ -171,7 +173,11 @@ export class AdminUserService {
       });
       const createdUser = await manager.save(User, user);
       createdUser.verificationToken = this.userService.generateEmailToken(
-        { id: createdUser.id, email: createdUser.email, role: createdUser.role },
+        {
+          id: createdUser.id,
+          email: createdUser.email,
+          role: createdUser.role,
+        },
         dto.departmentId,
         dto.role,
         '24h',
@@ -205,12 +211,10 @@ export class AdminUserService {
       throw new ForbiddenException('Superadmin cannot be edited here');
     }
 
-    const department = await this.departments.findOne({
-      where: { id: dto.departmentId },
-    });
-    if (!department) {
-      throw new NotFoundException('Department not found');
-    }
+    const department = await this.resolveDepartmentForRole(
+      dto.role,
+      dto.departmentId,
+    );
 
     const nextEmail = user.email.trim().toLowerCase();
     const exists = await this.users.findOne({ where: { email: nextEmail } });
@@ -264,7 +268,9 @@ export class AdminUserService {
         const panelRows = await this.panels
           .createQueryBuilder('p')
           .innerJoin(Interview, 'i', 'i.id = p.interviewId')
-          .where('p.employeeId = :employeeId', { employeeId: String(employee.id) })
+          .where('p.employeeId = :employeeId', {
+            employeeId: String(employee.id),
+          })
           .andWhere('i.startTime > :now', { now: new Date() })
           .select(['i.id AS interview_id'])
           .getRawMany<{ interview_id: string }>();
@@ -275,7 +281,8 @@ export class AdminUserService {
     return {
       blockingVacancies,
       blockingInterviews,
-      canProceed: blockingVacancies.length === 0 && blockingInterviews.length === 0,
+      canProceed:
+        blockingVacancies.length === 0 && blockingInterviews.length === 0,
     };
   }
 
@@ -312,7 +319,10 @@ export class AdminUserService {
         throw new ForbiddenException('Superadmin role cannot be changed here');
       }
 
-      const preconditions = await this.getRoleChangePreconditions(userId, dto.role);
+      const preconditions = await this.getRoleChangePreconditions(
+        userId,
+        dto.role,
+      );
       if (!preconditions.canProceed) {
         throw new BadRequestException({
           message: 'Role change preconditions are not satisfied',
@@ -322,7 +332,8 @@ export class AdminUserService {
 
       fromRole = user.role;
       user.role = dto.role;
-      user.roles = dto.role === UserRole.HR ? UserRole.HR : UserRole.INTERVIEWER;
+      user.roles =
+        dto.role === UserRole.HR ? UserRole.HR : UserRole.INTERVIEWER;
       await manager.save(User, user);
 
       await this.auditLogs.createRoleChangedLog({
@@ -384,18 +395,40 @@ export class AdminUserService {
     const user = await this.findByIdOrThrow(userId);
     this.assertStaffRole(user.role);
     this.assertActorCanManageRole(actor, user.role);
-    if (user.isVerified) {
-      throw new BadRequestException('Account already verified');
-    }
-    if (!user.isActive && user.isVerified) {
-      throw new BadRequestException('Deactivated account cannot receive invite');
+    if (!user.isActive) {
+      throw new BadRequestException(
+        'Deactivated account cannot receive invite',
+      );
     }
     const employee = await this.employees.findOne({
       where: { user: { id: userId } },
       relations: ['department', 'user'],
     });
     if (!employee?.department?.id) {
-      throw new BadRequestException('Department is missing for invited account');
+      throw new BadRequestException(
+        'Department is missing for invited account',
+      );
+    }
+
+    if (user.isVerified) {
+      const resetToken = this.userService.generateEmailToken(
+        { id: user.id, email: user.email, role: user.role },
+        employee.department.id,
+        user.role,
+        '1h',
+        TokenType.EMAIL_FORGOT_VERIFY,
+      );
+      user.resetPasswordToken = resetToken;
+      user.resetPasswordTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      await this.users.save(user);
+      const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:4200';
+      const resetUrl = `${frontendUrl}/forgot-password?token=${resetToken}`;
+      await this.userService.sendPasswordReset(
+        user.email,
+        user.fullName,
+        resetUrl,
+      );
+      return;
     }
 
     user.verificationToken = this.userService.generateEmailToken(
@@ -424,6 +457,29 @@ export class AdminUserService {
     if (role !== UserRole.HR && role !== UserRole.INTERVIEWER) {
       throw new BadRequestException('Only HR or Interviewer role is allowed');
     }
+  }
+
+  private async resolveDepartmentForRole(
+    role: UserRole,
+    departmentId: number,
+  ): Promise<Department> {
+    if (role === UserRole.HR) {
+      const hrDepartment = await this.departments
+        .createQueryBuilder('department')
+        .where('LOWER(department.name) = :name', { name: 'hr' })
+        .getOne();
+      if (!hrDepartment) {
+        throw new NotFoundException('HR department is not configured');
+      }
+      return hrDepartment;
+    }
+    const department = await this.departments.findOne({
+      where: { id: departmentId },
+    });
+    if (!department) {
+      throw new NotFoundException('Department not found');
+    }
+    return department;
   }
 
   private assertActorCanManageRole(

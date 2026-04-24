@@ -1,37 +1,56 @@
-<div
-  class="min-h-[calc(100vh-64px)] bg-slate-50 flex items-center justify-center p-4 py-12 animate-in fade-in duration-500"
->
-  <div
-    class="w-full max-w-md bg-white border border-slate-200 rounded-[24px] p-8 shadow-xl shadow-slate-200/50"
-  >
-    <div class="text-center mb-4">
-      <div
-        class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 text-white font-black text-xl rounded-2xl shadow-sm mb-4"
-      >
-        HR
-      </div>
-      <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
-        {{ title() }}
+<div class="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4 font-sans">
+  <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-[32px] shadow-sm border border-slate-100">
+    <div class="text-center">
+      <h2 class="text-3xl font-extrabold text-slate-900">
+        Email <span class="text-blue-600">Verification</span>
       </h2>
-      <p class="text-sm text-slate-500 mt-2">Verify your email</p>
+      <p class="mt-2 text-sm text-slate-500 font-medium">
+        Confirm your account to continue.
+      </p>
     </div>
 
-    <div class="space-y-4 text-center">
-      <div class="mb-4">
-        {{ description() }}
-      </div>
-      @if (verifiedEmail(); as email) {
-        <div class="text-sm text-slate-500">
-          Account: <strong class="text-slate-700">{{ email }}</strong>
+    @if (isVerifying()) {
+      <div class="text-center py-8 space-y-4">
+        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+          </svg>
         </div>
-      }
+        <h3 class="text-xl font-bold text-slate-900">{{ title() }}</h3>
+        <p class="text-slate-500 text-sm">{{ description() }}</p>
+      </div>
+    } @else {
+      <div class="text-center py-2 space-y-4">
+        <div
+          class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+          [class]="isSuccess() ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'"
+        >
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            @if (isSuccess()) {
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            } @else {
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01"></path>
+              <circle cx="12" cy="12" r="9"></circle>
+            }
+          </svg>
+        </div>
 
-      <button
-        class="w-full py-3.5 mt-2 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
-        (click)="handlePrimaryAction()"
-      >
-        {{ actionLabel() }}
-      </button>
-    </div>
+        <h3 class="text-xl font-bold text-slate-900">{{ title() }}</h3>
+        <p class="text-slate-500 text-sm">{{ description() }}</p>
+
+        @if (verifiedEmail(); as email) {
+          <p class="text-xs text-slate-500">Account: <strong>{{ email }}</strong></p>
+        }
+
+        <button
+          type="button"
+          class="w-full py-4 bg-slate-900 hover:bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all duration-300"
+          (click)="handlePrimaryAction()"
+        >
+          {{ actionLabel() }}
+        </button>
+      </div>
+    }
   </div>
 </div>

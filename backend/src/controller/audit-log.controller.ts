@@ -31,7 +31,8 @@ export class AuditLogController {
       actorId: Number.isFinite(actor) ? actor : undefined,
       targetId: Number.isFinite(target) ? target : undefined,
       action,
-      from: fromDate && !Number.isNaN(fromDate.getTime()) ? fromDate : undefined,
+      from:
+        fromDate && !Number.isNaN(fromDate.getTime()) ? fromDate : undefined,
       to: toDate && !Number.isNaN(toDate.getTime()) ? toDate : undefined,
     });
     return {

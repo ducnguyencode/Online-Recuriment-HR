@@ -14,7 +14,11 @@ import { ForgotPasswordComponent } from './applicant-portal/pages/forgot-passwor
 import { ProfileComponent } from './applicant-portal/pages/profile/profile.component';
 
 // Import Guards
-import { loginGuard, authApplicantGuard } from './core/guards/auth.guard';
+import {
+  loginGuard,
+  authApplicantGuard,
+  careersGuard,
+} from './core/guards/auth.guard';
 
 export const routes: Routes = [
   // --- Tuyến đường cho HR Portal (Dev 4) ---
@@ -43,7 +47,7 @@ export const routes: Routes = [
     path: '',
     component: ApplicantLayoutComponent,
     children: [
-      { path: 'careers', component: CareersComponent },
+      { path: 'careers', component: CareersComponent, canActivate: [careersGuard] },
 
       // ĐÃ BẬT LẠI KHÓA CHO TRANG NỘI BỘ
       {
