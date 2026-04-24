@@ -12,17 +12,21 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class MyAvailabilityComponent implements OnInit {
     mySlots = signal<any[]>([]);
-    employeeId = ''; // Lấy từ AuthService
+    employeeId = '';
 
     newSlot = { availableDate: '', startTime: '08:00', endTime: '17:00' };
     errorMsg = '';
 
-    constructor(private interviewService: InterviewService, private auth: AuthService) { }
+    constructor(private interviewService: InterviewService, public auth: AuthService) { }
 
     ngOnInit() {
-        // Giả sử AuthService có hàm lấy thông tin user hiện tại
-        this.employeeId = this.auth.currentUser()?.id || '3'; // Gắn tạm ID = 3 để test như lúc nãy
-        this.loadMySlots();
+        this.employeeId = String(this.auth.currentUser()?.employeeId || '');
+
+        if (this.employeeId) {
+            this.loadMySlots();
+        } else if (this.auth.isInterviewer()) {
+            this.errorMsg = 'Error: No Employee Profile linked to this account.';
+        }
     }
 
     loadMySlots() {
@@ -49,6 +53,8 @@ export class MyAvailabilityComponent implements OnInit {
     }
 
     deleteSlot(id: string) {
-        this.interviewService.deleteAvailability(id).subscribe(() => this.loadMySlots());
+        if (confirm('Are you sure you want to remove this slot?')) {
+            this.interviewService.deleteAvailability(id).subscribe(() => this.loadMySlots());
+        }
     }
 }
