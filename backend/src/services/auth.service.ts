@@ -148,6 +148,14 @@ export class AuthService {
 
     user.password = await bcrypt.hash(dto.newPassword, 10);
     user.mustChangePassword = false;
+    if (!user.isVerified) {
+      user.isVerified = true;
+      user.verifiedAt = new Date();
+    }
+    if (!user.isActive) {
+      user.isActive = true;
+    }
+    user.verificationToken = null;
     user.resetPasswordToken = null;
     user.resetPasswordTokenExpiresAt = null;
     await this.userService.save(user);
