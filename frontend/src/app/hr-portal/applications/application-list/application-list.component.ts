@@ -23,6 +23,7 @@ import {
   formatDisplayId,
 } from '../../../core/models';
 import { environment } from '../../../../environments/environment';
+import { SocketService } from '../../../core/services/socket.service';
 
 enum ApplicationStatus {
   PENDING = 'Pending',
@@ -106,6 +107,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
+    private socketService: SocketService,
   ) {}
 
   ngOnInit() {
@@ -115,6 +117,16 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.attachSearchSubject
       .pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((q) => this.performApplicantSearch(q));
+
+    this.socketService.connect();
+    this.socketService.onDone((res) => {
+      const { applicationId, data } = res;
+      this.applications.update((apps) =>
+        apps.map((a) =>
+          a.id == applicationId ? { ...a, aiPreview: data } : a,
+        ),
+      );
+    });
   }
 
   ngOnDestroy() {

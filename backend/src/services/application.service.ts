@@ -15,6 +15,7 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { CustomValidator } from 'src/common/validator/custom.validator';
 import { ApplicantService } from './applicant.service';
 import { ApplicantStatus, ApplicationStatus } from 'src/common/enum';
+import { AiPreviewService } from './bullmq/ai-worker/ai-preview.service';
 
 @Injectable()
 export class ApplicationService {
@@ -25,6 +26,7 @@ export class ApplicationService {
     private customValidator: CustomValidator,
     private applicantService: ApplicantService,
     private eventEmitter: EventEmitter2,
+    private aiPreviewService: AiPreviewService,
   ) {}
 
   async findAll(
@@ -141,17 +143,21 @@ export class ApplicationService {
 
       application = await manager.save(application);
       // AI preview
+      // if (application.cv) {
+      //   this.aiService
+      //     .reviewCv(application)
+      //     .then(async (res) => {
+      //       if (res) {
+      //         await this.applicationsTable.update(application.id, {
+      //           aiPreview: res,
+      //         });
+      //       }
+      //     })
+      //     .catch(console.log);
+      // }
+
       if (application.cv) {
-        this.aiService
-          .reviewCv(application)
-          .then(async (res) => {
-            if (res) {
-              await this.applicationsTable.update(application.id, {
-                aiPreview: res,
-              });
-            }
-          })
-          .catch(console.log);
+        await this.aiPreviewService.start(application.id);
       }
     });
     try {
