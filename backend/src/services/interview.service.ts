@@ -26,7 +26,7 @@ import { EmailQueue } from '../entities/email-queue.entity';
 // Services & DTOs
 import { GoogleMeetService } from './google-meet.service';
 import { InterviewCreateDto } from '../dto/interview-create.dto';
-import { InterviewStatus } from 'src/common/enum';
+import { ApplicantStatus, ApplicationStatus, InterviewStatus } from 'src/common/enum';
 
 @Injectable()
 export class InterviewService {
@@ -173,15 +173,30 @@ export class InterviewService {
 
       // 10. Emit event for real-time notifications (WebSockets)
       // We emit this AFTER the transaction is fully committed to ensure data consistency
-      this.eventEmitter.emit('interview.scheduled', {
-        hrId: userId,
-        interviewId: savedInterview.id,
-        applicationId: application.id,
-        candidateName: application.applicant.fullName,
-        title: savedInterview.title,
+      const completeInterview = await this.interviewRepo.findOne({
+        where: { id: savedInterview.id },
+        relations: [
+          'application',
+          'application.applicant',
+          'application.applicant.user',
+          'panels',
+          'panels.employee',
+          'panels.employee.user'
+        ]
       });
 
-      return savedInterview;
+      if (completeInterview) {
+        this.eventEmitter.emit('interview.scheduled', {
+          hrId: userId,
+          interviewId: completeInterview.id,
+          applicationId: completeInterview.application?.id,
+          candidateName: completeInterview.application?.applicant?.fullName,
+          title: completeInterview.title,
+          userId: completeInterview.panels[0]?.employee?.user?.id,
+        });
+      }
+
+      return completeInterview || savedInterview;
     } catch (err) {
       // ROLLBACK: If anything above fails (DB error, Google API error, Conflict),
       // we revert all database changes made within this transaction.
@@ -337,7 +352,12 @@ export class InterviewService {
 
       if (!interview) throw new NotFoundException('Interview not found.');
 
-      if (status === InterviewStatus.CANCELLED) {
+      interview.status = status;
+      await queryRunner.manager.save(Interview, interview);
+
+      if (status === InterviewStatus.CANCELLED && interview.application) {
+        interview.application.status = ApplicationStatus.PENDING;
+        await queryRunner.manager.save(Application, interview.application);
         // 1. Delete Google Calendar Event (Fail-safe try-catch)
         if (interview.googleCalendarEventId) {
           try {
@@ -468,29 +488,28 @@ export class InterviewService {
     try {
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id: interviewId },
-        relations: ['panels', 'panels.employee', 'panels.employee.user']
+        relations: ['panels', 'panels.employee', 'application', 'panels.employee.user', 'application.applicant']
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
 
-      const myPanel = interview.panels.find(p =>
-        String(p.employee?.user?.id) === String(userId) ||
-        String(p.employeeId) === String(userId) ||
-        (employeeId && String(p.employeeId) === String(employeeId))
-      );
-
-      if (!myPanel) {
-        throw new BadRequestException('You are not assigned to evaluate this interview session.');
-      }
-
+      const myPanel = interview.panels[0];
       myPanel.vote = vote;
       myPanel.feedback = feedback;
       await queryRunner.manager.save(InterviewerPanel, myPanel);
 
-      const allVoted = interview.panels.every(p => p.vote === 'Pass' || p.vote === 'Fail');
-      if (allVoted) {
-        interview.status = InterviewStatus.COMPLETED;
-        await queryRunner.manager.save(Interview, interview);
+      interview.status = InterviewStatus.COMPLETED;
+      await queryRunner.manager.save(Interview, interview);
+
+      if (interview.application) {
+        if (vote === 'Pass') {
+          interview.application.status = ApplicationStatus.SELECTED;
+        } else {
+          interview.application.status = ApplicationStatus.REJECTED;
+          interview.application.applicant.status = ApplicantStatus.NOT_IN_PROCESS;
+          await queryRunner.manager.save(interview.application.applicant);
+        }
+        await queryRunner.manager.save(Application, interview.application);
       }
 
       await queryRunner.commitTransaction();

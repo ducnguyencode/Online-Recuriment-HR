@@ -2,6 +2,7 @@ import {
   IsDateString,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
 } from 'class-validator';
 
@@ -10,7 +11,7 @@ export class InterviewCreateDto {
   @IsString()
   title!: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   description?: string;
 

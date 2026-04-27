@@ -119,8 +119,8 @@ export class InterviewListComponent implements OnInit {
     };
     const datePart = r.startTime ? new Date(r.startTime).toISOString().split('T')[0] : '';
     const app = r.application || {};
-    const applicant = app.applicant || {};
-    const vacancy = app.vacancy || {};
+    // const applicant = app.applicant || {};
+    // const vacancy = app.vacancy || {};
 
     return {
       id: String(r.id),

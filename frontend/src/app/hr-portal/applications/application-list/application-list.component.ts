@@ -22,7 +22,6 @@ import {
   Vacancy,
   canAttachToVacancy,
   canAttachVacancyToApplicant,
-  formatDisplayId,
 } from '../../../core/models';
 import { environment } from '../../../../environments/environment';
 
@@ -38,7 +37,7 @@ enum ApplicationStatus {
 @Component({
   selector: 'app-LApplication-LList',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePipe, RouterLink],
   templateUrl: './application-list.component.html',
   styleUrl: './application-list.component.scss',
 })
@@ -469,13 +468,26 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.selectedInterviewDepartmentId = departmentId;
     this.selectedInterviewerId = '';
     this.busySlots.set([]);
+
     if (!departmentId) {
       this.availableInterviewers.set([]);
       return;
     }
+
     this.employeeService.getInterviewersByDepartment(departmentId).subscribe({
-      next: (res) =>
-        this.availableInterviewers.set(Array.isArray(res.data) ? res.data : []),
+      next: (res: any) => {
+        const rawData = res?.data?.items || res?.data || res?.items || res || [];
+        const dataArray = Array.isArray(rawData) ? rawData : [];
+        const mappedInterviewers = dataArray.map((emp: any) => ({
+          ...emp,
+          id: String(emp.id || emp.employeeId || Math.random()),
+          fullName: emp.user?.fullName || emp.fullName || 'Unknown Name',
+          position: emp.position || emp.role || 'Interviewer'
+        }));
+
+        this.availableInterviewers.set(mappedInterviewers);
+      },
+
       error: () => this.availableInterviewers.set(this.getMockInterviewers()),
     });
   }
@@ -546,7 +558,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     const dto: any = {
       applicationId: Number(applicationId),
       title,
-      description: description ? String(description) : '',
+      description: description ? String(description) : undefined,
       startTime: startISO,
       endTime: endISO,
       interviewerId: this.selectedInterviewerId,
