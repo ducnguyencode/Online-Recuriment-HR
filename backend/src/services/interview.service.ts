@@ -43,68 +43,41 @@ export class InterviewService {
     // Inject other services
     private googleMeetService: GoogleMeetService,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
-  // HELPER METHOD: Check Availability & Lock Slots
+  // HELPER METHOD: Check Availability & Save Slot
   // We pass 'EntityManager' so this runs inside the transaction
-  private async checkAndLockAvailability(
+  private async checkAndSaveAvailability(
     manager: EntityManager,
-    panelIds: string[],
+    empId: string,
     start: Date,
     end: Date,
-    excludeInterviewId?: string,
   ): Promise<void> {
-    // 1. Extract Date and Time strings to compare with DB format
     const dateStr = start.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     const startTimeStr = start.toTimeString().split(' ')[0]; // Format: HH:mm:ss
     const endTimeStr = end.toTimeString().split(' ')[0]; // Format: HH:mm:ss
 
-    // 2. If rescheduling, release the old slots first
-    if (excludeInterviewId) {
-      const oldPanels = await manager.find(InterviewerPanel, {
-        where: { interviewId: excludeInterviewId },
-      });
-      const oldPanelIds = oldPanels.map((p) => p.employeeId);
+    const existingSlot = await manager.createQueryBuilder(InterviewerAvailability, 'slot')
+      .where('slot.employeeId = :empId', { empId })
+      .andWhere('slot.availableDate = :date', { date: dateStr })
+      .andWhere('slot.startTime < :end', { end: endTimeStr })
+      .andWhere('slot.endTime > :start', { start: startTimeStr })
+      .getOne();
 
-      if (oldPanelIds.length > 0) {
-        // Unlock the slots that were previously booked for this specific interview
-        await manager.update(
-          InterviewerAvailability,
-          {
-            employeeId: In(oldPanelIds),
-            availableDate: dateStr,
-            isBooked: true,
-          },
-          { isBooked: false },
-        );
-      }
-    }
-
-    // 3. Check and lock new slots for each panel member
-    for (const empId of panelIds) {
-      const availableSlot = await manager.findOne(InterviewerAvailability, {
-        where: {
-          employeeId: empId,
-          availableDate: dateStr,
-          isBooked: false, // Must be available
-          startTime: LessThanOrEqual(startTimeStr), // Slot starts before or at interview start
-          endTime: MoreThanOrEqual(endTimeStr), // Slot ends after or at interview end
-        },
-      });
-
-      if (!availableSlot) {
-        throw new ConflictException(
-          `Employee ID [${empId}] is not available or already booked during this time slot.`,
-        );
-      }
-
-      // 4. Lock the slot to prevent double-booking by other concurrent requests
-      await manager.update(
-        InterviewerAvailability,
-        { id: availableSlot.id },
-        { isBooked: true },
+    if (existingSlot) {
+      throw new ConflictException(
+        `This interview is overlapping with another interview from ${startTimeStr} to ${endTimeStr}.`
       );
     }
+
+    const newSlot = manager.create(InterviewerAvailability, {
+      employeeId: empId,
+      availableDate: dateStr,
+      startTime: startTimeStr,
+      endTime: endTimeStr,
+      isBooked: true,
+    });
+    await manager.save(newSlot);
   }
 
   // CREATE INTERVIEW
@@ -141,10 +114,9 @@ export class InterviewService {
       }
 
       // 4. Extract Panel IDs and Lock Availability
-      const panelIds = data.panel.map((p) => p.employeeId);
-      await this.checkAndLockAvailability(
+      await this.checkAndSaveAvailability(
         queryRunner.manager,
-        panelIds,
+        data.interviewerId,
         start,
         end,
       );
@@ -174,14 +146,12 @@ export class InterviewService {
       const savedInterview = await queryRunner.manager.save(newInterview);
 
       // 7. Save Interviewer Panel Records
-      const panelRecords = data.panel.map((member) =>
-        queryRunner.manager.create(InterviewerPanel, {
-          interviewId: savedInterview.id,
-          employeeId: member.employeeId,
-          vote: 'Pending', // Default vote status
-        }),
-      );
-      await queryRunner.manager.save(InterviewerPanel, panelRecords);
+      const panelRecord = queryRunner.manager.create(InterviewerPanel, {
+        interviewId: savedInterview.id,
+        employeeId: data.interviewerId,
+        vote: 'Pending',
+      });
+      await queryRunner.manager.save(InterviewerPanel, panelRecord);
 
       // 8. Queue the Invitation Email
       const emailRecord = queryRunner.manager.create(EmailQueue, {
@@ -271,16 +241,26 @@ export class InterviewService {
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
-
-      // 2. Extract Panel IDs and adjust availability
       const panelIds = interview.panels.map((p) => p.employeeId);
-      await this.checkAndLockAvailability(
-        queryRunner.manager,
-        panelIds,
-        start,
-        end,
-        id,
-      );
+      if (panelIds.length > 0) {
+        const oldDateStr = interview.startTime.toISOString().split('T')[0];
+        const oldStartStr = interview.startTime.toTimeString().split(' ')[0];
+        const oldEndStr = interview.endTime.toTimeString().split(' ')[0];
+
+        await queryRunner.manager.delete(InterviewerAvailability, {
+          employeeId: panelIds[0],
+          availableDate: oldDateStr,
+          startTime: oldStartStr,
+          endTime: oldEndStr
+        });
+
+        await this.checkAndSaveAvailability(
+          queryRunner.manager,
+          panelIds[0],
+          start,
+          end,
+        );
+      }
 
       // 3. Update Google Calendar (External API)
       if (interview.googleCalendarEventId) {
@@ -376,18 +356,15 @@ export class InterviewService {
         const panelIds = interview.panels.map((p) => p.employeeId);
         if (panelIds.length > 0) {
           const dateStr = interview.startTime.toISOString().split('T')[0];
+          const oldStartStr = interview.startTime.toTimeString().split(' ')[0];
+          const oldEndStr = interview.endTime.toTimeString().split(' ')[0];
 
-          await queryRunner.manager.update(
-            InterviewerAvailability,
-            {
-              employeeId: In(panelIds),
-              availableDate: dateStr,
-              isBooked: true,
-            },
-            {
-              isBooked: false,
-            },
-          );
+          await queryRunner.manager.delete(InterviewerAvailability, {
+            employeeId: In(panelIds),
+            availableDate: dateStr,
+            startTime: oldStartStr,
+            endTime: oldEndStr
+          });
         }
 
         // 3. Queue Cancellation Email

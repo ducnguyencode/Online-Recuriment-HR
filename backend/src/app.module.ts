@@ -61,6 +61,8 @@ import { InterviewerAvailabilityController } from './controller/interviewer-avai
 import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
 import { DashboardService } from './services/dashboard.service';
 import { DashboardController } from './controller/dashboard.controller';
+import { ReportService } from './services/report.service';
+import { ReportController } from './controller/report.controller';
 
 @Module({
   imports: [
@@ -127,6 +129,7 @@ import { DashboardController } from './controller/dashboard.controller';
     AuditLogController,
     InterviewerAvailabilityController,
     DashboardController,
+    ReportController,
   ],
   providers: [
     VacanciesService,
@@ -156,6 +159,7 @@ import { DashboardController } from './controller/dashboard.controller';
     AccountCleanupCronService,
     InterviewerAvailabilityService,
     DashboardService,
+    ReportService,
   ],
 })
 export class AppModule {}

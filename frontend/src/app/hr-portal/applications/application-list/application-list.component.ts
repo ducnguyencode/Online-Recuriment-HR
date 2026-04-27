@@ -38,7 +38,7 @@ enum ApplicationStatus {
 @Component({
   selector: 'app-LApplication-LList',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './application-list.component.html',
   styleUrl: './application-list.component.scss',
 })
@@ -80,7 +80,6 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   interviewApplication = signal<Application | null>(null);
 
   showInterviewDialog = signal(false);
-  selectedPanelIds: string[] = [];
   selectedInterviewDepartmentId = '';
   interviewData = {
     applicationId: '',
@@ -92,12 +91,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     platform: 'Google Meet' as 'Google Meet' | 'Zoom' | 'On-site',
   };
   interviewError = '';
-  availabilityPreview = signal<
-    Record<
-      string,
-      { availableDate: string; startTime: string; endTime: string }[]
-    >
-  >({});
+  selectedInterviewerId = '';
+  busySlots = signal<any[]>([]);
 
   showAttachDialog = signal(false);
   attachData = { applicantId: '', vacancyId: '', cvId: '' };
@@ -451,11 +446,11 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       endTime: '10:00',
       platform: 'Google Meet',
     };
-    this.selectedPanelIds = [];
+    // this.selectedPanelIds = [];
     this.selectedInterviewDepartmentId = '';
     this.availableInterviewers.set([]);
     this.interviewError = '';
-    this.availabilityPreview.set({});
+    // this.availabilityPreview.set({});
 
     this.showInterviewDialog.set(true);
   }
@@ -463,7 +458,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   closeInterviewDialog() {
     this.showInterviewDialog.set(false);
     this.interviewError = '';
-    this.availabilityPreview.set({});
+    this.busySlots.set([]);
+    this.selectedInterviewerId = '';
     this.selectedInterviewDepartmentId = '';
     this.availableInterviewers.set([]);
     this.interviewApplication.set(null);
@@ -471,8 +467,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
 
   onInterviewDepartmentChange(departmentId: string) {
     this.selectedInterviewDepartmentId = departmentId;
-    this.selectedPanelIds = [];
-    this.availabilityPreview.set({});
+    this.selectedInterviewerId = '';
+    this.busySlots.set([]);
     if (!departmentId) {
       this.availableInterviewers.set([]);
       return;
@@ -484,62 +480,22 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     });
   }
 
-  togglePanelMember(employeeId: string) {
-    const index = this.selectedPanelIds.indexOf(employeeId);
-    if (index === -1) this.selectedPanelIds.push(employeeId);
-    else this.selectedPanelIds.splice(index, 1);
-    this.loadAvailabilityPreview();
-  }
+  onInterviewerChange(employeeId: string) {
+    this.selectedInterviewerId = employeeId;
+    this.busySlots.set([]);
 
-  isPanelSelected(employeeId: string): boolean {
-    return this.selectedPanelIds.includes(employeeId);
-  }
+    if (!employeeId) return;
 
-  onInterviewDateChange() {
-    this.loadAvailabilityPreview();
-  }
-
-  loadAvailabilityPreview() {
-    if (!this.interviewData.date || this.selectedPanelIds.length === 0) {
-      this.availabilityPreview.set({});
-      return;
-    }
-
-    const requests = this.selectedPanelIds.map((employeeId) =>
-      this.interviewService
-        .getAvailability({
-          employeeId,
-          startDate: this.interviewData.date,
-          endDate: this.interviewData.date,
-        })
-        .pipe(
-          catchError(() =>
-            of({
-              data: this.mockData.getAvailability(
-                employeeId,
-                this.interviewData.date,
-                this.interviewData.date,
-              ),
-            } as any),
-          ),
-        ),
-    );
-
-    forkJoin(requests).subscribe((results) => {
-      const preview: Record<
-        string,
-        { availableDate: string; startTime: string; endTime: string }[]
-      > = {};
-      results.forEach((result, index) => {
-        preview[this.selectedPanelIds[index]] = (result.data ?? []).map(
-          (slot: any) => ({
-            availableDate: slot.availableDate,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-          }),
-        );
-      });
-      this.availabilityPreview.set(preview);
+    this.interviewService.getAvailability({
+      employeeId: employeeId,
+      startDate: '2024-01-01',
+      endDate: '2030-12-31',
+    }).pipe(
+      catchError(() => of({ data: [] }))
+    ).subscribe({
+      next: (res) => {
+        this.busySlots.set(Array.isArray(res.data) ? res.data : []);
+      }
     });
   }
 
@@ -550,17 +506,6 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     );
   }
 
-  hasValidAvailability(): boolean {
-    return this.selectedPanelIds.every((employeeId) => {
-      const slots = this.availabilityPreview()[employeeId] ?? [];
-      return slots.some(
-        (slot) =>
-          this.interviewData.startTime >= slot.startTime &&
-          this.interviewData.endTime <= slot.endTime,
-      );
-    });
-  }
-
   saveInterview() {
     const {
       applicationId,
@@ -569,7 +514,6 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       date,
       startTime,
       endTime,
-      platform,
     } = this.interviewData;
     const applicantId =
       this.interviewApplication()?.applicantId ??
@@ -587,97 +531,27 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       this.interviewError = 'End time must be after start time.';
       return;
     }
-    if (this.selectedPanelIds.length === 0) {
-      this.interviewError = 'Select at least one interviewer.';
-      return;
-    }
     if (!this.selectedInterviewDepartmentId) {
       this.interviewError = 'Please select department for this interview.';
       return;
     }
-    if (!this.hasValidAvailability()) {
-      this.interviewError =
-        'The selected time is outside the available interview slots.';
+    if (!this.selectedInterviewerId) {
+      this.interviewError = 'Please select an interviewer.';
       return;
     }
-
-    const conflicts = this.mockData.getInterviewerConflicts(
-      this.selectedPanelIds,
-      date,
-      startTime,
-      endTime,
-    );
-    // if (conflicts.length > 0) {
-    //   this.interviewError = `Conflict: ${conflicts.join(', ')} already has an interview at this time.`;
-    //   return;
-    // }
-    // if (applicantId) {
-    //   const applicantConflicts = this.mockData.getApplicantInterviewConflicts(
-    //     applicantId,
-    //     date,
-    //     startTime,
-    //     endTime,
-    //   );
-    //   if (applicantConflicts.length > 0) {
-    //     this.interviewError =
-    //       'This applicant already has another interview at the selected time.';
-    //     return;
-    //   }
-    // }
 
     const startISO = `${date}T${startTime}:00`;
     const endISO = `${date}T${endTime}:00`;
 
-    // const dto: ScheduleInterviewDto = {
-    //   applicationId,
-    //   panel: this.selectedPanelIds.map((id) => ({
-    //     employeeId: id,
-    //     role:
-    //       this.availableInterviewers().find((emp) => emp.id === id)?.position ??
-    //       'Interviewer',
-    //   })),
-    //   interviewDate: date,
-    //   startTime,
-    //   endTime,
-    //   platform,
-    // };
     const dto: any = {
       applicationId: Number(applicationId),
       title,
-      description: description ? String(description) : 'Interview Session',
-      panel: this.selectedPanelIds.map((id) => ({
-        employeeId: String(id),
-        role:
-          this.availableInterviewers().find((e) => e.id === id)?.position ??
-          'Interviewer',
-      })),
+      description: description ? String(description) : '',
       startTime: startISO,
       endTime: endISO,
-      // platform,
+      interviewerId: this.selectedInterviewerId,
     };
 
-    // this.interviewService.schedule(dto).subscribe({
-    //   next: () => {
-    //     this.closeInterviewDialog();
-    //     this.loadApplications();
-    //   },
-    //   error: () => {
-    //     const duration =
-    //       (new Date(`2000-01-01T${endTime}`).getTime() -
-    //         new Date(`2000-01-01T${startTime}`).getTime()) /
-    //       60000;
-    //     this.mockData.addInterview({
-    //       applicationId,
-    //       date,
-    //       time: startTime,
-    //       duration,
-    //       platform,
-    //       interviewers: this.selectedPanelIds,
-    //     });
-    //     this.closeInterviewDialog();
-    //     this.loadApplications();
-    //   },
-    // });
     this.loading.set(true);
     this.interviewService.schedule(dto).subscribe({
       next: () => {
