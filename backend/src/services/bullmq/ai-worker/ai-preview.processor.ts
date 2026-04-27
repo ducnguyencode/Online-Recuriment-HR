@@ -1,13 +1,7 @@
-import {
-  InjectQueue,
-  OnWorkerEvent,
-  Processor,
-  WorkerHost,
-} from '@nestjs/bullmq';
-import { Job, Queue } from 'bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
 import { AiPreviewJobData } from './ai-preview.type';
 import { AI_PREVIEW_QUEUE } from './ai-preview.constants';
-import { AiService } from '../../ai.service';
 import { AiPreviewService } from './ai-preview.service';
 import { AiPreviewGateway } from './ai-preview.gateway';
 

@@ -16,7 +16,9 @@ import { MockDataService } from '../../../core/services/mock-data.service';
 import {
   Applicant,
   Application,
+  ApplicationStatus,
   Employee,
+  UserRole,
   Vacancy,
   canAttachToVacancy,
   canAttachVacancyToApplicant,
@@ -24,15 +26,7 @@ import {
 } from '../../../core/models';
 import { environment } from '../../../../environments/environment';
 import { SocketService } from '../../../core/services/socket.service';
-
-enum ApplicationStatus {
-  PENDING = 'Pending',
-  SCREENING = 'Screening',
-  INTERVIEW_SCHEDULED = 'Interview Scheduled',
-  SELECTED = 'Selected',
-  REJECTED = 'Rejected',
-  NOT_REQUIRED = 'Not Required',
-}
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-LApplication-LList',
@@ -42,7 +36,9 @@ enum ApplicationStatus {
   styleUrl: './application-list.component.scss',
 })
 export class ApplicationListComponent implements OnInit, OnDestroy {
-  applicationStatus = Object.values(ApplicationStatus);
+  ApplicationStatus = ApplicationStatus;
+  UserRole = UserRole;
+  applicationStatusList = Object.values(ApplicationStatus);
   applications = signal<Application[]>([]);
   vacancies = signal<Vacancy[]>([]);
   applicants = signal<Applicant[]>([]);
@@ -108,6 +104,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private employeeService: EmployeeService,
     private mockData: MockDataService,
     private socketService: SocketService,
+    protected authService: AuthService,
   ) {}
 
   ngOnInit() {
@@ -836,5 +833,31 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
           .includes(query),
       );
     });
+  }
+
+  acceptedApplication(applicationId: string) {
+    this.applicationService
+      .changeStatus(applicationId, ApplicationStatus.ACCEPTED)
+      .subscribe({
+        next: (res) => {
+          this.loadApplications();
+        },
+        error: (err) => {
+          console.log(err);
+        },
+      });
+  }
+
+  rejetedApplication(applicationId: string) {
+    this.applicationService
+      .changeStatus(applicationId, ApplicationStatus.REJECTED)
+      .subscribe({
+        next: (res) => {
+          this.loadApplications();
+        },
+        error: (err) => {
+          console.log(err);
+        },
+      });
   }
 }
