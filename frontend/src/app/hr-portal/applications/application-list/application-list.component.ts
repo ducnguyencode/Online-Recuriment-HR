@@ -24,6 +24,7 @@ import {
   canAttachVacancyToApplicant,
 } from '../../../core/models';
 import { environment } from '../../../../environments/environment';
+import { ToastService } from '../../../core/services/toast.service';
 
 enum ApplicationStatus {
   PENDING = 'Pending',
@@ -105,6 +106,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private employeeService: EmployeeService,
     private departmentService: DepartmentService,
     private mockData: MockDataService,
+    private toastService: ToastService,
   ) { }
 
   ngOnInit() {
@@ -436,6 +438,9 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   openInterviewDialog(app: Application, event: Event) {
     event.stopPropagation();
     this.interviewApplication.set(app);
+
+    const deptId = app.vacancy?.departmentId || app.vacancy?.department?.id;
+
     this.interviewData = {
       applicationId: app.id,
       title: `Interview: ${app.applicant?.fullName} - ${app.vacancy?.title}`,
@@ -452,6 +457,31 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     // this.availabilityPreview.set({});
 
     this.showInterviewDialog.set(true);
+
+    if (deptId) {
+      this.employeeService.getInterviewersByDepartment(deptId).subscribe({
+        next: (res: any) => {
+          const rawData = res?.data?.items || res?.data || res?.items || res || [];
+          const dataArray = Array.isArray(rawData) ? rawData : [];
+
+          const mappedInterviewers = dataArray.map((emp: any) => ({
+            ...emp,
+            id: String(emp.id || emp.employeeId || Math.random()),
+            fullName: emp.user?.fullName || emp.fullName || 'Unknown Name',
+            position: emp.position || emp.role || 'Interviewer'
+          }));
+
+          this.availableInterviewers.set(mappedInterviewers);
+        },
+        error: (err) => {
+          console.error('Error:', err);
+          this.availableInterviewers.set([]);
+        },
+      });
+    } else {
+      this.availableInterviewers.set([]);
+      this.interviewError = 'Note: This vacancy has not been assigned a department, so the list of interviewers cannot be loaded!';
+    }
   }
 
   closeInterviewDialog() {
@@ -543,10 +573,6 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       this.interviewError = 'End time must be after start time.';
       return;
     }
-    if (!this.selectedInterviewDepartmentId) {
-      this.interviewError = 'Please select department for this interview.';
-      return;
-    }
     if (!this.selectedInterviewerId) {
       this.interviewError = 'Please select an interviewer.';
       return;
@@ -568,7 +594,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.interviewService.schedule(dto).subscribe({
       next: () => {
         this.loading.set(false);
-        alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
+        // alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
+        this.toastService.success('Interview scheduled successfully! Emails and Google Meet links are being sent.');
         this.closeInterviewDialog();
         this.loadApplications();
       },
@@ -697,5 +724,13 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
           .includes(query),
       );
     });
+  }
+
+  getMinDate(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

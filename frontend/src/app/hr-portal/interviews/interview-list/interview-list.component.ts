@@ -11,6 +11,7 @@ import {
   InterviewStatus,
   formatDisplayId,
 } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-interview-list',
@@ -49,10 +50,15 @@ export class InterviewListComponent implements OnInit {
   };
   postponeError = '';
 
+  // Cancel Confirm Dialog
+  showCancelConfirm = signal(false);
+  itemToCancel = signal<Interview | null>(null);
+
   constructor(
     private auth: AuthService,
     private interviewService: InterviewService,
     private mockData: MockDataService,
+    private toastService: ToastService,
   ) { }
 
   ngOnInit() {
@@ -407,17 +413,45 @@ export class InterviewListComponent implements OnInit {
   cancelInterview(item: Interview, event: Event) {
     event.stopPropagation();
     if (!this.canCancel()) return;
-    if (!confirm('Cancel this interview?')) return;
+    // if (!confirm('Cancel this interview?')) return;
+    this.itemToCancel.set(item);
+    this.showCancelConfirm.set(true);
+    // this.interviewService.updateStatus(item.id, 'Cancelled').subscribe({
+    //   next: () => this.loadData(),
+    //   error: () => {
+    //     this.interviews.update((list) =>
+    //       list.map((i) =>
+    //         i.id !== item.id
+    //           ? i
+    //           : { ...i, status: 'Cancelled' as InterviewStatus },
+    //       ),
+    //     );
+    //   },
+    // });
+  }
+
+  closeCancelConfirm() {
+    this.showCancelConfirm.set(false);
+    this.itemToCancel.set(null);
+  }
+
+  executeCancel() {
+    const item = this.itemToCancel();
+    if (!item) return;
+
     this.interviewService.updateStatus(item.id, 'Cancelled').subscribe({
-      next: () => this.loadData(),
+      next: () => {
+        this.toastService.success('Interview cancelled successfully.');
+        this.loadData();
+        this.closeCancelConfirm();
+      },
       error: () => {
+        this.toastService.error('Failed to cancel. Please try again.');
+        // Fallback cho Mock Data
         this.interviews.update((list) =>
-          list.map((i) =>
-            i.id !== item.id
-              ? i
-              : { ...i, status: 'Cancelled' as InterviewStatus },
-          ),
+          list.map((i) => (i.id !== item.id ? i : { ...i, status: 'Cancelled' as InterviewStatus }))
         );
+        this.closeCancelConfirm();
       },
     });
   }

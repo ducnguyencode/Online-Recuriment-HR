@@ -278,23 +278,10 @@
       }
 
       <div class="form-group">
-        <label class="form-label">Department <span class="required">*</span></label>
-        <select class="form-select" [ngModel]="selectedInterviewDepartmentId"
-          (ngModelChange)="onInterviewDepartmentChange($event)">
-          <option value="">Select department</option>
-          @for (department of interviewDepartments(); track department.id) {
-          <option [value]="department.id">{{ department.name }}</option>
-          }
-        </select>
-        <p class="form-hint">Choose department first to load its interviewers.</p>
-      </div>
-
-      <div class="form-group">
         <label class="form-label">Interviewer <span class="required">*</span></label>
-        @if (!selectedInterviewDepartmentId) {
-        <p class="form-hint warning-text">Please select a department first.</p>
-        } @else if (availableInterviewers().length === 0) {
-        <p class="form-hint warning-text">No interviewers found in this department.</p>
+
+        @if (availableInterviewers().length === 0) {
+        <p class="form-hint warning-text">No interviewers found for this Vacancy's department.</p>
         } @else {
         <select class="form-select" [ngModel]="selectedInterviewerId" (ngModelChange)="onInterviewerChange($event)">
           <option value="">-- Select Interviewer --</option>
@@ -340,7 +327,7 @@
       <div class="form-row">
         <div class="form-group" style="flex: 1">
           <label class="form-label">Date <span class="required">*</span></label>
-          <input type="date" class="form-input" [(ngModel)]="interviewData.date" />
+          <input type="date" class="form-input" [(ngModel)]="interviewData.date" [min]="getMinDate()" />
         </div>
         <div class="form-group" style="width: 120px">
           <label class="form-label">Start <span class="required">*</span></label>
