@@ -24,7 +24,7 @@ export class AiPreviewService {
       {
         applicationId,
       },
-      { removeOnComplete: false, removeOnFail: false },
+      { removeOnComplete: true, removeOnFail: false },
     );
   }
 

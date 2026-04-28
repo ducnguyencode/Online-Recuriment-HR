@@ -65,8 +65,10 @@ import { BullModule } from '@nestjs/bullmq';
 import { AiPreviewProcessor } from './services/bullmq/ai-worker/ai-preview.processor';
 import { AI_PREVIEW_QUEUE } from './services/bullmq/ai-worker/ai-preview.constants';
 import { AiPreviewService } from './services/bullmq/ai-worker/ai-preview.service';
-import { AiPreviewController } from './services/bullmq/ai-worker/ai-preview.controller';
 import { AiPreviewGateway } from './services/bullmq/ai-worker/ai-preview.gateway';
+import { SendMailProcessor } from './services/bullmq/send-mail-worker/send-mail.processor';
+import { SEND_MAIL_QUEUE } from './services/bullmq/send-mail-worker/send-mail.constants';
+import { SendMailService } from './services/bullmq/send-mail-worker/send-mail.service';
 
 @Module({
   imports: [
@@ -127,7 +129,10 @@ import { AiPreviewGateway } from './services/bullmq/ai-worker/ai-preview.gateway
         },
       }),
     }),
-    BullModule.registerQueue({ name: AI_PREVIEW_QUEUE }),
+    BullModule.registerQueue(
+      { name: AI_PREVIEW_QUEUE },
+      { name: SEND_MAIL_QUEUE },
+    ),
   ],
   controllers: [
     VacancyController,
@@ -145,7 +150,6 @@ import { AiPreviewGateway } from './services/bullmq/ai-worker/ai-preview.gateway
     InterviewerAvailabilityController,
     DashboardController,
     ReportController,
-    AiPreviewController,
   ],
   providers: [
     VacanciesService,
@@ -179,6 +183,8 @@ import { AiPreviewGateway } from './services/bullmq/ai-worker/ai-preview.gateway
     AiPreviewProcessor,
     AiPreviewService,
     AiPreviewGateway,
+    SendMailProcessor,
+    SendMailService,
   ],
 })
 export class AppModule {}

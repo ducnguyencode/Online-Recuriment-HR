@@ -48,6 +48,7 @@
     "class-validator": "^0.15.1",
     "googleapis": "^171.4.0",
     "handlebars": "^4.7.9",
+    "hbs": "^4.2.1",
     "ioredis": "^5.10.1",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.5",
