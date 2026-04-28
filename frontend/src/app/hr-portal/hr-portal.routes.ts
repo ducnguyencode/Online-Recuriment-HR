@@ -2,7 +2,6 @@ import { Routes } from '@angular/router';
 import { HrLayoutComponent } from './layout/hr-layout.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { authAdminGuard, hrGuard, superadminGuard } from '../core/guards/auth.guard';
-import { MyAvailabilityComponent } from './availability/my-availability.component';
 
 export const hrPortalRoutes: Routes = [
   {
@@ -97,14 +96,6 @@ export const hrPortalRoutes: Routes = [
         loadComponent: () =>
           import('./help/help.component').then((m) => m.HelpComponent),
       },
-      {
-        path: 'availability',
-        // canActivate: [hrGuard],
-        loadComponent: () =>
-          import('./availability/my-availability.component').then(
-            (m) => m.MyAvailabilityComponent,
-          ),
-      }
     ],
   },
 ];

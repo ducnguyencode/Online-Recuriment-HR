@@ -37,11 +37,6 @@ export class SidebarComponent {
       route: '/hr-portal/reports',
       hrOnly: true,
     },
-    {
-      label: 'My Availability',
-      route: '/hr-portal/availability',
-      icon: 'calendar'
-    }
   ];
 
   systemItems: NavItem[] = [
