@@ -1,17 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-interface Application {
-  position: string;
-  date: string;
-  status: string;
-  statusColor: string;
-}
-
-interface InterviewSlot {
-  time: string;
-  date: string;
-}
+import { ApplicationService } from '../../../core/services/application.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { Application, ApplicationStatus } from '../../../core/models';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,40 +11,37 @@ interface InterviewSlot {
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],
 })
-export class DashboardComponent {
-  applications: Application[] = [
-    {
-      position: 'Senior Frontend Developer (Angular)',
-      date: '15/04/2026',
-      status: 'Interview Scheduled',
-      statusColor: 'text-blue-500 bg-blue-50 border border-blue-100',
-    },
-    {
-      position: 'Product Designer',
-      date: '10/04/2026',
-      status: 'Under Review',
-      statusColor: 'text-slate-500 bg-slate-100 border border-slate-200',
-    },
-  ];
-
-  interviewSlots: InterviewSlot[] = [
-    { time: '09:00 AM', date: '18/04/2026' },
-    { time: '02:00 PM', date: '18/04/2026' },
-    { time: '10:30 AM', date: '19/04/2026' },
-  ];
-
-  selectedSlot: InterviewSlot | null = null;
+export class DashboardComponent implements OnInit {
+  applications = signal<Application[]>([]);
 
   showToast = false;
   toastMessage = '';
 
-  selectSlot(slot: InterviewSlot) {
-    this.selectedSlot = slot;
-    this.toastMessage = `Interview successfully scheduled for ${slot.time} on ${slot.date}! Get ready!`;
-    this.showToast = true;
+  constructor(
+    private applicationService: ApplicationService,
+    private authService: AuthService,
+  ) {}
+  ngOnInit(): void {
+    this.applicationService
+      .getAll({
+        applicantId: this.authService.currentUser()?.applicantId,
+      })
+      .subscribe({
+        next: (res) => {
+          this.applications.set((res.data as any)?.items) ?? [];
+        },
+      });
+  }
 
-    setTimeout(() => {
-      this.showToast = false;
-    }, 3000);
+  getStatusClass(status: ApplicationStatus): string {
+    const map: Record<string, string> = {
+      [ApplicationStatus.PENDING]: 'badge-neutral',
+      [ApplicationStatus.SCREENING]: 'badge-warning',
+      [ApplicationStatus.INTERVIEW_SCHEDULED]: 'badge-info',
+      [ApplicationStatus.SELECTED]: 'badge-success',
+      [ApplicationStatus.REJECTED]: 'badge-danger',
+      [ApplicationStatus.NOT_REQUIRED]: 'badge-neutral',
+    };
+    return map[status] ?? 'badge-neutral';
   }
 }

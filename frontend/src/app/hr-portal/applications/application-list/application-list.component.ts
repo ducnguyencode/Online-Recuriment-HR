@@ -685,7 +685,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     return app?.applicant?.fullName ?? 'Applicant';
   }
 
-  getStatusClass(status: string): string {
+  getStatusClass(status: ApplicationStatus): string {
     const map: Record<string, string> = {
       [ApplicationStatus.PENDING]: 'badge-neutral',
       [ApplicationStatus.SCREENING]: 'badge-warning',
