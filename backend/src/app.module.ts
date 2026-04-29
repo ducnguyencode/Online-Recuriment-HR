@@ -18,71 +18,65 @@ import { ApplicationController } from './controller/application.controller';
 import { AiService } from './services/ai.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { NotificationGateway } from './gateways/notification.gateway';
-import { BullModule } from '@nestjs/bull';
+import { NotificationGateway } from './notification/notification.gateway';
 import { EmailQueueService } from './services/email-queue.service';
-import { EmailProcessor } from './processors/email.processor';
 import { DevToolsController } from './controller/dev-tools.controller';
 import { GoogleMeetService } from './services/google-meet.service';
 import { InterviewController } from './controller/interview.controller';
 import { InterviewService } from './services/interview.service';
 import { Interview } from './entities/interview.entity';
 import { InterviewListener } from './listeners/interview.listener';
-import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
-import { join } from 'path';
+import { InAppNotification } from './entities/notification.entity';
+import { ScheduleModule } from '@nestjs/schedule';
+import { CustomValidator } from './common/validator/custom.validator';
+import { UserService } from './services/user.service';
+import { AuthService } from './services/auth.service';
+import { AuthController } from './controller/auth.controller';
+import { JwtStrategy } from './common/jwt.strategy';
+import { User } from './entities/user.entity';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { BootstrapService } from './services/bootstrap.service';
+import { Seed } from './database/seed';
+import { Employee } from './entities/employee.entity';
+import { MailService } from './services/mail.service';
+import { NotificationsService } from './notification/notification.service';
+import { NotificationsController } from './notification/notification.controller';
+import { InterviewerPanel } from './entities/interviewer-panel.entity';
+import { InterviewerAvailability } from './entities/interviewer-availability.entity';
+import { EmployeeController } from './controller/employee.controller';
+import { EmployeeService } from './services/employee.service';
+import { EmailQueue } from './entities/email-queue.entity';
+import { AdminUserController } from './controller/admin-user.controller';
+import { AdminUserService } from './services/admin-user.service';
+import { RolesGuard } from './common/guards/roles.guard';
+import { AuditLog } from './entities/audit-log.entity';
+import { AuditLogService } from './services/audit-log.service';
+import { AuditLogController } from './controller/audit-log.controller';
+import { EmailCronService } from './cron/email.cron';
+import { AccountCleanupCronService } from './cron/account-cleanup.cron';
+import { InterviewerAvailabilityController } from './controller/interviewer-availability.controller';
+import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
+import { DashboardService } from './services/dashboard.service';
+import { DashboardController } from './controller/dashboard.controller';
+import { ReportService } from './services/report.service';
+import { ReportController } from './controller/report.controller';
+import { BullModule } from '@nestjs/bullmq';
+import { AiPreviewProcessor } from './services/bullmq/ai-worker/ai-preview.processor';
+import { AI_PREVIEW_QUEUE } from './services/bullmq/ai-worker/ai-preview.constants';
+import { AiPreviewService } from './services/bullmq/ai-worker/ai-preview.service';
+import { AiPreviewGateway } from './services/bullmq/ai-worker/ai-preview.gateway';
+import { SendMailProcessor } from './services/bullmq/send-mail-worker/send-mail.processor';
+import { SEND_MAIL_QUEUE } from './services/bullmq/send-mail-worker/send-mail.constants';
+import { SendMailService } from './services/bullmq/send-mail-worker/send-mail.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
-    MailerModule.forRootAsync({
-      imports: [ConfigModule], // Import này để lấy được các biến .env
-      useFactory: async (configService: ConfigService) => ({
-        transport: {
-          host: configService.get('SMTP_HOST'), // Ví dụ: smtp.gmail.com
-          port: configService.get('SMTP_PORT'),
-          auth: {
-            user: configService.get('SMTP_USER'),
-            pass: configService.get('SMTP_PASS'),
-          },
-        },
-        defaults: {
-          from: '"HR Recruitment" <noreply@example.com>',
-        },
-        template: {
-          // Lưu ý: join(__dirname, 'mail', 'templates') nếu thư mục mail nằm trong src
-          dir: join(__dirname, 'mail', 'templates'),
-          adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
-          },
-        },
-      }),
-      inject: [ConfigService],
-    }),
-
+    ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
-
-    // Kết nối tới Cỗ máy Redis trong Docker của bạn
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        redis: {
-          host: configService.get('REDIS_HOST'),
-          port: configService.get('REDIS_PORT'),
-        },
-      }),
-    }),
-
-    // Khởi tạo Bảng công việc
-    BullModule.registerQueue({
-      name: 'email-queue',
-    }),
-
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -91,14 +85,54 @@ import { join } from 'path';
         host: configService.get<string>('DB_HOST'),
         port: configService.get<number>('DB_PORT'),
         username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
+        password: String(configService.get<string>('DB_PASSWORD')),
         database: configService.get<string>('DB_NAME'),
+
         autoLoadEntities: true,
-        synchronize: true, // Lưu ý: Tắt khi lên môi trường thực tế (Production)
+        synchronize: true,
+
+        // dropSchema: true,
       }),
     }),
-    TypeOrmModule.forFeature([Vacancy, Department, Application, Applicant, CV, Interview]),
-
+    TypeOrmModule.forFeature([
+      Vacancy,
+      Department,
+      Application,
+      Applicant,
+      CV,
+      User,
+      Employee,
+      Interview,
+      InterviewerPanel,
+      InterviewerAvailability,
+      InAppNotification,
+      EmailQueue,
+      AuditLog,
+    ]),
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET') || 'secret',
+        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') || '1d' },
+      }),
+    }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST', '127.0.0.1'),
+          port: Number(configService.get<string>('REDIS_PORT', '6379')),
+          username: 'default',
+          password: configService.get<string>('REDIS_PASSWORD') || undefined,
+        },
+      }),
+    }),
+    BullModule.registerQueue(
+      { name: AI_PREVIEW_QUEUE },
+      { name: SEND_MAIL_QUEUE },
+    ),
   ],
   controllers: [
     VacancyController,
@@ -108,6 +142,14 @@ import { join } from 'path';
     ApplicationController,
     DevToolsController,
     InterviewController,
+    AuthController,
+    EmployeeController,
+    NotificationsController,
+    AdminUserController,
+    AuditLogController,
+    InterviewerAvailabilityController,
+    DashboardController,
+    ReportController,
   ],
   providers: [
     VacanciesService,
@@ -118,10 +160,31 @@ import { join } from 'path';
     AiService,
     NotificationGateway,
     EmailQueueService,
-    EmailProcessor,
     GoogleMeetService,
     InterviewService,
     InterviewListener,
+    CustomValidator,
+    UserService,
+    AuthService,
+    BootstrapService,
+    JwtStrategy,
+    Seed,
+    MailService,
+    NotificationsService,
+    EmployeeService,
+    AdminUserService,
+    RolesGuard,
+    AuditLogService,
+    EmailCronService,
+    AccountCleanupCronService,
+    InterviewerAvailabilityService,
+    DashboardService,
+    ReportService,
+    AiPreviewProcessor,
+    AiPreviewService,
+    AiPreviewGateway,
+    SendMailProcessor,
+    SendMailService,
   ],
 })
-export class AppModule { }
+export class AppModule {}

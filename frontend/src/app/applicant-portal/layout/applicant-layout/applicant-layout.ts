@@ -1,25 +1,19 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-applicant-layout',
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './applicant-layout.html',
-  styleUrls: ['./applicant-layout.scss']
+  styleUrls: ['./applicant-layout.scss'], // Giữ nguyên file style của ông
 })
 export class ApplicantLayoutComponent {
-  isLogin = true;
-
-  mockUser = {
-    fullName: 'Nguyen Khang'
-  };
-
-  constructor(private router: Router) {}
+  protected auth = inject(AuthService);
 
   logout() {
-    this.isLogin = false;
-    this.router.navigate(['/careers']);
+    this.auth.logout(); // Service lo việc xóa token
   }
 }

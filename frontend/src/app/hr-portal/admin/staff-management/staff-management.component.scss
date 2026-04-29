@@ -231,3 +231,8 @@
   cursor: pointer;
   line-height: 1;
 }
+
+.toast-error {
+  background: #dc2626;
+  box-shadow: 0 12px 24px rgba(220, 38, 38, 0.3);
+}

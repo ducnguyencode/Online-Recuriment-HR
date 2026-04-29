@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
-import { VacancyStatus } from 'src/enum/vacancy-status.enum';
+import { VacancyStatus } from 'src/common/enum';
 
 export class VacancyFindDto {
   @IsOptional()
@@ -17,7 +17,7 @@ export class VacancyFindDto {
 
   @IsString()
   @IsOptional()
-  title?: string;
+  search?: string;
 
   @IsOptional()
   @IsEnum(VacancyStatus)

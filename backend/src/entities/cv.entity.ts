@@ -14,7 +14,10 @@ export class CV {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true, nullable: true })
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `'C' || LPAD(id::text, 4,'0')`,
+  })
   code!: string;
 
   @Exclude()

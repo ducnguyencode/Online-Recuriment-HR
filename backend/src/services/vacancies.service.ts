@@ -1,7 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { VacancyStatus } from 'src/common/enum';
+import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { VacancyCreateDto } from 'src/dto/vacancy/vacancy.create.dto';
 import { VacancyFindDto } from 'src/dto/vacancy/vacancy.find.dto';
+import { VacancyUpdateDto } from 'src/dto/vacancy/vacancy.update.dto';
 import { Vacancy } from 'src/entities/vacancy.entity';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { Repository } from 'typeorm';
@@ -14,22 +21,23 @@ export class VacanciesService {
 
   //Find All
   async findAll(request: VacancyFindDto): Promise<FindResponseDto<Vacancy>> {
-    const { page, limit, status, title, departmentId } = request;
+    const { page, limit, status, search, departmentId } = request;
 
-    const qb = this.vacanciesTable.createQueryBuilder('vacancy');
-
-    qb.leftJoinAndSelect('vacancy.department', 'department');
+    const qb = this.vacanciesTable
+      .createQueryBuilder('vacancy')
+      .leftJoinAndSelect('vacancy.department', 'department')
+      .leftJoinAndSelect('vacancy.createdBy', 'createdBy');
 
     //Filter
-    if (title) {
+    if (search) {
       qb.andWhere('vacancy.title ILIKE :title', {
-        title: `%${title}%`,
+        title: `%${search}%`,
       });
     }
 
     if (departmentId) {
-      qb.andWhere('vacancy.departmentId = :deparmentId', {
-        deparmentId: departmentId,
+      qb.andWhere('vacancy.departmentId = :departmentId', {
+        departmentId: departmentId,
       });
     }
 
@@ -54,16 +62,66 @@ export class VacanciesService {
     };
   }
 
-  create(data: VacancyCreateDto) {
-    return this.vacanciesTable.manager.transaction(async (manager) => {
+  async create(data: VacancyCreateDto, user: SafeUserDto) {
+    return await this.vacanciesTable.manager.transaction(async (manager) => {
       const vacancy = manager.create(Vacancy, {
         ...data,
         department: data.departmentId ? { id: data.departmentId } : null,
+        createdById: user.id,
       });
       const newVacancy = await manager.save(vacancy);
 
-      newVacancy.code = `V${newVacancy.id.toString().padStart(4, '0')}`;
       return manager.save(newVacancy);
     });
+  }
+
+  async update(id: number, data: VacancyUpdateDto) {
+    return this.vacanciesTable.manager.transaction(async (manager) => {
+      const vacancy = await this.vacanciesTable.findOneBy({ id });
+      if (!vacancy) {
+        throw new NotFoundException('Vacancy not found');
+      }
+      Object.assign(vacancy, data);
+      return await manager.save(vacancy);
+    });
+  }
+
+  async changeStatus(id: number, status: VacancyStatus) {
+    const vacancy = await this.vacanciesTable.findOneBy({ id });
+
+    if (!vacancy) {
+      throw new NotFoundException('Department not found');
+    }
+
+    if (
+      vacancy.status !== VacancyStatus.OPENED &&
+      status === VacancyStatus.OPENED
+    ) {
+      const now = new Date();
+
+      const closing = new Date(vacancy.closingDate);
+      closing.setHours(23, 59, 59, 999);
+
+      if (closing < now) {
+        throw new ForbiddenException(`Closing date was pass! Cannot re-opened`);
+      }
+      if (vacancy.filledCount === vacancy.numberOfOpenings) {
+        throw new ForbiddenException(
+          `Please increase number of openings before proceed`,
+        );
+      }
+      if (
+        await this.vacanciesTable.exists({
+          where: { title: vacancy.title, status: VacancyStatus.OPENED },
+        })
+      ) {
+        throw new ForbiddenException(
+          `Duplicate vacancy detected, cannot re-opened!`,
+        );
+      }
+    }
+    vacancy.status = status;
+
+    return this.vacanciesTable.save(vacancy);
   }
 }

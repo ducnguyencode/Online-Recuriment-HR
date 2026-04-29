@@ -1,16 +1,26 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Applicant } from 'src/entities/applicant.entity';
-import { ApplicantCreateDto } from 'src/dto/applicant/applicant.create.dto';
 import { Brackets, Repository } from 'typeorm';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
-import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
+import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
+import { ApplicantStatus, UserRole } from 'src/common/enum';
+import { SafeUserDto } from 'src/dto/user/safe.user.dto';
+import { User } from 'src/entities/user.entity';
+import { signToken } from 'src/helper/function.helper';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class ApplicantService {
   constructor(
     @InjectRepository(Applicant) private applicantsTable: Repository<Applicant>,
+    private jwtService: JwtService,
   ) {}
 
   async findAll(
@@ -18,47 +28,76 @@ export class ApplicantService {
   ): Promise<FindResponseDto<Applicant>> {
     const { page, limit, search, status } = request;
 
-    const qb = this.applicantsTable.createQueryBuilder('applicant');
+    // 🔹 Base filter (no heavy joins)
+    const baseQb = this.applicantsTable
+      .createQueryBuilder('applicant')
+      .leftJoin('applicant.user', 'user')
+      .where('user.role = :role', { role: UserRole.APPLICANT });
 
-    //Filter
     if (search) {
-      qb.andWhere(
+      baseQb.andWhere(
         new Brackets((qb) => {
-          qb.where('applicant.fullName ILIKE :search')
-            .orWhere('applicant.email ILIKE :search')
-            .orWhere('applicant.code ILIKE :search');
+          qb.where('user.fullName ILIKE :search').orWhere(
+            'user.email ILIKE :search',
+          );
         }),
         { search: `%${search}%` },
       );
     }
 
     if (status) {
-      qb.andWhere('applicant.status = :status', { status: status });
+      baseQb.andWhere('applicant.status = :status', { status });
     }
 
-    //Pagination
-    qb.skip((page - 1) * limit).take(limit);
+    // 🔹 Subquery for pagination (ONLY ids)
+    const subQuery = baseQb
+      .clone()
+      .select('applicant.id', 'id')
+      .orderBy('applicant.createdAt', 'DESC')
+      .offset((page - 1) * limit)
+      .limit(limit);
 
-    //Order
-    qb.orderBy('applicant.createdAt', 'DESC');
+    // 🔹 Main query (DISTINCT ON + latest application)
+    const qb = this.applicantsTable
+      .createQueryBuilder('applicant')
 
-    const [applicants, totalApplicant] = await qb.getManyAndCount();
+      // keep 1 row per applicant
+      .distinctOn(['applicant.id'])
+
+      .innerJoin(
+        '(' + subQuery.getQuery() + ')',
+        'paged',
+        'paged.id = applicant.id',
+      )
+
+      .leftJoinAndSelect('applicant.user', 'user')
+
+      // latest application per applicant
+      .leftJoinAndSelect(
+        'applicant.applications',
+        'application',
+        `application.id = (
+        SELECT a.id FROM applications a
+        WHERE a."applicantId" = applicant.id
+        ORDER BY a."createdAt" DESC
+        LIMIT 1
+      )`,
+      )
+
+      .leftJoinAndSelect('application.vacancy', 'vacancy')
+
+      .orderBy('applicant.id')
+      .addOrderBy('application.createdAt', 'DESC');
+
+    qb.setParameters(baseQb.getParameters());
+
+    const [items, total] = await Promise.all([qb.getMany(), baseQb.getCount()]);
 
     return {
-      items: applicants,
-      totalItems: totalApplicant,
-      totalPage: Math.ceil(totalApplicant / limit),
+      items,
+      totalItems: total,
+      totalPage: Math.ceil(total / limit),
     };
-  }
-
-  create(data: ApplicantCreateDto) {
-    return this.applicantsTable.manager.transaction(async (manager) => {
-      const applicant = manager.create(Applicant, data);
-      const newApplicant = await manager.save(applicant);
-
-      newApplicant.code = `A${newApplicant.id.toString().padStart(4, '0')}`;
-      return manager.save(newApplicant);
-    });
   }
 
   async changeStatus(id: number, status: ApplicantStatus) {
@@ -71,5 +110,47 @@ export class ApplicantService {
     applicant.status = status;
 
     return this.applicantsTable.save(applicant);
+  }
+
+  async updateAccount(data: ApplicantUpdateDto, safeUser: SafeUserDto) {
+    if (
+      data.email == safeUser.email &&
+      data.fullName == safeUser.fullName &&
+      data.phone == safeUser.phone
+    ) {
+      return null;
+    }
+    const user = await this.applicantsTable.manager.transaction(
+      async (manager) => {
+        const currentUser = await manager
+          .createQueryBuilder(User, 'user')
+          .setLock('pessimistic_write')
+          .where('user.email = :email', { email: safeUser.email })
+          .getOneOrFail();
+
+        const exising = await manager
+          .createQueryBuilder(User, 'user')
+          .setLock('pessimistic_write')
+          .where('user.email = :email', { email: data.email })
+          .getOne();
+
+        if (exising && exising.id != currentUser.id) {
+          throw new ConflictException('Email already exist');
+        }
+
+        currentUser.email = data.email;
+        currentUser.fullName = data.fullName;
+
+        try {
+          return await manager.save(currentUser);
+        } catch (e: any) {
+          if (e.code === '23505') {
+            throw new ConflictException('Email already exist');
+          }
+          throw e;
+        }
+      },
+    );
+    return signToken(user, this.jwtService);
   }
 }

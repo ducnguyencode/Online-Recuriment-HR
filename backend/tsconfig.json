@@ -21,6 +21,10 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["node", "multer"]
+    "types": ["node", "multer"],
+    "paths": {
+      "src/*": ["src/*"]
+    },
+    "strict": false,
   }
 }

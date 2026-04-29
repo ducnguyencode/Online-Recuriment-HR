@@ -1,37 +1,57 @@
 // ==================== ENUMS ====================
 
-export type UserRole = 'HR' | 'Interviewer' | 'Applicant' | 'Superadmin';
+// export type UserRole = 'HR' | 'Interviewer' | 'Applicant' | 'Superadmin';
 
-export type VacancyStatus =
-  | 'Open'
-  | 'Opened'
-  | 'Suspended'
-  | 'Close'
-  | 'Closed';
+export enum UserRole {
+  SUPER_ADMIN = 'Super Admin',
+  INTERVIEWER = 'Interviewer',
+  APPLICANT = 'Applicant',
+  HR = 'HR',
+}
 
-/** Backend currently uses `Not In Process`; keep frontend aligned to avoid status mismatches. */
-export type ApplicantStatus =
-  | 'Not In Process'
-  | 'In Process'
-  | 'Hired'
-  | 'Banned';
+export enum UserRoleLogin {
+  APPLICANT = 'Applicant',
+  HR = 'HR',
+}
+
+export enum VacancyStatus {
+  OPENED = 'Opened',
+  SUSPENDED = 'Suspended',
+  CLOSED = 'Closed',
+}
+
+/** Per spec: Not in Process → In Process (on first attach) → Hired (on Selected) | Banned (manual) */
+export enum ApplicantStatus {
+  NOT_IN_PROCESS = 'Not In Process',
+  IN_PROCESS = 'In Process',
+  HIRED = 'Hired',
+  BANNED = 'Banned',
+}
 
 /** Per spec application statuses */
-export type ApplicationStatus =
-  | 'Pending'
-  | 'Screening'
-  | 'Interview Scheduled'
-  | 'Selected'
-  | 'Rejected'
-  | 'Not Required';
 
-export type InterviewResult = 'Pass' | 'Fail' | 'Pending';
+export enum ApplicationStatus {
+  PENDING = 'Pending',
+  SCREENING = 'Screening',
+  INTERVIEW_SCHEDULED = 'Interview Scheduled',
+  SELECTED = 'Selected',
+  REJECTED = 'Rejected',
+  ACCEPTED = 'Accepted',
+  NOT_REQUIRED = 'Not Required',
+}
 
-export type InterviewStatus =
-  | 'Scheduled'
-  | 'Completed'
-  | 'Cancelled'
-  | 'Postponed';
+export enum InterviewResult {
+  PASS = 'Pass',
+  FAIL = 'Fail',
+  PENDING = 'Pending',
+}
+
+export enum InterviewStatus {
+  SCHEDULED = 'Scheduled',
+  COMPLETED = 'Completed',
+  CANCELLED = 'Cancelled',
+  POSTPONED = 'Postponed',
+}
 
 // ==================== MODELS ====================
 
@@ -45,14 +65,17 @@ export interface Department {
 
 export interface Employee {
   id: string; // UUID
+  code?: string;
   departmentId: string;
   department?: Department;
   fullName: string;
   email: string;
   phone?: string;
+  user?: UserAccount;
   position?: string;
   role?: 'HR' | 'Interviewer';
   isActive?: boolean;
+  createdAt?: Date;
 }
 
 export interface UserAccount {
@@ -64,6 +87,8 @@ export interface UserAccount {
   applicantId?: string;
   avatarUrl?: string;
   isActive: boolean;
+  phone?: string;
+  isVerified?: boolean;
 }
 
 export interface Vacancy {
@@ -75,6 +100,8 @@ export interface Vacancy {
   department?: Department;
   numberOfOpenings: number; // per spec field name
   filledCount: number;
+  createdBy?: UserAccount;
+  createdById?: number;
   ownedByEmployeeId: string; // HR who created — only they can edit/close
   owner?: Employee;
   closingDate: string | null; // per spec: closingDate (not deadline)
@@ -93,6 +120,8 @@ export interface Applicant {
   isActive?: boolean;
   createdAt: string; // auto, immutable
   updatedAt: string;
+  applications?: Application[];
+  user?: UserAccount;
 }
 
 export interface CV {
@@ -161,6 +190,10 @@ export interface Interview {
   application?: Application;
   applicant?: Applicant;
   vacancy?: Vacancy;
+  title: string;
+  description?: string;
+  googleMeetLink?: string;
+  googleCalendarEventId?: string;
   interviewDate: string;
   startTime: string;
   endTime: string;
@@ -211,7 +244,25 @@ export interface LoginResponse {
   statusCode: number;
   message: string;
   data: {
-    token: string;
+    access_token: string;
+    user: UserAccount;
+  };
+}
+
+export interface SetInitialPasswordResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    email?: string;
+    redirectTo?: string;
+  };
+}
+
+export interface UpdateAccountResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    access_token: string;
     user: UserAccount;
   };
 }
@@ -247,12 +298,12 @@ export interface DashboardStats {
 
 /** Per spec: once Closed, cannot change status */
 export function canChangeVacancyStatus(current: VacancyStatus): boolean {
-  return current !== 'Closed' && current !== 'Close';
+  return current !== VacancyStatus.CLOSED;
 }
 
 /** Per spec: cannot attach applicant to Closed or Suspended vacancy */
 export function canAttachToVacancy(vacancyStatus: VacancyStatus): boolean {
-  return vacancyStatus === 'Opened' || vacancyStatus === 'Open';
+  return vacancyStatus === VacancyStatus.OPENED;
 }
 
 /** Per spec: cannot attach more vacancies if applicant is Hired or Banned */
@@ -264,16 +315,17 @@ export function canAttachVacancyToApplicant(
 
 export function displayApplicantStatus(status?: string): string {
   if (!status) return '—';
-  if (status === 'Not In Process') return 'Not in Process';
+  if (status === ApplicantStatus.NOT_IN_PROCESS)
+    return ApplicantStatus.NOT_IN_PROCESS;
   return status;
 }
 
 export function isVacancyOpenStatus(status?: string): boolean {
-  return status === 'Open' || status === 'Opened';
+  return status === VacancyStatus.OPENED;
 }
 
 export function isVacancyClosedStatus(status?: string): boolean {
-  return status === 'Close' || status === 'Closed';
+  return status === VacancyStatus.CLOSED;
 }
 
 /** Per spec: HR can only edit/close vacancies they own */
@@ -281,7 +333,7 @@ export function isVacancyOwner(
   vacancy: Vacancy,
   currentUserId: string,
 ): boolean {
-  return vacancy.ownedByEmployeeId === currentUserId;
+  return vacancy.createdById === Number(currentUserId);
 }
 
 export function formatDisplayId(prefix: string, rawId?: string): string {

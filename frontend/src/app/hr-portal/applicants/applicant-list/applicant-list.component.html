@@ -40,7 +40,7 @@
       (change)="onSearchChange()"
     >
       <option value="">All Statuses</option>
-      @for (status of applicantStatus; track status) {
+      @for (status of applicantStatusList; track status) {
         <option [value]="status">{{ status }}</option>
       }
     </select>
@@ -91,18 +91,20 @@
               <td>
                 <div class="person-cell">
                   <div class="person-avatar">
-                    {{ getInitials(applicant.fullName) }}
+                    {{ getInitials(applicant.user!.fullName) }}
                   </div>
                   <div class="id-stack">
-                    <span class="person-name">{{ applicant.fullName }}</span>
+                    <span class="person-name">{{
+                      applicant.user!.fullName
+                    }}</span>
                     <span class="mono-id">{{ applicant.code }}</span>
                   </div>
                 </div>
               </td>
               <td>
                 <div class="contact-stack">
-                  <span>{{ applicant.email }}</span>
-                  <span class="muted">{{ applicant.phone }}</span>
+                  <span>{{ applicant.user!.email }}</span>
+                  <span class="muted">{{ applicant.user!.phone }}</span>
                 </div>
               </td>
               <td>
@@ -129,7 +131,7 @@
                     changeStatus(applicant, $any($event.target).value, $event)
                   "
                 >
-                  @for (status of applicantStatus; track status) {
+                  @for (status of applicantStatusList; track status) {
                     <option [value]="status">{{ status }}</option>
                   }
                 </select>
@@ -155,13 +157,16 @@
       <div class="modal-header">
         <div class="modal-header-left">
           <div class="detail-avatar">
-            {{ getInitials(selectedApplicant()!.fullName) }}
+            {{ getInitials(selectedApplicant()!.user!.fullName) }}
           </div>
           <div>
-            <h3 class="modal-title">{{ selectedApplicant()!.fullName }}</h3>
+            <h3 class="modal-title">
+              {{ selectedApplicant()!.user!.fullName }}
+            </h3>
             <p class="modal-subtitle">
-              {{ selectedApplicant()!.code }} · {{ selectedApplicant()!.email }} ·
-              {{ selectedApplicant()!.phone }}
+              {{ selectedApplicant()!.code }} ·
+              {{ selectedApplicant()!.user!.email }} ·
+              {{ selectedApplicant()!.user!.phone }}
             </p>
           </div>
         </div>
@@ -198,7 +203,9 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Applications Count</span>
-            <span class="detail-value">{{ selectedHistory().length }}</span>
+            <span class="detail-value">{{
+              selectedApplicant()?.applications?.length || 0
+            }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Last Updated</span>
@@ -208,7 +215,7 @@
           </div>
         </div>
 
-        @if (selectedCv()?.parsedDataAi; as ai) {
+        <!-- @if (selectedCv()?.parsedDataAi; as ai) {
           <div class="cv-section">
             <h4 class="section-title">AI Parsed CV</h4>
             <p class="section-text">
@@ -234,7 +241,7 @@
           <div class="no-cv">
             No AI-parsed CV data available for this applicant.
           </div>
-        }
+        } -->
 
         <div class="history-section">
           <h4 class="section-title">Application History</h4>
@@ -249,19 +256,20 @@
                 </tr>
               </thead>
               <tbody>
-                @for (item of selectedHistory(); track item.id) {
+                @for (
+                  item of selectedApplicant()?.applications;
+                  track item.id
+                ) {
                   <tr>
                     <td class="mono-id">
-                      {{ item.code || applicationDisplayId(item.id) }}
+                      {{ item.code }}
                     </td>
                     <td>
                       <div class="id-stack">
                         <span class="person-name">{{
                           item.vacancy?.title || "—"
                         }}</span>
-                        <span class="muted">{{
-                          item.vacancy?.code || vacancyDisplayId(item.vacancy?.id || item.vacancyId)
-                        }}</span>
+                        <span class="muted">{{ item.vacancy?.code }}</span>
                       </div>
                     </td>
                     <td>
@@ -271,7 +279,12 @@
                         >{{ item.status }}</span
                       >
                     </td>
-                    <td>{{ (item.appliedAt || item.createdAt || item.updatedAt) | date: "MM/dd/yyyy HH:mm" }}</td>
+                    <td>
+                      {{
+                        item.appliedAt || item.createdAt || item.updatedAt
+                          | date: "MM/dd/yyyy HH:mm"
+                      }}
+                    </td>
                   </tr>
                 } @empty {
                   <tr>
@@ -340,7 +353,9 @@
             />
           </div>
           <div class="form-group">
-            <label class="form-label">Phone <span class="required">*</span></label>
+            <label class="form-label"
+              >Phone <span class="required">*</span></label
+            >
             <input
               type="text"
               class="form-input"

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import path from 'path';
@@ -17,14 +15,15 @@ export class CvService {
   }
 
   async create(data: CvCreateDto, file: Express.Multer.File) {
+    if (!file) {
+      return;
+    }
     return this.cvsTable.manager.transaction(async (manager) => {
       let cv = manager.create(CV, {
         ...data,
         applicant: { id: data.applicantId },
       });
       cv = await manager.save(cv);
-
-      cv.code = `CV${cv.id.toString().padStart(4, '0')}`;
 
       if (file) {
         // get file name
