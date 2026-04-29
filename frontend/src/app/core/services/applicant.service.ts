@@ -80,4 +80,12 @@ export class ApplicantService {
       { status },
     );
   }
+
+  changePassword(dto: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) {
+    return this.http.put<ApiResponse<any>>(`${this.base}/change-password`, dto);
+  }
 }

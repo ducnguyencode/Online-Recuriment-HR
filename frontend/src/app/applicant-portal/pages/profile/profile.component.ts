@@ -18,7 +18,18 @@ export class ProfileComponent implements OnInit {
     email: '',
     phone: '',
   };
-  successMessage = signal('');
+
+  changePassForm = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  };
+
+  updateSuccessMessage = signal('');
+  updateErrorMessage = signal('');
+
+  changePasswordSuccessMessage = signal('');
+  changePasswordErrorMessage = signal('');
   constructor(
     protected authService: AuthService,
     private applicantService: ApplicantService,
@@ -33,21 +44,38 @@ export class ProfileComponent implements OnInit {
   }
 
   submitUpdateForm() {
-    this.applicantService
-      .updateAccount({
-        fullName: this.updateForm.fullName,
-        email: this.updateForm.email,
-        phone: this.updateForm.phone,
-      })
-      .subscribe({
-        next: (res) => {
-          this.authService.handleUpdateAccountSuccess(res);
-          this.successMessage.set('Profile details updated successfully.');
-        },
-        error: (err) => {
-          this.successMessage.set(err.error.message);
-        },
-      });
-    setTimeout(() => this.successMessage.set(''), 2500);
+    if (
+      this.updateForm.fullName === this.authService.currentUser()?.fullName &&
+      this.updateForm.phone === this.authService.currentUser()?.phone
+    ) {
+      return;
+    }
+    this.applicantService.updateAccount(this.updateForm).subscribe({
+      next: (res) => {
+        this.authService.handleUpdateAccountSuccess(res);
+        this.updateSuccessMessage.set('Profile details updated successfully.');
+      },
+      error: (err) => {
+        this.updateErrorMessage.set(err.error.message);
+      },
+    });
+    setTimeout(() => this.updateSuccessMessage.set(''), 5000);
+  }
+
+  submitChangePasswordForm() {
+    this.applicantService.changePassword(this.changePassForm).subscribe({
+      next: (res) => {
+        this.changePasswordErrorMessage.set('');
+        this.changePasswordSuccessMessage.set(res.message);
+      },
+      error: (err) => {
+        this.changePasswordErrorMessage.set(err.error.message);
+        this.changePasswordSuccessMessage.set('');
+      },
+    });
+    setTimeout(() => {
+      this.changePasswordErrorMessage.set('');
+      this.changePasswordSuccessMessage.set('');
+    }, 5000);
   }
 }
