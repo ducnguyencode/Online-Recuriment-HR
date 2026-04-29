@@ -134,7 +134,6 @@ export class AdminUserController {
   }
 
   @Post(':id/resend-invite')
-  @Roles(UserRole.SUPER_ADMIN)
   async resendInvite(
     @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,
@@ -142,7 +141,7 @@ export class AdminUserController {
     await this.adminUserService.resendInvite(actor, id);
     return {
       statusCode: HttpStatus.OK,
-      message: 'Invitation re-sent',
+      message: 'Activation email sent',
       data: null,
     };
   }

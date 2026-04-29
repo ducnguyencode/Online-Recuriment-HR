@@ -26,7 +26,7 @@ import { EmailQueue } from '../entities/email-queue.entity';
 // Services & DTOs
 import { GoogleMeetService } from './google-meet.service';
 import { InterviewCreateDto } from '../dto/interview-create.dto';
-import { InterviewStatus } from 'src/common/enum';
+import { ApplicantStatus, ApplicationStatus, InterviewStatus } from 'src/common/enum';
 
 @Injectable()
 export class InterviewService {
@@ -45,66 +45,39 @@ export class InterviewService {
     private eventEmitter: EventEmitter2,
   ) { }
 
-  // HELPER METHOD: Check Availability & Lock Slots
+  // HELPER METHOD: Check Availability & Save Slot
   // We pass 'EntityManager' so this runs inside the transaction
-  private async checkAndLockAvailability(
+  private async checkAndSaveAvailability(
     manager: EntityManager,
-    panelIds: string[],
+    empId: string,
     start: Date,
     end: Date,
-    excludeInterviewId?: string,
   ): Promise<void> {
-    // 1. Extract Date and Time strings to compare with DB format
     const dateStr = start.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     const startTimeStr = start.toTimeString().split(' ')[0]; // Format: HH:mm:ss
     const endTimeStr = end.toTimeString().split(' ')[0]; // Format: HH:mm:ss
 
-    // 2. If rescheduling, release the old slots first
-    if (excludeInterviewId) {
-      const oldPanels = await manager.find(InterviewerPanel, {
-        where: { interviewId: excludeInterviewId },
-      });
-      const oldPanelIds = oldPanels.map((p) => p.employeeId);
+    const existingSlot = await manager.createQueryBuilder(InterviewerAvailability, 'slot')
+      .where('slot.employeeId = :empId', { empId })
+      .andWhere('slot.availableDate = :date', { date: dateStr })
+      .andWhere('slot.startTime < :end', { end: endTimeStr })
+      .andWhere('slot.endTime > :start', { start: startTimeStr })
+      .getOne();
 
-      if (oldPanelIds.length > 0) {
-        // Unlock the slots that were previously booked for this specific interview
-        await manager.update(
-          InterviewerAvailability,
-          {
-            employeeId: In(oldPanelIds),
-            availableDate: dateStr,
-            isBooked: true,
-          },
-          { isBooked: false },
-        );
-      }
-    }
-
-    // 3. Check and lock new slots for each panel member
-    for (const empId of panelIds) {
-      const availableSlot = await manager.findOne(InterviewerAvailability, {
-        where: {
-          employeeId: empId,
-          availableDate: dateStr,
-          isBooked: false, // Must be available
-          startTime: LessThanOrEqual(startTimeStr), // Slot starts before or at interview start
-          endTime: MoreThanOrEqual(endTimeStr), // Slot ends after or at interview end
-        },
-      });
-
-      if (!availableSlot) {
-        throw new ConflictException(
-          `Employee ID [${empId}] is not available or already booked during this time slot.`,
-        );
-      }
-
-      // 4. Lock the slot to prevent double-booking by other concurrent requests
-      await manager.update(
-        InterviewerAvailability,
-        { id: availableSlot.id },
-        { isBooked: true },
+    if (existingSlot) {
+      throw new ConflictException(
+        `This interview is overlapping with another interview from ${startTimeStr} to ${endTimeStr}.`
       );
     }
+
+    const newSlot = manager.create(InterviewerAvailability, {
+      employeeId: empId,
+      availableDate: dateStr,
+      startTime: startTimeStr,
+      endTime: endTimeStr,
+      isBooked: true,
+    });
+    await manager.save(newSlot);
   }
 
   // CREATE INTERVIEW
@@ -141,10 +114,9 @@ export class InterviewService {
       }
 
       // 4. Extract Panel IDs and Lock Availability
-      const panelIds = data.panel.map((p) => p.employeeId);
-      await this.checkAndLockAvailability(
+      await this.checkAndSaveAvailability(
         queryRunner.manager,
-        panelIds,
+        data.interviewerId,
         start,
         end,
       );
@@ -174,14 +146,12 @@ export class InterviewService {
       const savedInterview = await queryRunner.manager.save(newInterview);
 
       // 7. Save Interviewer Panel Records
-      const panelRecords = data.panel.map((member) =>
-        queryRunner.manager.create(InterviewerPanel, {
-          interviewId: savedInterview.id,
-          employeeId: member.employeeId,
-          vote: 'Pending', // Default vote status
-        }),
-      );
-      await queryRunner.manager.save(InterviewerPanel, panelRecords);
+      const panelRecord = queryRunner.manager.create(InterviewerPanel, {
+        interviewId: savedInterview.id,
+        employeeId: data.interviewerId,
+        vote: 'Pending',
+      });
+      await queryRunner.manager.save(InterviewerPanel, panelRecord);
 
       // 8. Queue the Invitation Email
       const emailRecord = queryRunner.manager.create(EmailQueue, {
@@ -203,15 +173,30 @@ export class InterviewService {
 
       // 10. Emit event for real-time notifications (WebSockets)
       // We emit this AFTER the transaction is fully committed to ensure data consistency
-      this.eventEmitter.emit('interview.scheduled', {
-        hrId: userId,
-        interviewId: savedInterview.id,
-        applicationId: application.id,
-        candidateName: application.applicant.fullName,
-        title: savedInterview.title,
+      const completeInterview = await this.interviewRepo.findOne({
+        where: { id: savedInterview.id },
+        relations: [
+          'application',
+          'application.applicant',
+          'application.applicant.user',
+          'panels',
+          'panels.employee',
+          'panels.employee.user'
+        ]
       });
 
-      return savedInterview;
+      if (completeInterview) {
+        this.eventEmitter.emit('interview.scheduled', {
+          hrId: userId,
+          interviewId: completeInterview.id,
+          applicationId: completeInterview.application?.id,
+          candidateName: completeInterview.application?.applicant?.fullName,
+          title: completeInterview.title,
+          userId: completeInterview.panels[0]?.employee?.user?.id,
+        });
+      }
+
+      return completeInterview || savedInterview;
     } catch (err) {
       // ROLLBACK: If anything above fails (DB error, Google API error, Conflict),
       // we revert all database changes made within this transaction.
@@ -262,20 +247,35 @@ export class InterviewService {
       // 1. Fetch existing interview with necessary relations
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id },
-        relations: ['application', 'application.applicant', 'application.applicant.user', 'panels'],
+        relations: [
+          'application',
+          'application.applicant',
+          'application.applicant.user',
+          'panels',
+        ],
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
-
-      // 2. Extract Panel IDs and adjust availability
       const panelIds = interview.panels.map((p) => p.employeeId);
-      await this.checkAndLockAvailability(
-        queryRunner.manager,
-        panelIds,
-        start,
-        end,
-        id,
-      );
+      if (panelIds.length > 0) {
+        const oldDateStr = interview.startTime.toISOString().split('T')[0];
+        const oldStartStr = interview.startTime.toTimeString().split(' ')[0];
+        const oldEndStr = interview.endTime.toTimeString().split(' ')[0];
+
+        await queryRunner.manager.delete(InterviewerAvailability, {
+          employeeId: panelIds[0],
+          availableDate: oldDateStr,
+          startTime: oldStartStr,
+          endTime: oldEndStr
+        });
+
+        await this.checkAndSaveAvailability(
+          queryRunner.manager,
+          panelIds[0],
+          start,
+          end,
+        );
+      }
 
       // 3. Update Google Calendar (External API)
       if (interview.googleCalendarEventId) {
@@ -342,12 +342,22 @@ export class InterviewService {
     try {
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id },
-        relations: ['application', 'application.applicant', 'application.applicant.user', 'panels'],
+        relations: [
+          'application',
+          'application.applicant',
+          'application.applicant.user',
+          'panels',
+        ],
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
 
-      if (status === InterviewStatus.CANCELLED) {
+      interview.status = status;
+      await queryRunner.manager.save(Interview, interview);
+
+      if (status === InterviewStatus.CANCELLED && interview.application) {
+        interview.application.status = ApplicationStatus.PENDING;
+        await queryRunner.manager.save(Application, interview.application);
         // 1. Delete Google Calendar Event (Fail-safe try-catch)
         if (interview.googleCalendarEventId) {
           try {
@@ -366,18 +376,15 @@ export class InterviewService {
         const panelIds = interview.panels.map((p) => p.employeeId);
         if (panelIds.length > 0) {
           const dateStr = interview.startTime.toISOString().split('T')[0];
+          const oldStartStr = interview.startTime.toTimeString().split(' ')[0];
+          const oldEndStr = interview.endTime.toTimeString().split(' ')[0];
 
-          await queryRunner.manager.update(
-            InterviewerAvailability,
-            {
-              employeeId: In(panelIds),
-              availableDate: dateStr,
-              isBooked: true,
-            },
-            {
-              isBooked: false,
-            },
-          );
+          await queryRunner.manager.delete(InterviewerAvailability, {
+            employeeId: In(panelIds),
+            availableDate: dateStr,
+            startTime: oldStartStr,
+            endTime: oldEndStr
+          });
         }
 
         // 3. Queue Cancellation Email
@@ -420,10 +427,17 @@ export class InterviewService {
   }
 
   async findAll(query: any) {
-    const { status, search, page = 1, limit = 10 } = query;
+    const { status, search, page = 1, limit = 10, employeeId } = query;
+
+    const whereCondition: any = {};
+    if (status) whereCondition.status = status;
+
+    if (employeeId) {
+      whereCondition.panels = { employeeId: employeeId };
+    }
 
     const [items, totalItems] = await this.interviewRepo.findAndCount({
-      where: status ? { status } : {},
+      where: whereCondition,
       relations: [
         'application',
         'application.applicant',
@@ -431,6 +445,7 @@ export class InterviewService {
         'application.vacancy',
         'panels',
         'panels.employee',
+        'panels.employee.user',
       ],
       order: { startTime: 'DESC' },
       take: limit,
@@ -451,14 +466,59 @@ export class InterviewService {
       relations: [
         'application',
         'application.applicant',
-        'application.applicant.user', // Lấy email/fullName qua User
+        'application.applicant.user',
         'application.vacancy',
         'panels',
         'panels.employee',
+        'panels.employee.user',
       ],
     });
 
-    if (!interview) throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
+    if (!interview)
+      throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
     return interview;
+  }
+
+  // SUBMIT INTERVIEW RESULT (VOTE & FEEDBACK)
+  async submitResult(interviewId: string, userId: number | string, employeeId: string | undefined, vote: 'Pass' | 'Fail', feedback: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const interview = await queryRunner.manager.findOne(Interview, {
+        where: { id: interviewId },
+        relations: ['panels', 'panels.employee', 'application', 'panels.employee.user', 'application.applicant']
+      });
+
+      if (!interview) throw new NotFoundException('Interview not found.');
+
+      const myPanel = interview.panels[0];
+      myPanel.vote = vote;
+      myPanel.feedback = feedback;
+      await queryRunner.manager.save(InterviewerPanel, myPanel);
+
+      interview.status = InterviewStatus.COMPLETED;
+      await queryRunner.manager.save(Interview, interview);
+
+      if (interview.application) {
+        if (vote === 'Pass') {
+          interview.application.status = ApplicationStatus.SELECTED;
+        } else {
+          interview.application.status = ApplicationStatus.REJECTED;
+          interview.application.applicant.status = ApplicantStatus.NOT_IN_PROCESS;
+          await queryRunner.manager.save(interview.application.applicant);
+        }
+        await queryRunner.manager.save(Application, interview.application);
+      }
+
+      await queryRunner.commitTransaction();
+      return myPanel;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

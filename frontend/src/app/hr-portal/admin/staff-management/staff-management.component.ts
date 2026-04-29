@@ -94,8 +94,11 @@ export class StaffManagementComponent implements OnInit {
 
   loadDepartments() {
     this.departmentService.getAll().subscribe({
-      next: (res) =>
-        this.departments.set(Array.isArray(res.data) ? res.data : []),
+      next: (res) => {
+        this.departments.set(Array.isArray(res.data) ? res.data : []);
+        this.syncDepartmentByRole('create');
+        this.syncDepartmentByRole('edit');
+      },
       error: () => this.departments.set([]),
     });
   }
@@ -169,6 +172,7 @@ export class StaffManagementComponent implements OnInit {
     };
     this.formError.set('');
     this.formSuccess.set('');
+    this.syncDepartmentByRole('create');
     this.showCreateDialog.set(true);
   }
 
@@ -194,7 +198,12 @@ export class StaffManagementComponent implements OnInit {
       this.formError.set('Full name is required.');
       return;
     }
-    if (!this.formData.departmentId || Number(this.formData.departmentId) <= 0) {
+    this.syncDepartmentByRole('create');
+    const requiresDepartment = this.formData.role !== UserRole.HR;
+    if (
+      requiresDepartment &&
+      (!this.formData.departmentId || Number(this.formData.departmentId) <= 0)
+    ) {
       this.formError.set('Department is required.');
       return;
     }
@@ -233,13 +242,19 @@ export class StaffManagementComponent implements OnInit {
 
   resendCredentials(user: UserAccount | undefined) {
     if (!user) return;
-    if (!confirm(`Resend the activation email to ${user.email}?`)) return;
+    if (
+      !confirm(
+        `Send an activation/reset password email to ${user.email}?`,
+      )
+    )
+      return;
     this.errorMsg.set('');
     this.formSuccess.set('');
     this.adminService.resendTemporaryPassword(user.id).subscribe({
       next: () =>
         this.formSuccess.set(
-          `A new activation email has been sent to ${user.email}.`,
+          `Activation email sent to ${user.email}. ` +
+            `The employee can use the email link to set or reset their password.`,
         ),
       error: (err) =>
         this.errorMsg.set(
@@ -267,6 +282,7 @@ export class StaffManagementComponent implements OnInit {
       phone: user.phone ?? '',
     };
     this.formError.set('');
+    this.syncDepartmentByRole('edit');
     this.showEditDialog.set(true);
   }
 
@@ -285,7 +301,12 @@ export class StaffManagementComponent implements OnInit {
       this.formError.set('Full name is required.');
       return;
     }
-    if (!this.editFormData.departmentId || Number(this.editFormData.departmentId) <= 0) {
+    this.syncDepartmentByRole('edit');
+    const requiresDepartment = this.editFormData.role !== UserRole.HR;
+    if (
+      requiresDepartment &&
+      (!this.editFormData.departmentId || Number(this.editFormData.departmentId) <= 0)
+    ) {
       this.formError.set('Department is required.');
       return;
     }
@@ -370,5 +391,32 @@ export class StaffManagementComponent implements OnInit {
       .slice(-2)
       .join('')
       .toUpperCase();
+  }
+
+  onCreateRoleChange(role: StaffRole) {
+    this.formData.role = role;
+    this.syncDepartmentByRole('create');
+  }
+
+  onEditRoleChange(role: StaffRole) {
+    this.editFormData.role = role;
+    this.syncDepartmentByRole('edit');
+  }
+
+  private syncDepartmentByRole(mode: 'create' | 'edit') {
+    const target = mode === 'create' ? this.formData : this.editFormData;
+    if (target.role !== UserRole.HR) {
+      return;
+    }
+    const hrDepartment = this.findHrDepartment();
+    if (hrDepartment) {
+      target.departmentId = Number(hrDepartment.id);
+    }
+  }
+
+  private findHrDepartment(): Department | undefined {
+    return this.departments().find(
+      (dept) => dept.name?.trim().toLowerCase() === 'hr',
+    );
   }
 }

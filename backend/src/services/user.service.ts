@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
@@ -38,7 +36,9 @@ export class UserService {
   }
 
   async findByResetToken(token: string) {
-    return await this.userTable.findOne({ where: { resetPasswordToken: token } });
+    return await this.userTable.findOne({
+      where: { resetPasswordToken: token },
+    });
   }
 
   async findUserVerifiedByEmail(email: string) {
@@ -85,7 +85,9 @@ export class UserService {
           throw new ConflictException('Account already exist');
         }
 
-        const tokenInfo = this.getVerificationTokenInfo(existing.verificationToken);
+        const tokenInfo = this.getVerificationTokenInfo(
+          existing.verificationToken,
+        );
         if (tokenInfo && !tokenInfo.expired) {
           // Pending unverified account with valid token must continue existing flow.
           if (existing.role === UserRole.APPLICANT) {
@@ -244,16 +246,18 @@ export class UserService {
     });
   }
 
-  async sendVerification(user: User, rawPassword?: string) {
+  async sendVerification(user: User) {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
     const verifyUrl = `${frontendUrl}/verify-email?token=${user.verificationToken}`;
+    const requireInitialPasswordSetup =
+      user.role === UserRole.HR || user.role === UserRole.INTERVIEWER;
 
     await this.mailService.sendVerificationEmail(
       user.email,
       user.fullName,
       verifyUrl,
-      rawPassword,
+      { requireInitialPasswordSetup },
     );
   }
 
@@ -320,7 +324,7 @@ export class UserService {
     if (!token) {
       return null;
     }
-    const decoded = this.jwtService.decode(token) as { exp?: number } | null;
+    const decoded = this.jwtService.decode(token);
     const info = this.getTokenInfo(token);
     const expiresAt = decoded?.exp
       ? new Date(decoded.exp * 1000)

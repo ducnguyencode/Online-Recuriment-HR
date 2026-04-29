@@ -14,7 +14,7 @@ export class InterviewListener {
     private applicationService: ApplicationService,
     private eventEmitter: EventEmitter2,
     private notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   @OnEvent('interview.scheduled')
   async handleInterviewScheduledEvent(payload: any) {
@@ -27,7 +27,7 @@ export class InterviewListener {
 
       // 2. Save Notification to Database
       const savedNotif = await this.notificationsService.create({
-        userId: payload.hrId,
+        userId: payload.userId,
         title: 'Interview Scheduled',
         message: `System has scheduled an interview for ${payload.candidateName}`,
         type: 'SUCCESS',

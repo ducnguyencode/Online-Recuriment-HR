@@ -19,10 +19,22 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/auth-user.interface';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
+import { IsString, IsIn, IsNotEmpty } from 'class-validator';
+
+export class SubmitResultDto {
+  @IsString()
+  @IsIn(['Pass', 'Fail'])
+  vote: 'Pass' | 'Fail';
+
+  @IsString()
+  @IsNotEmpty()
+  feedback: string;
+}
+
 @Controller('interviews')
 @UseGuards(JwtAuthGuard) // Protect all interview endpoints
 export class InterviewController {
-  constructor(private readonly interviewService: InterviewService) { }
+  constructor(private readonly interviewService: InterviewService) {}
 
   // POST /interviews
   @Post()
@@ -89,6 +101,26 @@ export class InterviewController {
     return {
       statusCode: HttpStatus.OK,
       data,
+    };
+  }
+
+  @Patch(':id/result')
+  async submitResult(
+    @Param('id') id: string,
+    @Body() data: SubmitResultDto,
+    @CurrentUser() user: any,
+  ) {
+    const result = await this.interviewService.submitResult(
+      id,
+      user.userId,
+      user.employeeId,
+      data.vote,
+      data.feedback,
+    );
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Interview result submitted successfully',
+      data: result,
     };
   }
 }

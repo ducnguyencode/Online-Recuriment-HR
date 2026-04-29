@@ -53,23 +53,23 @@ export class SidebarComponent {
     label: string;
     email: string;
   }[] = [
-    {
-      role: UserRole.SUPER_ADMIN,
-      label: UserRole.SUPER_ADMIN,
-      email: 'admin@abc.com',
-    },
-    { role: UserRole.HR, label: UserRole.HR, email: 'an.nguyen@abc.com' },
-    {
-      role: UserRole.INTERVIEWER,
-      label: UserRole.INTERVIEWER,
-      email: 'cuong.le@abc.com',
-    },
-  ];
+      {
+        role: UserRole.SUPER_ADMIN,
+        label: UserRole.SUPER_ADMIN,
+        email: 'admin@abc.com',
+      },
+      { role: UserRole.HR, label: UserRole.HR, email: 'an.nguyen@abc.com' },
+      {
+        role: UserRole.INTERVIEWER,
+        label: UserRole.INTERVIEWER,
+        email: 'cuong.le@abc.com',
+      },
+    ];
 
   constructor(
     public auth: AuthService,
     private router: Router,
-  ) {}
+  ) { }
 
   get visibleMenuItems(): NavItem[] {
     return this.menuItems.filter(item => this.canSee(item));
