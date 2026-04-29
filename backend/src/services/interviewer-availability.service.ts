@@ -9,26 +9,7 @@ export class InterviewerAvailabilityService {
   constructor(
     @InjectRepository(InterviewerAvailability)
     private availabilityRepo: Repository<InterviewerAvailability>,
-  ) {}
-
-  async create(dto: AvailabilityCreateDto) {
-    // Kiểm tra xem đã tồn tại khung giờ này cho nhân viên này chưa
-    const existing = await this.availabilityRepo.findOne({
-      where: {
-        employeeId: dto.employeeId,
-        availableDate: dto.availableDate,
-        startTime: dto.startTime,
-        endTime: dto.endTime,
-      },
-    });
-
-    if (existing) {
-      throw new ConflictException('This availability slot already exists.');
-    }
-
-    const newSlot = this.availabilityRepo.create(dto);
-    return await this.availabilityRepo.save(newSlot);
-  }
+  ) { }
 
   async findByEmployee(employeeId: string) {
     return await this.availabilityRepo.find({
@@ -37,7 +18,4 @@ export class InterviewerAvailabilityService {
     });
   }
 
-  async delete(id: string) {
-    return await this.availabilityRepo.delete(id);
-  }
 }

@@ -259,18 +259,6 @@
 }
 
 @if (showInterviewDialog()) {
-<div class="form-group">
-  <label class="form-label">Interview Title <span class="required">*</span></label>
-  <input type="text" class="form-input" placeholder="e.g., Technical Interview - Phase 1"
-    [(ngModel)]="interviewData.title" />
-</div>
-
-<div class="form-group">
-  <label class="form-label">Description / Notes</label>
-  <textarea class="form-input" rows="2" placeholder="Optional notes for candidate and interviewers"
-    [(ngModel)]="interviewData.description"></textarea>
-</div>
-
 <div class="modal-backdrop" (click)="closeInterviewDialog()">
   <div class="modal-content modal-md" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -283,91 +271,79 @@
         </svg>
       </button>
     </div>
+
     <div class="modal-body">
       @if (interviewError) {
       <div class="form-error-banner">{{ interviewError }}</div>
       }
 
-      <div class="form-row">
-        <div class="form-group" style="flex: 1">
-          <label class="form-label">Interview Date <span class="required">*</span></label>
-          <input type="date" class="form-input" [(ngModel)]="interviewData.date" (change)="onInterviewDateChange()" />
-        </div>
-        <div class="form-group" style="width: 130px">
-          <label class="form-label">Start Time <span class="required">*</span></label>
-          <input type="time" class="form-input" [(ngModel)]="interviewData.startTime" />
-        </div>
-        <div class="form-group" style="width: 130px">
-          <label class="form-label">End Time <span class="required">*</span></label>
-          <input type="time" class="form-input" [(ngModel)]="interviewData.endTime" />
-        </div>
-      </div>
-
       <div class="form-group">
-        <label class="form-label">Platform</label>
-        <select class="form-select" [(ngModel)]="interviewData.platform">
-          <option value="Google Meet">Google Meet</option>
-          <option value="Zoom">Zoom</option>
-          <option value="On-site">On-site</option>
-        </select>
-      </div>
+        <label class="form-label">Interviewer <span class="required">*</span></label>
 
-      <div class="form-group">
-        <label class="form-label">Interview Panel <span class="required">*</span></label>
         @if (availableInterviewers().length === 0) {
-        <p class="form-hint warning-text">
-          No interviewers available in this department.
-        </p>
+        <p class="form-hint warning-text">No interviewers found for this Vacancy's department.</p>
         } @else {
-        <div class="panel-list">
+        <select class="form-select" [ngModel]="selectedInterviewerId" (ngModelChange)="onInterviewerChange($event)">
+          <option value="">-- Select Interviewer --</option>
           @for (emp of availableInterviewers(); track emp.id) {
-          <label class="panel-item" [class.selected]="isPanelSelected(emp.id)">
-            <input type="checkbox" [checked]="isPanelSelected(emp.id)" (change)="togglePanelMember(emp.id)" />
-            <div class="panel-avatar">
-              {{ emp.user!.fullName | slice: 0 : 2 }}
-            </div>
-            <div class="panel-info">
-              <span class="panel-name">{{ emp.user!.fullName }}</span>
-              <span class="panel-role">{{
-                emp.position ?? "Interviewer"
-                }}</span>
-            </div>
-          </label>
+          <option [value]="emp.id">{{ emp.fullName }} ({{ emp.position ?? 'Interviewer' }})</option>
           }
-        </div>
+        </select>
         }
       </div>
 
-      @if (selectedPanelIds.length > 0) {
+      @if (selectedInterviewerId) {
       <div class="form-group">
-        <label class="form-label">Availability Preview</label>
+        <label class="form-label">Interviewer's Busy Schedule</label>
+        @if (busySlots().length > 0) {
         <div class="availability-list">
-          @for (employeeId of selectedPanelIds; track employeeId) {
-          <div class="availability-card">
-            <div class="availability-name">
-              {{ getEmployeeName(employeeId) }}
-            </div>
-            @for (
-            slot of availabilityPreview()[employeeId] || [];
-            track slot.startTime + slot.endTime
-            ) {
-            <span class="availability-slot">{{ slot.availableDate }} · {{ slot.startTime }} -
-              {{ slot.endTime }}</span>
-            } @empty {
-            <span class="availability-empty">No free slot found for the selected date.</span>
+          <div class="availability-card" style="border-color: #fca5a5; background: #fef2f2;">
+            <div class="availability-name" style="color: #991b1b;">⚠️ Booked Slots:</div>
+            @for (slot of busySlots(); track slot.id) {
+            <span class="availability-slot" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">
+              {{ slot.availableDate | date: 'MM/dd' }} · {{ slot.startTime }} - {{ slot.endTime }}
+            </span>
             }
           </div>
-          }
         </div>
+        } @else {
+        <p class="form-hint" style="color: #16a34a;">✅ No conflicts for this person.</p>
+        }
       </div>
       }
+
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+      <div class="form-group">
+        <label class="form-label">Interview Title <span class="required">*</span></label>
+        <input type="text" class="form-input" [(ngModel)]="interviewData.title" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-input" rows="2" [(ngModel)]="interviewData.description"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="flex: 1">
+          <label class="form-label">Date <span class="required">*</span></label>
+          <input type="date" class="form-input" [(ngModel)]="interviewData.date" [min]="getMinDate()" />
+        </div>
+        <div class="form-group" style="width: 120px">
+          <label class="form-label">Start <span class="required">*</span></label>
+          <input type="time" class="form-input" [(ngModel)]="interviewData.startTime" />
+        </div>
+        <div class="form-group" style="width: 120px">
+          <label class="form-label">End <span class="required">*</span></label>
+          <input type="time" class="form-input" [(ngModel)]="interviewData.endTime" />
+        </div>
+      </div>
     </div>
+
     <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeInterviewDialog()">
-        Cancel
-      </button>
-      <button class="btn-primary" (click)="saveInterview()">
-        Schedule Interview
+      <button class="btn-secondary" (click)="closeInterviewDialog()">Cancel</button>
+      <button class="btn-primary" (click)="saveInterview()" [disabled]="loading()">
+        {{ loading() ? 'Scheduling...' : 'Schedule Interview' }}
       </button>
     </div>
   </div>

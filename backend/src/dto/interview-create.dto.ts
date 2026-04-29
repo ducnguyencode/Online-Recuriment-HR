@@ -1,29 +1,17 @@
 import {
-  IsArray,
   IsDateString,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-
-class PanelMemberDto {
-  @IsString()
-  @IsNotEmpty()
-  employeeId!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  role!: string;
-}
 
 export class InterviewCreateDto {
   @IsNotEmpty()
   @IsString()
   title!: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   description?: string;
 
@@ -39,8 +27,7 @@ export class InterviewCreateDto {
   @IsNumber()
   applicationId!: number;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PanelMemberDto)
-  panel!: PanelMemberDto[];
+  @IsNotEmpty()
+  @IsString()
+  interviewerId!: string;
 }
