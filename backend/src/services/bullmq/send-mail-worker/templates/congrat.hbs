@@ -1,0 +1,103 @@
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <title>Congratulations</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f6f8;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+      .header {
+        background-color: #28a745;
+        color: #ffffff;
+        padding: 20px;
+        text-align: center;
+      }
+      .content {
+        padding: 30px;
+        color: #333;
+        line-height: 1.6;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 12px;
+        color: #888;
+      }
+      .btn {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 12px 20px;
+        background-color: #28a745;
+        color: #fff !important;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class='container'>
+      <div class='header'>
+        <h2>🎉 Congratulations!</h2>
+      </div>
+
+      <div class='content'>
+        <p>Dear <strong>{{name}}</strong>,</p>
+
+        <p>
+          We are excited to inform you that you have been
+          <strong>successfully accepted</strong>
+          for the position of
+          <strong>{{position}}</strong>
+          at
+          <strong>{{company}}</strong>.
+        </p>
+
+        <p>
+          Your skills and experience stood out, and we are confident that you
+          will be a valuable addition to our team.
+        </p>
+
+        <p>
+          <strong>Start Date:</strong>
+          {{startDate}}<br />
+          <strong>Department:</strong>
+          {{department}}
+        </p>
+
+        <p>
+          Please confirm your acceptance by clicking the button below:
+        </p>
+
+        <p style='margin-top: 30px;'>
+          If you have any questions, feel free to reach out to us.
+        </p>
+
+        <p>
+          We look forward to working with you!
+        </p>
+
+        <p>
+          Best regards,<br />
+          <strong>{{company}}</strong>
+        </p>
+      </div>
+
+      <div class='footer'>
+        ©
+        2026
+        {{company}}. All rights reserved.
+      </div>
+    </div>
+  </body>
+</html>

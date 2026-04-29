@@ -24,6 +24,7 @@
     "types": ["node", "multer"],
     "paths": {
       "src/*": ["src/*"]
-    }
+    },
+    "strict": false,
   }
 }

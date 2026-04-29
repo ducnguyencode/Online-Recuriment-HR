@@ -52,7 +52,7 @@ export class Application {
     default: ApplicationStatus.PENDING,
     enum: ApplicationStatus,
   })
-  status!: string;
+  status!: ApplicationStatus;
 
   @Column('jsonb', { nullable: true })
   aiPreview!: AiResponseDto;

@@ -1,9 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Application } from 'src/entities/application.entity';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
 import { Brackets, Repository } from 'typeorm';
-import { AiService } from './ai.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Applicant } from 'src/entities/applicant.entity';
 import { Vacancy } from 'src/entities/vacancy.entity';
@@ -12,17 +18,25 @@ import { ApplicationFindDto } from 'src/dto/application/application.find.dto';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { CustomValidator } from 'src/common/validator/custom.validator';
 import { ApplicantService } from './applicant.service';
-import { ApplicantStatus, ApplicationStatus } from 'src/common/enum';
+import {
+  ApplicantStatus,
+  ApplicationStatus,
+  VacancyStatus,
+} from 'src/common/enum';
+import { AiPreviewService } from './bullmq/ai-worker/ai-preview.service';
+import { SendMailService } from './bullmq/send-mail-worker/send-mail.service';
 
 @Injectable()
 export class ApplicationService {
   constructor(
     @InjectRepository(Application)
     private applicationsTable: Repository<Application>,
-    private aiService: AiService,
+    @InjectRepository(Vacancy) private vacancyTable: Repository<Vacancy>,
     private customValidator: CustomValidator,
     private applicantService: ApplicantService,
     private eventEmitter: EventEmitter2,
+    private aiPreviewService: AiPreviewService,
+    private sendMailService: SendMailService,
   ) {}
 
   async findAll(
@@ -110,6 +124,10 @@ export class ApplicationService {
         'Vacancy',
       );
 
+      if (vacancy.status !== VacancyStatus.OPENED) {
+        throw new ForbiddenException(`Vacancy already ${vacancy.status}`);
+      }
+
       let cv: CV | null = null;
       if (data.cvId) {
         cv = await manager.findOne(CV, { where: { id: data.cvId } });
@@ -139,17 +157,21 @@ export class ApplicationService {
 
       application = await manager.save(application);
       // AI preview
+      // if (application.cv) {
+      //   this.aiService
+      //     .reviewCv(application)
+      //     .then(async (res) => {
+      //       if (res) {
+      //         await this.applicationsTable.update(application.id, {
+      //           aiPreview: res,
+      //         });
+      //       }
+      //     })
+      //     .catch(console.log);
+      // }
+
       if (application.cv) {
-        this.aiService
-          .reviewCv(application)
-          .then(async (res) => {
-            if (res) {
-              await this.applicationsTable.update(application.id, {
-                aiPreview: res,
-              });
-            }
-          })
-          .catch(console.log);
+        await this.aiPreviewService.start(application.id);
       }
     });
     try {
@@ -177,8 +199,60 @@ export class ApplicationService {
   }
 
   async changeStatus(id: number, status: ApplicationStatus) {
-    const application = await this.findById(id);
+    let application = await this.applicationsTable.findOne({
+      where: { id },
+      relations: ['applicant', 'vacancy', 'cv'],
+    });
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+    if (status === ApplicationStatus.ACCEPTED) {
+      if (application.vacancy.status == VacancyStatus.SUSPENDED) {
+        throw new ForbiddenException(
+          `Vacancy already ${application.vacancy.status}`,
+        );
+      }
+      const vacancy = await this.vacancyTable.findOne({
+        where: { id: application.vacancyId },
+      });
+      if (!vacancy) {
+        throw new NotFoundException('Vacancy not found');
+      }
+      if (vacancy.filledCount == vacancy.numberOfOpenings) {
+        throw new ForbiddenException(
+          `There is no more slot in this vacancy (${vacancy.title})`,
+        );
+      }
+      vacancy.filledCount++;
+      if (vacancy.filledCount == vacancy.numberOfOpenings) {
+        vacancy.status = VacancyStatus.CLOSED;
+      }
+      await this.vacancyTable.save(vacancy);
+    }
     application.status = status;
-    return this.applicationsTable.save(application);
+    application = await this.applicationsTable.save(application);
+
+    application = await this.applicationsTable.findOne({
+      where: { id: application.id },
+      relations: ['applicant.user', 'vacancy', 'vacancy.department'],
+    });
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+    if (application.status === ApplicationStatus.ACCEPTED) {
+      await this.sendMailService.addToQueue(
+        'oanhvu93@gmail.com',
+        `${application.applicant.user.fullName}`,
+        'Congratulation',
+        {
+          position: application.vacancy.title,
+          company: 'HR RECURIMENT',
+          startDate: new Date().toISOString(),
+          department: application.vacancy.department?.name,
+        },
+      );
+    }
+
+    return application;
   }
 }

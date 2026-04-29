@@ -19,7 +19,6 @@ import { AiService } from './services/ai.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationGateway } from './notification/notification.gateway';
-// import { BullModule } from '@nestjs/bull';
 import { EmailQueueService } from './services/email-queue.service';
 import { DevToolsController } from './controller/dev-tools.controller';
 import { GoogleMeetService } from './services/google-meet.service';
@@ -27,7 +26,6 @@ import { InterviewController } from './controller/interview.controller';
 import { InterviewService } from './services/interview.service';
 import { Interview } from './entities/interview.entity';
 import { InterviewListener } from './listeners/interview.listener';
-// import { MailerModule } from '@nestjs-modules/mailer';
 import { InAppNotification } from './entities/notification.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomValidator } from './common/validator/custom.validator';
@@ -63,13 +61,20 @@ import { DashboardService } from './services/dashboard.service';
 import { DashboardController } from './controller/dashboard.controller';
 import { ReportService } from './services/report.service';
 import { ReportController } from './controller/report.controller';
+import { BullModule } from '@nestjs/bullmq';
+import { AiPreviewProcessor } from './services/bullmq/ai-worker/ai-preview.processor';
+import { AI_PREVIEW_QUEUE } from './services/bullmq/ai-worker/ai-preview.constants';
+import { AiPreviewService } from './services/bullmq/ai-worker/ai-preview.service';
+import { AiPreviewGateway } from './services/bullmq/ai-worker/ai-preview.gateway';
+import { SendMailProcessor } from './services/bullmq/send-mail-worker/send-mail.processor';
+import { SEND_MAIL_QUEUE } from './services/bullmq/send-mail-worker/send-mail.constants';
+import { SendMailService } from './services/bullmq/send-mail-worker/send-mail.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     TypeOrmModule.forRootAsync({
@@ -113,6 +118,21 @@ import { ReportController } from './controller/report.controller';
         signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') || '1d' },
       }),
     }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST', '127.0.0.1'),
+          port: Number(configService.get<string>('REDIS_PORT', '6379')),
+          username: 'default',
+          password: configService.get<string>('REDIS_PASSWORD') || undefined,
+        },
+      }),
+    }),
+    BullModule.registerQueue(
+      { name: AI_PREVIEW_QUEUE },
+      { name: SEND_MAIL_QUEUE },
+    ),
   ],
   controllers: [
     VacancyController,
@@ -160,6 +180,11 @@ import { ReportController } from './controller/report.controller';
     InterviewerAvailabilityService,
     DashboardService,
     ReportService,
+    AiPreviewProcessor,
+    AiPreviewService,
+    AiPreviewGateway,
+    SendMailProcessor,
+    SendMailService,
   ],
 })
 export class AppModule {}

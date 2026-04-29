@@ -5,7 +5,8 @@
 import { ExceptionFilter, Catch, ArgumentsHost } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 const constraintMessages: Record<string, string> = {
-  UQ_vacancy_title_department: 'Vacancy title already exists in deparment',
+  UQ_vacancy_title_department_opened:
+    'Vacancy title already exists in deparment',
   UQ_applicant_vacancy: 'Applicant already applied to this vacancy',
   UQ_user_email: 'Email already exists',
   UQ_department_name: 'Department title already exists',
