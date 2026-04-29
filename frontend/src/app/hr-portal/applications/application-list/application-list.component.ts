@@ -12,12 +12,10 @@ import {
 } from '../../../core/services/interview.service';
 import { VacancyService } from '../../../core/services/vacancy.service';
 import { EmployeeService } from '../../../core/services/employee.service';
-import { DepartmentService } from '../../../core/services/department.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import {
   Applicant,
   Application,
-  Department,
   Employee,
   Vacancy,
   canAttachToVacancy,
@@ -48,7 +46,6 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   vacancies = signal<Vacancy[]>([]);
   applicants = signal<Applicant[]>([]);
   availableInterviewers = signal<Employee[]>([]);
-  interviewDepartments = signal<Department[]>([]);
   loading = signal(false);
   totalItems = signal(0);
   totalPages = signal(1);
@@ -81,7 +78,6 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
 
   showInterviewDialog = signal(false);
   selectedPanelIds: string[] = [];
-  selectedInterviewDepartmentId = '';
   interviewData = {
     applicationId: '',
     title: '',
@@ -109,12 +105,10 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private interviewService: InterviewService,
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
-    private departmentService: DepartmentService,
     private mockData: MockDataService,
-  ) { }
+  ) {}
 
   ngOnInit() {
-    this.loadInterviewDepartments();
     this.loadVacancies();
     this.loadApplications();
 
@@ -452,10 +446,10 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       platform: 'Google Meet',
     };
     this.selectedPanelIds = [];
-    this.selectedInterviewDepartmentId = '';
-    this.availableInterviewers.set([]);
     this.interviewError = '';
     this.availabilityPreview.set({});
+
+    this.loadInterviewersForApplication(app);
 
     this.showInterviewDialog.set(true);
   }
@@ -464,24 +458,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.showInterviewDialog.set(false);
     this.interviewError = '';
     this.availabilityPreview.set({});
-    this.selectedInterviewDepartmentId = '';
-    this.availableInterviewers.set([]);
     this.interviewApplication.set(null);
-  }
-
-  onInterviewDepartmentChange(departmentId: string) {
-    this.selectedInterviewDepartmentId = departmentId;
-    this.selectedPanelIds = [];
-    this.availabilityPreview.set({});
-    if (!departmentId) {
-      this.availableInterviewers.set([]);
-      return;
-    }
-    this.employeeService.getInterviewersByDepartment(departmentId).subscribe({
-      next: (res) =>
-        this.availableInterviewers.set(Array.isArray(res.data) ? res.data : []),
-      error: () => this.availableInterviewers.set(this.getMockInterviewers()),
-    });
   }
 
   togglePanelMember(employeeId: string) {
@@ -591,10 +568,6 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       this.interviewError = 'Select at least one interviewer.';
       return;
     }
-    if (!this.selectedInterviewDepartmentId) {
-      this.interviewError = 'Please select department for this interview.';
-      return;
-    }
     if (!this.hasValidAvailability()) {
       this.interviewError =
         'The selected time is outside the available interview slots.';
@@ -647,7 +620,9 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       description: description || '',
       panel: this.selectedPanelIds.map((id) => ({
         employeeId: String(id), // Ép kiểu chuỗi cho chắc chắn
-        role: this.availableInterviewers().find((e) => e.id === id)?.position ?? 'Interviewer',
+        role:
+          this.availableInterviewers().find((e) => e.id === id)?.position ??
+          'Interviewer',
       })),
       startTime: startISO,
       endTime: endISO,
@@ -680,17 +655,20 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.interviewService.schedule(dto).subscribe({
       next: () => {
         this.loading.set(false);
-        alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
+        alert(
+          'Interview scheduled successfully! Emails and Google Meet links are being sent.',
+        );
         this.closeInterviewDialog();
         this.loadApplications();
       },
       error: (err) => {
         console.error('Error:', err);
         this.loading.set(false);
-        this.interviewError = err.error?.message || 'Conflict detected or HR/Interviewer is not available at this time.';
+        this.interviewError =
+          err.error?.message ||
+          'Conflict detected or HR/Interviewer is not available at this time.';
       },
     });
-
   }
 
   private getApplicantNameByAppId(appId: string): string {
@@ -772,11 +750,48 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     return this.totalItems();
   }
 
-  private loadInterviewDepartments() {
-    this.departmentService.getAll().subscribe({
-      next: (res) =>
-        this.interviewDepartments.set(Array.isArray(res.data) ? res.data : []),
-      error: () => this.interviewDepartments.set([]),
+  private loadInterviewersForApplication(app: Application) {
+    const departmentId = app.vacancy?.departmentId ?? '';
+    if (departmentId) {
+      this.employeeService.getInterviewersByDepartment(departmentId).subscribe({
+        next: (res) => {
+          console.log(res.data.items);
+          this.availableInterviewers.set(
+            Array.isArray(res.data.items) ? res.data.items : [],
+          );
+          console.log(this.availableInterviewers());
+        },
+        error: () => this.availableInterviewers.set(this.getMockInterviewers()),
+      });
+      return;
+    }
+
+    const vacancyId = app.vacancy?.id ?? app.vacancyId;
+    if (!vacancyId) {
+      this.availableInterviewers.set(this.getMockInterviewers());
+      return;
+    }
+
+    this.vacancyService.getById(vacancyId).subscribe({
+      next: (res) => {
+        const resolvedDepartmentId = res.data?.departmentId ?? '';
+        if (!resolvedDepartmentId) {
+          this.availableInterviewers.set(this.getMockInterviewers());
+          return;
+        }
+        this.employeeService
+          .getInterviewersByDepartment(resolvedDepartmentId)
+          .subscribe({
+            next: (employeeRes) => {
+              this.availableInterviewers.set(
+                Array.isArray(employeeRes.data) ? employeeRes.data : [],
+              );
+            },
+            error: () =>
+              this.availableInterviewers.set(this.getMockInterviewers()),
+          });
+      },
+      error: () => this.availableInterviewers.set(this.getMockInterviewers()),
     });
   }
 

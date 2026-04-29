@@ -23,22 +23,28 @@ export class RegisterComponent {
   };
 
   isLoading = false;
+  isRegistered = false;
+  submittedEmail = '';
+  successMessage = '';
   errorMessage = '';
 
   /**
    * Submit registration data to the server via AuthService
    */
   onSubmit() {
+    if (this.isRegistered) return;
+
     this.isLoading = true;
     this.errorMessage = '';
+    this.successMessage = '';
 
     this.auth.register(this.form).subscribe({
       next: () => {
         this.isLoading = false;
-        // Redirect with a query flag so login page can render inline message (no popup).
-        this.router.navigate(['/login'], {
-          queryParams: { registered: '1' },
-        });
+        this.isRegistered = true;
+        this.submittedEmail = this.form.email.trim();
+        this.successMessage =
+          'Registration successful. Please check your email to verify your account.';
       },
       error: (err) => {
         this.isLoading = false;
@@ -46,5 +52,9 @@ export class RegisterComponent {
           err.error?.message || 'Registration failed. Please try again.';
       },
     });
+  }
+
+  returnLogin() {
+    this.router.navigate(['/login'], { queryParams: { registered: '1' } });
   }
 }
