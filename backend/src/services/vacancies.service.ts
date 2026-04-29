@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { VacancyStatus } from 'src/common/enum';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
@@ -89,6 +93,33 @@ export class VacanciesService {
       throw new NotFoundException('Department not found');
     }
 
+    if (
+      vacancy.status !== VacancyStatus.OPENED &&
+      status === VacancyStatus.OPENED
+    ) {
+      const now = new Date();
+
+      const closing = new Date(vacancy.closingDate);
+      closing.setHours(23, 59, 59, 999);
+
+      if (closing < now) {
+        throw new ForbiddenException(`Closing date was pass! Cannot re-opened`);
+      }
+      if (vacancy.filledCount === vacancy.numberOfOpenings) {
+        throw new ForbiddenException(
+          `Please increase number of openings before proceed`,
+        );
+      }
+      if (
+        await this.vacanciesTable.exists({
+          where: { title: vacancy.title, status: VacancyStatus.OPENED },
+        })
+      ) {
+        throw new ForbiddenException(
+          `Duplicate vacancy detected, cannot re-opened!`,
+        );
+      }
+    }
     vacancy.status = status;
 
     return this.vacanciesTable.save(vacancy);

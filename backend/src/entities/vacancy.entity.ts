@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -12,7 +11,6 @@ import {
 import { User } from './user.entity';
 
 @Entity('vacancies')
-@Index('UQ_vacancy_title_department', ['title', 'department'], { unique: true })
 export class Vacancy {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -53,7 +51,7 @@ export class Vacancy {
   filledCount!: number;
 
   @Column({ type: 'enum', enum: VacancyStatus, default: VacancyStatus.OPENED })
-  status!: string;
+  status!: VacancyStatus;
 
   @Column('date', { nullable: true })
   closingDate!: Date;

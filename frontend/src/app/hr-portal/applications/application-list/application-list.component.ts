@@ -16,22 +16,17 @@ import { MockDataService } from '../../../core/services/mock-data.service';
 import {
   Applicant,
   Application,
+  ApplicationStatus,
   Employee,
+  UserRole,
   Vacancy,
   canAttachToVacancy,
   canAttachVacancyToApplicant,
 } from '../../../core/models';
 import { environment } from '../../../../environments/environment';
+import { SocketService } from '../../../core/services/socket.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-
-enum ApplicationStatus {
-  PENDING = 'Pending',
-  SCREENING = 'Screening',
-  INTERVIEW_SCHEDULED = 'Interview Scheduled',
-  SELECTED = 'Selected',
-  REJECTED = 'Rejected',
-  NOT_REQUIRED = 'Not Required',
-}
 
 @Component({
   selector: 'app-LApplication-LList',
@@ -41,7 +36,9 @@ enum ApplicationStatus {
   styleUrl: './application-list.component.scss',
 })
 export class ApplicationListComponent implements OnInit, OnDestroy {
-  applicationStatus = Object.values(ApplicationStatus);
+  ApplicationStatus = ApplicationStatus;
+  UserRole = UserRole;
+  applicationStatusList = Object.values(ApplicationStatus);
   applications = signal<Application[]>([]);
   vacancies = signal<Vacancy[]>([]);
   applicants = signal<Applicant[]>([]);
@@ -102,8 +99,10 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private vacancyService: VacancyService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
+    private socketService: SocketService,
+    protected authService: AuthService,
     private toastService: ToastService,
-  ) { }
+  ) {}
 
   ngOnInit() {
     this.loadVacancies();
@@ -112,6 +111,16 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.attachSearchSubject
       .pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((q) => this.performApplicantSearch(q));
+
+    this.socketService.connect();
+    this.socketService.onDone((res) => {
+      const { applicationId, data } = res;
+      this.applications.update((apps) =>
+        apps.map((a) =>
+          a.id == applicationId ? { ...a, aiPreview: data } : a,
+        ),
+      );
+    });
   }
 
   ngOnDestroy() {
@@ -609,7 +618,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     return app?.applicant?.fullName ?? 'Applicant';
   }
 
-  getStatusClass(status: string): string {
+  getStatusClass(status: ApplicationStatus): string {
     const map: Record<string, string> = {
       [ApplicationStatus.PENDING]: 'badge-neutral',
       [ApplicationStatus.SCREENING]: 'badge-warning',
@@ -757,6 +766,32 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
           .includes(query),
       );
     });
+  }
+
+  acceptedApplication(applicationId: string) {
+    this.applicationService
+      .changeStatus(applicationId, ApplicationStatus.ACCEPTED)
+      .subscribe({
+        next: (res) => {
+          this.loadApplications();
+        },
+        error: (err) => {
+          console.log(err);
+        },
+      });
+  }
+
+  rejetedApplication(applicationId: string) {
+    this.applicationService
+      .changeStatus(applicationId, ApplicationStatus.REJECTED)
+      .subscribe({
+        next: (res) => {
+          this.loadApplications();
+        },
+        error: (err) => {
+          console.log(err);
+        },
+      });
   }
 
   getMinDate(): string {

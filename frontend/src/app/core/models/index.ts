@@ -36,6 +36,7 @@ export enum ApplicationStatus {
   INTERVIEW_SCHEDULED = 'Interview Scheduled',
   SELECTED = 'Selected',
   REJECTED = 'Rejected',
+  ACCEPTED = 'Accepted',
   NOT_REQUIRED = 'Not Required',
 }
 
