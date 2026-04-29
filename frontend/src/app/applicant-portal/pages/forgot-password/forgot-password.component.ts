@@ -1,84 +1,39 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
-  templateUrl: './forgot-password.component.html',
-  styleUrls: ['./forgot-password.component.scss']
+  imports: [CommonModule, FormsModule, RouterModule],
+  templateUrl: './forgot-password.component.html'
 })
 export class ForgotPasswordComponent {
-  private auth = inject(AuthService);
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-
   email = '';
-  token = this.route.snapshot.queryParamMap.get('token') ?? '';
-  newPassword = '';
-  confirmPassword = '';
-  isLoading = false;
-  isSent = false;
-  isResetDone = false;
-  errorMessage = '';
-  successMessage = '';
+  isLoading = signal(false);
 
-  get isResetMode() {
-    return !!this.token;
-  }
+  private authService = inject(AuthService);
+  private toast = inject(ToastService);
 
-  sendResetLink() {
-    if (!this.email.trim()) return;
-
-    this.errorMessage = '';
-    this.successMessage = '';
-    this.isLoading = true;
-    this.auth.forgotPassword(this.email.trim()).subscribe({
-      next: (res) => {
-        this.isLoading = false;
-        this.isSent = true;
-        this.successMessage = res.message;
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.errorMessage =
-          err?.error?.message ?? 'Unable to send reset link. Please try again.';
-      },
-    });
-  }
-
-  submitResetPassword() {
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    if (!this.newPassword || this.newPassword.length < 6) {
-      this.errorMessage = 'Password must have at least 6 characters.';
+  onSubmit() {
+    if (!this.email) {
+      this.toast.error('Please enter your email.');
       return;
     }
-    if (this.newPassword !== this.confirmPassword) {
-      this.errorMessage = 'Confirm password does not match.';
-      return;
-    }
-
-    this.isLoading = true;
-    this.auth.resetPassword(this.token, this.newPassword).subscribe({
-      next: (res) => {
-        this.isLoading = false;
-        this.isResetDone = true;
-        this.successMessage = res.message;
+    this.isLoading.set(true);
+    // Thay đổi method API cho đúng với service team ông nha
+    this.authService.forgotPassword(this.email).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.toast.success('Reset link sent to your email!');
       },
-      error: (err) => {
-        this.isLoading = false;
-        this.errorMessage =
-          err?.error?.message ?? 'Unable to reset password. Please try again.';
-      },
+      error: (err: any) => {
+        this.isLoading.set(false);
+        this.toast.error(err.error?.message || 'Failed to send reset link.');
+      }
     });
-  }
-
-  returnLogin() {
-    this.router.navigate(['/login']);
   }
 }

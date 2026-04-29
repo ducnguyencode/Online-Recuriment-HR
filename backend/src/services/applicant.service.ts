@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -15,6 +17,8 @@ import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { User } from 'src/entities/user.entity';
 import { signToken } from 'src/helper/function.helper';
 import { JwtService } from '@nestjs/jwt';
+import { ApplicantChangePasswordDto } from 'src/dto/applicant/applicant.change-password.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class ApplicantService {
@@ -152,5 +156,30 @@ export class ApplicantService {
       },
     );
     return signToken(user, this.jwtService);
+  }
+
+  async changePassword(
+    data: ApplicantChangePasswordDto,
+    safeUser: SafeUserDto,
+  ) {
+    if (data.newPassword != data.confirmPassword) {
+      throw new BadRequestException('Confirm password miss match!');
+    }
+    const user = await this.applicantsTable.manager.transaction(
+      async (manager) => {
+        const existing = await manager.findOne(User, {
+          where: { email: safeUser.email },
+        });
+        if (!existing) {
+          throw new NotFoundException('Account not found!');
+        }
+        if (!bcrypt.compareSync(data.currentPassword, existing.password)) {
+          throw new ForbiddenException('Incorrect current password!');
+        }
+        existing.password = await bcrypt.hash(data.newPassword, 10);
+        return manager.save(existing);
+      },
+    );
+    return user;
   }
 }

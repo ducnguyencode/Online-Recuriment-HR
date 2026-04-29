@@ -1,11 +1,11 @@
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class EmployeeUpdateDto {
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   fullName!: string;
 
-  @IsEmail()
   @IsNotEmpty()
+  @IsEmail()
   email!: string;
 }

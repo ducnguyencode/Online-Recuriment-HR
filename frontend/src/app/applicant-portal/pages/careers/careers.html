@@ -1,50 +1,39 @@
 <div class="min-h-screen bg-slate-50 py-10 px-4 font-sans">
   <div class="max-w-5xl mx-auto mb-10 text-center">
-    <h1 class="text-3xl font-extrabold text-slate-900 mb-4">
-      Explore <span class="text-blue-600">Career</span> Opportunities
-    </h1>
-    <p class="text-slate-500 font-medium">Join our team and build the future together.</p>
+    <h1 class="text-3xl font-extrabold text-slate-900 mb-4">Explore <span class="text-blue-600">Career</span> Opportunities</h1>
+    <div class="max-w-2xl mx-auto mt-8 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex gap-2 relative">
+      <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+        <div class="w-8 h-8 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+      </div>
+      <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchJobs()" placeholder="Search jobs by title..." class="flex-1 pl-14 pr-4 outline-none text-sm font-medium">
+      <button (click)="fetchJobs()" class="bg-slate-900 hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md">Search</button>
+    </div>
   </div>
 
-  @if (errorMsg()) {
-    <div class="max-w-4xl mx-auto mb-6 p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold animate-in fade-in">
-      {{ errorMsg() }}
-    </div>
-  }
-
-  <div class="max-w-4xl mx-auto space-y-5">
-    @if (loading()) {
-      <div class="text-center py-10 text-slate-500 font-bold animate-pulse">Loading jobs...</div>
-    }
-
+  <div class="max-w-4xl mx-auto space-y-4">
     @for (job of vacancies(); track job.id) {
-      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex justify-between items-start">
+      <div class="bg-white rounded-[16px] p-5 border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors duration-200">
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
-            <span class="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider rounded-md mb-2">
-              {{ job.department?.name || 'General' }}
+            <span class="inline-flex items-center h-6 px-3 rounded-full bg-blue-50 text-blue-600 text-[11px] font-semibold mb-3 border border-blue-100/50">
+              {{ job.department?.name || 'Open Position' }}
             </span>
-            <h2 class="text-xl font-bold text-slate-900 mb-2">{{ job.title }}</h2>
+            <h2 class="text-lg font-bold text-slate-900 mb-2">{{ job.title }}</h2>
             <p class="text-sm text-slate-500 mb-4 line-clamp-2">{{ job.description }}</p>
-            <div class="flex items-center gap-4 text-xs font-bold text-slate-500">
-              <span class="bg-slate-100 px-2 py-1 rounded">Code: {{ job.code }}</span>
-              <span class="text-red-500">Closing: {{ job.closingDate }}</span>
-              <span>Openings: {{ job.numberOfOpenings }}</span>
+            <div class="flex items-center gap-4">
+              <div class="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                <div class="w-6 h-6 rounded-[8px] border border-slate-200 bg-white flex items-center justify-center"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg></div>
+                {{ job.code }}
+              </div>
+              <div class="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                <div class="w-6 h-6 rounded-[8px] border border-slate-200 bg-white flex items-center justify-center"><svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                Closing: {{ job.closingDate }}
+              </div>
             </div>
           </div>
-
-          <div class="flex flex-col items-end gap-3 shrink-0">
-            <button (click)="applyJob(job)" class="px-6 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-colors shadow-lg">
-              Apply Now
-            </button>
-            <button (click)="toggleFavorite(job)" class="text-sm font-bold flex items-center gap-1 transition-colors"
-              [ngClass]="$any(job).isFavorite ? 'text-red-500' : 'text-slate-400 hover:text-red-500'">
-              <svg class="w-5 h-5" [attr.fill]="$any(job).isFavorite ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-              </svg>
-              {{ $any(job).isFavorite ? 'Saved' : 'Save Job' }}
-            </button>
-          </div>
+          <button (click)="applyJob(job)" class="px-6 py-2.5 w-full sm:w-auto bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shrink-0">Apply Now</button>
         </div>
       </div>
     }
@@ -53,61 +42,38 @@
 
 @if (isApplyModalOpen) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-    <div class="relative w-full max-w-2xl bg-white rounded-[24px] shadow-2xl m-4 animate-in zoom-in-95 duration-300">
-      <div class="flex items-center justify-between p-6 border-b border-slate-100">
-        <h3 class="text-xl font-extrabold text-slate-900">Apply for <span class="text-blue-600">{{ selectedJobTitle }}</span></h3>
-        <button (click)="closeApplyModal()" class="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full p-2 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
+    <div class="bg-white w-full max-w-2xl rounded-[24px] shadow-2xl m-4 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl border border-blue-100 bg-blue-50 flex items-center justify-center text-blue-600"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></div>
+          Apply for <span class="text-blue-600 ml-1">{{ selectedJobTitle }}</span>
+        </h3>
+        <button (click)="closeApplyModal()" class="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
       </div>
 
-      <div class="p-6 max-h-[70vh] overflow-y-auto">
-        <div class="space-y-6">
-          @if (applyError()) {
-            <div class="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-bold animate-in zoom-in">
-              {{ applyError() }}
-            </div>
-          }
-
-          <div class="p-6 border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-2xl text-center hover:bg-blue-50 transition-colors cursor-pointer group relative">
-            @if (selectedFileName()) {
-              <div class="flex flex-col items-center animate-in zoom-in">
-                <div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+      <div class="p-6 max-h-[60vh] overflow-y-auto">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-4 ml-1">Select your Resume</label>
+        <div class="grid grid-cols-1 gap-3">
+          @for (cv of myCvs(); track cv.id) {
+            <label class="relative flex items-center p-4 border rounded-[16px] cursor-pointer transition-all hover:bg-slate-50"
+                   [class.border-blue-500]="selectedCvId() === cv.id" [class.bg-blue-50]="selectedCvId() === cv.id" [class.border-slate-200]="selectedCvId() !== cv.id">
+              <input type="radio" name="cv" [value]="cv.id" (change)="selectedCvId.set(cv.id)" class="absolute opacity-0">
+              <div class="flex items-center gap-4 w-full">
+                <div class="w-10 h-10 rounded-xl border flex items-center justify-center transition-colors"
+                     [class.bg-blue-500]="selectedCvId() === cv.id" [class.border-blue-600]="selectedCvId() === cv.id" [class.text-white]="selectedCvId() === cv.id"
+                     [class.bg-white]="selectedCvId() !== cv.id" [class.border-slate-200]="selectedCvId() !== cv.id" [class.text-slate-400]="selectedCvId() !== cv.id">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 </div>
-                <div class="text-blue-600 font-bold">{{ selectedFileName() }}</div>
-                <p class="text-xs text-slate-400 mt-1">Click to change file</p>
+                <span class="font-bold text-sm" [class.text-blue-700]="selectedCvId() === cv.id" [class.text-slate-700]="selectedCvId() !== cv.id">{{ cv.fileName }}</span>
               </div>
-            } @else {
-              <div class="w-12 h-12 bg-white text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:scale-110 transition-transform">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-              </div>
-              <p class="text-sm font-bold text-slate-700">Upload CV from your computer</p>
-            }
-            <input type="file" (change)="selectCvFile($event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf" />
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
-              <input type="text" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-sm" [value]="applyForm.fullName" readonly />
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Email *</label>
-              <input type="email" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-sm" [value]="applyForm.email" readonly />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Introduction</label>
-            <textarea rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Write something about yourself..."></textarea>
-          </div>
+            </label>
+          }
+          <div class="mt-4 text-center"><p class="text-[11px] text-slate-500 font-medium">Want to use another CV? <a routerLink="/applicant/profile" (click)="closeApplyModal()" class="text-blue-600 font-bold hover:underline">Upload in Profile</a></p></div>
         </div>
       </div>
 
-      <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[24px]">
-        <button type="button" (click)="submitApplication()" [disabled]="loading()"
-          class="w-full py-4 px-6 bg-slate-900 hover:bg-blue-600 text-white font-bold text-sm rounded-xl transition-all shadow-lg disabled:opacity-50">
+      <div class="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+        <button (click)="submitApplication()" [disabled]="loading()" class="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg disabled:opacity-50 text-sm">
           {{ loading() ? 'Submitting...' : 'Submit Application' }}
         </button>
       </div>
