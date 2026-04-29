@@ -8,6 +8,7 @@ import {
   Applicant,
   ApplicantStatus,
   UpdateAccountResponse,
+  CV,
 } from '../models';
 
 export interface ApplicantFilters {
@@ -87,5 +88,15 @@ export class ApplicantService {
     confirmPassword: string;
   }) {
     return this.http.put<ApiResponse<any>>(`${this.base}/change-password`, dto);
+  }
+
+  findAllCvByApplicantId(id: string): Observable<ApiResponse<CV[]>> {
+    return this.http.get<ApiResponse<CV[]>>(`${environment.apiUrl}/cv/${id}`);
+  }
+
+  deleteCv(id: string): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(
+      `${environment.apiUrl}/cv/${id}`,
+    );
   }
 }

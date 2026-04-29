@@ -40,12 +40,12 @@ export class Application {
   @Column()
   vacancyId!: number;
 
-  @ManyToOne(() => CV, (c) => c.id)
+  @ManyToOne(() => CV, (c) => c.id, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'cvId' })
   cv!: CV | null;
 
   @Column({ nullable: true })
-  cvId!: number;
+  cvId!: number | null;
 
   @Column({
     type: 'enum',

@@ -21,7 +21,7 @@ export class ApplicantLayoutComponent {
   isDropdownOpen = signal(false);
 
   toggleDropdown() {
-    this.isDropdownOpen.update(v => !v);
+    this.isDropdownOpen.update((v) => !v);
   }
 
   // Auto-close dropdown when clicking outside
