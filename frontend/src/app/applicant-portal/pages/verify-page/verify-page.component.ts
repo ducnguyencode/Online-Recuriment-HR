@@ -10,6 +10,8 @@ import { UserRole } from '../../../core/models';
   styleUrl: './verify-page.component.scss',
 })
 export class VerifyPageComponent {
+  readonly isVerifying = signal(true);
+  readonly isSuccess = signal(false);
   readonly title = signal('Verifying your email...');
   readonly description = signal(
     'Please wait while we validate your verification token.',
@@ -27,6 +29,8 @@ export class VerifyPageComponent {
     this.token = route.snapshot.queryParamMap.get('token');
 
     if (!this.token) {
+      this.isVerifying.set(false);
+      this.isSuccess.set(false);
       this.title.set('Verification token is missing');
       this.description.set('Open the verification link from your email again.');
       return;
@@ -34,6 +38,8 @@ export class VerifyPageComponent {
 
     authService.verifyEmail(this.token).subscribe({
       next: (res) => {
+        this.isVerifying.set(false);
+        this.isSuccess.set(true);
         this.verifiedEmail.set(res.data?.email ?? null);
         if (
           res.data?.role === UserRole.HR ||
@@ -52,6 +58,8 @@ export class VerifyPageComponent {
         this.description.set(res.message);
       },
       error: (err) => {
+        this.isVerifying.set(false);
+        this.isSuccess.set(false);
         this.title.set('Verification failed');
         this.description.set(
           err.error?.message ?? 'The verification link is invalid.',
