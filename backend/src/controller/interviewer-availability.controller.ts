@@ -13,17 +13,7 @@ import { AvailabilityCreateDto } from '../dto/availability-create.dto';
 
 @Controller('interviewer-availability')
 export class InterviewerAvailabilityController {
-  constructor(private availabilityService: InterviewerAvailabilityService) {}
-
-  @Post()
-  async create(@Body() dto: AvailabilityCreateDto) {
-    const data = await this.availabilityService.create(dto);
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Availability slot registered successfully',
-      data,
-    };
-  }
+  constructor(private availabilityService: InterviewerAvailabilityService) { }
 
   @Get()
   async getByEmployee(@Query('employeeId') employeeId: string) {
@@ -34,12 +24,4 @@ export class InterviewerAvailabilityController {
     };
   }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
-    await this.availabilityService.delete(id);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Slot removed',
-    };
-  }
 }
