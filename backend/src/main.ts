@@ -18,6 +18,7 @@ async function bootstrap() {
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
+      stopAtFirstError: true,
       exceptionFactory: (errors) => {
         const getFirstError = (errs: any[]): string => {
           for (const err of errs) {

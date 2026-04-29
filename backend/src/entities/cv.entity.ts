@@ -29,6 +29,9 @@ export class CV {
   applicantId!: number;
 
   @Column('varchar', { nullable: true })
+  fileName!: string;
+
+  @Column('varchar', { nullable: true })
   fileUrl!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })

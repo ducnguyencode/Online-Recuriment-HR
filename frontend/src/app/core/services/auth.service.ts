@@ -140,6 +140,7 @@ export class AuthService {
     const { access_token, user } = response.data;
     localStorage.setItem(this.TOKEN_KEY, access_token);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    this.currentUser.set(user);
   }
 
   logout() {

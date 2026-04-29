@@ -1,66 +1,164 @@
-<div class="max-w-4xl mx-auto p-4 py-8 animate-in fade-in duration-500">
+<div class="max-w-4xl mx-auto p-4 py-8 animate-in fade-in duration-500 font-sans">
   <div class="bg-white border border-slate-200 rounded-[24px] p-8 shadow-sm">
-
     <div class="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
       <div>
         <h2 class="text-2xl font-bold text-slate-900">Edit Profile</h2>
-        <p class="text-sm text-slate-500 mt-1">Update your personal information and resume details.</p>
+        <p class="text-sm text-slate-500 mt-1">Update your account details and manage resumes.</p>
       </div>
-      <div class="h-16 w-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl font-bold uppercase">
-        {{ authService.currentUser()?.fullName?.charAt(0) || 'U' }}
-      </div>
+      <div
+        class="h-12 w-12 bg-blue-50 text-blue-600 border border-blue-100 rounded-[16px] flex items-center justify-center text-xl font-bold uppercase shadow-sm">
+        {{ authService.currentUser()?.fullName?.charAt(0) || 'A' }}</div>
     </div>
-
-    @if (successMessage()) {
-      <div class="mb-6 p-4 bg-green-50 border border-green-100 text-green-700 rounded-xl text-sm font-bold flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-        {{ successMessage() }}
-      </div>
-    }
 
     <div class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Full Name</label>
-          <input type="text" [(ngModel)]="updateForm.fullName" name="fullName"
-            class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+        <div><label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Full
+            Name</label><input type="text" [(ngModel)]="updateForm.fullName" name="fullName"
+            class="w-full px-5 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20 text-sm font-medium">
         </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Email Address</label>
-          <input type="email" [(ngModel)]="updateForm.email" name="email" readonly disabled
-            class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-100 text-slate-400 outline-none">
+        <div><label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Email
+            Address</label><input type="email" [(ngModel)]="updateForm.email" readonly disabled
+            class="w-full px-5 py-3.5 rounded-xl border border-slate-100 bg-slate-100 text-slate-400 outline-none text-sm font-medium">
         </div>
-        <div class="md:col-span-2">
-          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Phone Number</label>
-          <input type="text" [(ngModel)]="updateForm.phone" name="phone"
-            class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
-        </div>
+      </div>
+
+      <div class="flex justify-end pt-6">
+        <button type="submit" (click)="submitUpdateForm()"
+          class="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-blue-500/20">Save
+          Changes</button>
       </div>
 
       <div class="mt-10 pt-8 border-t border-slate-100">
-        <h3 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        <h3 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-3">
+          <div
+            class="w-8 h-8 rounded-xl border border-amber-200 bg-amber-50 flex items-center justify-center text-amber-500">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+              </path>
+            </svg>
+          </div>
           Security Settings
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">New Password</label>
-            <input type="password" class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50/50 outline-none transition-all" placeholder="••••••••">
+          <div class="relative col-span-2">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Current
+              Password</label>
+            <input [(ngModel)]="changePassForm.currentPassword" [type]="showCurrentPassword() ? 'text' : 'password'"
+              class="w-full pl-5 pr-14 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20 text-sm font-medium"
+              placeholder="••••••••">
+            <button type="button" (click)="showCurrentPassword.set(!showCurrentPassword())"
+              class="absolute bottom-2 right-2 w-10 h-10 rounded-xl border border-slate-100 bg-white flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:bg-blue-50 transition-all shadow-sm">
+              @if (showCurrentPassword()) { <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg> }
+              @else { <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg> }
+            </button>
           </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Confirm Password</label>
-            <input type="password" class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50/50 outline-none transition-all" placeholder="••••••••">
+          <div class="relative">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">New
+              Password</label>
+            <input [(ngModel)]="changePassForm.newPassword" [type]="showNewPassword() ? 'text' : 'password'"
+              class="w-full pl-5 pr-14 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20 text-sm font-medium"
+              placeholder="••••••••">
+            <button type="button" (click)="showNewPassword.set(!showNewPassword())"
+              class="absolute bottom-2 right-2 w-10 h-10 rounded-xl border border-slate-100 bg-white flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:bg-blue-50 transition-all shadow-sm">
+              @if (showNewPassword()) { <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg> }
+              @else { <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg> }
+            </button>
+          </div>
+          <div class="relative">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 ml-1">Confirm
+              Password</label>
+            <input [(ngModel)]="changePassForm.confirmPassword" [type]="showConfirmPassword() ? 'text' : 'password'"
+              class="w-full pl-5 pr-14 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20 text-sm font-medium"
+              placeholder="••••••••">
+            <button type="button" (click)="showConfirmPassword.set(!showConfirmPassword())"
+              class="absolute bottom-2 right-2 w-10 h-10 rounded-xl border border-slate-100 bg-white flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:bg-blue-50 transition-all shadow-sm">
+              @if (showConfirmPassword()) { <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg> }
+              @else { <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg> }
+            </button>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end pt-4 border-t border-slate-100">
-        <button type="submit" (click)="submitUpdateForm()"
-          class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-2xl transition-all shadow-lg shadow-blue-500/30">
-          Save Changes
-        </button>
+      <div class="flex justify-end pt-6">
+        <button type="submit" (click)="submitChangePasswordForm()"
+          class="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-blue-500/20">Update
+          password</button>
+      </div>
+
+      <div class="mt-12 pt-10 border-t border-slate-100">
+        <div class="flex items-center justify-between mb-8">
+          <h3 class="text-lg font-bold text-slate-900 flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded-xl border border-blue-200 bg-blue-50 flex items-center justify-center text-blue-500">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>My Resumes
+          </h3><span class="text-[11px] uppercase tracking-widest font-bold" [class.text-blue-600]="cvs().length < 5"
+            [class.text-red-500]="cvs().length >= 5">{{ cvs().length }} / 5 Files</span>
+        </div>
+        <div class="space-y-3">
+          @for (cv of cvs(); track cv.id) {
+          <div
+            class="flex items-center justify-between p-3 rounded-[16px] border border-slate-200 hover:bg-slate-50 transition-colors bg-white shadow-sm">
+            <div class="flex items-center gap-4">
+              <div
+                class="w-10 h-10 bg-white border border-red-100 text-red-500 rounded-xl flex items-center justify-center shadow-sm">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div><span class="text-sm font-bold text-slate-700">{{ cv.fileName }}</span>
+            </div>
+            <button (click)="deleteCv(cv.id)"
+              class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><svg
+                class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg></button>
+          </div>
+          }
+          <div class="relative group mt-4"><input type="file" (change)="uploadCv($event)" [disabled]="isUploadingCv()"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".pdf">
+            <div
+              class="border border-dashed border-slate-300 group-hover:border-blue-400 group-hover:bg-blue-50/50 rounded-[16px] p-6 transition-all text-center bg-slate-50/30">
+              <div
+                class="w-10 h-10 border border-slate-200 bg-white text-slate-400 mx-auto mb-3 rounded-xl flex items-center justify-center group-hover:text-blue-500 group-hover:border-blue-200 shadow-sm transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <p class="text-sm font-bold text-slate-600">Upload New Resume / CV</p>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   </div>

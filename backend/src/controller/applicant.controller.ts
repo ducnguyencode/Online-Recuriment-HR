@@ -20,6 +20,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { CurrentUser } from 'src/auth/current-user.decorator';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
+import { ApplicantChangePasswordDto } from 'src/dto/applicant/applicant.change-password.dto';
 
 @Controller('applicant')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -66,6 +67,23 @@ export class ApplicantController {
     return {
       statusCode: HttpStatus.OK,
       message: 'Success change applicant status',
+      data,
+    };
+  }
+
+  @Put('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @Body() applicantChangePasswordDto: ApplicantChangePasswordDto,
+    @CurrentUser() user: SafeUserDto,
+  ): Promise<ApiResponse<any>> {
+    const data = await this.applicantServie.changePassword(
+      applicantChangePasswordDto,
+      user,
+    );
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Your passsword has been updated',
       data,
     };
   }
