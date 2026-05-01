@@ -252,6 +252,8 @@ export class InterviewService {
           'application.applicant',
           'application.applicant.user',
           'panels',
+          'panels.employee',
+          'panels.employee.user',
         ],
       });
 
@@ -318,7 +320,7 @@ export class InterviewService {
 
       // 7. Emit WebSocket event
       this.eventEmitter.emit('interview.rescheduled', {
-        hrId: 'current-user-id', // Replace with dynamic user ID from controller
+        userId: interview.panels[0]?.employee?.user?.id,
         candidateName: interview.application.applicant.fullName,
         title: updatedInterview.title,
         newTime: start,
@@ -347,6 +349,8 @@ export class InterviewService {
           'application.applicant',
           'application.applicant.user',
           'panels',
+          'panels.employee',
+          'panels.employee.user',
         ],
       });
 
@@ -411,7 +415,7 @@ export class InterviewService {
       // Emit event for real-time notifications
       if (status === InterviewStatus.CANCELLED) {
         this.eventEmitter.emit('interview.cancelled', {
-          hrId: 'current-user-id',
+          userId: interview.panels[0]?.employee?.user?.id,
           candidateName: interview.application.applicant.fullName,
           title: interview.title,
         });
@@ -488,7 +492,7 @@ export class InterviewService {
     try {
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id: interviewId },
-        relations: ['panels', 'panels.employee', 'application', 'panels.employee.user', 'application.applicant']
+        relations: ['panels', 'panels.employee', 'application', 'panels.employee.user', 'application.applicant', 'application.vacancy',]
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -513,6 +517,14 @@ export class InterviewService {
       }
 
       await queryRunner.commitTransaction();
+
+      this.eventEmitter.emit('interview.result_submitted', {
+        interviewId: interview.id,
+        candidateName: interview.application.applicant.fullName,
+        interviewerName: myPanel.employee.user.fullName || 'An Interviewer',
+        vote: vote,
+        targetHrId: interview.application.vacancy?.createdById,
+      });
       return myPanel;
     } catch (err) {
       await queryRunner.rollbackTransaction();
