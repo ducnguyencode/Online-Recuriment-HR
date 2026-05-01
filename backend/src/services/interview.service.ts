@@ -498,6 +498,13 @@ export class InterviewService {
 
       if (!interview) throw new NotFoundException('Interview not found.');
 
+      const now = new Date();
+      const interviewStartTime = new Date(interview.startTime);
+
+      if (now < interviewStartTime) {
+        throw new BadRequestException('Cannot submit result before the interview has started.');
+      }
+
       const myPanel = interview.panels[0];
       myPanel.vote = vote;
       myPanel.feedback = feedback;

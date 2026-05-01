@@ -569,4 +569,13 @@ export class InterviewListComponent implements OnInit {
     if (status === 'Postponed') return '#F59E0B';
     return '#94A3B8';
   }
+
+  isBeforeStartTime(item: Interview | null): boolean {
+    if (!item || !item.interviewDate || !item.startTime) return false;
+
+    const startDateTimeStr = `${item.interviewDate}T${item.startTime}:00`;
+    const startDateTime = new Date(startDateTimeStr);
+
+    return new Date() < startDateTime;
+  }
 }
