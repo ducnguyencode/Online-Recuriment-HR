@@ -13,6 +13,7 @@ import {
   MoreThanOrEqual,
   Repository,
   EntityManager,
+  Not,
 } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -508,10 +509,22 @@ export class InterviewService {
       if (interview.application) {
         if (vote === 'Pass') {
           interview.application.status = ApplicationStatus.SELECTED;
+          await queryRunner.manager.save(Application, interview.application);
         } else {
           interview.application.status = ApplicationStatus.REJECTED;
-          interview.application.applicant.status = ApplicantStatus.NOT_IN_PROCESS;
-          await queryRunner.manager.save(interview.application.applicant);
+          await queryRunner.manager.save(Application, interview.application);
+          const activeApplicationsCount = await queryRunner.manager.count(Application, {
+            where: {
+              applicant: { id: interview.application.applicant.id },
+              id: Not(interview.application.id),
+              status: Not(In([ApplicationStatus.REJECTED, ApplicationStatus.SELECTED]))
+            }
+          });
+
+          if (activeApplicationsCount === 0) {
+            interview.application.applicant.status = ApplicantStatus.NOT_IN_PROCESS;
+            await queryRunner.manager.save(interview.application.applicant);
+          }
         }
         await queryRunner.manager.save(Application, interview.application);
       }
