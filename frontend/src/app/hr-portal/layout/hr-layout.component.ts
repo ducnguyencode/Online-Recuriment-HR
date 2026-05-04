@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -36,26 +36,63 @@ import { NotificationService } from '../../core/services/notification.service';
             </div>
           </div>
           <div class="header-right">
-            <button
-              class="header-icon-btn notification-btn"
-              title="Notifications"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+            <div class="notification-wrapper">
+              <button
+                class="header-icon-btn notification-btn"
+                title="Notifications"
+                (click)="toggleNotifications()"
               >
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-              </svg>
-              <span class="notification-badge">3</span>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                </svg>
+                <span class="notification-badge" *ngIf="notifService.unreadCount() > 0">
+                  {{ notifService.unreadCount() }}
+                </span>
+              </button>
+
+              <div class="notif-dropdown" *ngIf="showNotifDropdown()">
+                <div class="notif-header">
+                  <h3>Notifications</h3>
+                  <button class="mark-all-btn" *ngIf="notifService.unreadCount() > 0" (click)="markAllAsRead()">
+                    Mark all as read
+                  </button>
+                </div>
+                
+                <div class="notif-body">
+                  <!-- Trạng thái trống -->
+                  <div class="empty-notif" *ngIf="notifService.notifications().length === 0">
+                    You have no notifications.
+                  </div>
+                  
+                  <div 
+                    class="notif-item" 
+                    *ngFor="let notif of notifService.notifications()"
+                    [class.unread]="!notif.isRead"
+                    (click)="onNotificationClick(notif)"
+                  >
+                    <div class="notif-content">
+                      <div class="notif-title">{{ notif.title }}</div>
+                      <div class="notif-message">{{ notif.message }}</div>
+                      <div class="notif-time">{{ notif.createdAt | date:'short' }}</div>
+                    </div>
+
+                    <div class="unread-dot" *ngIf="!notif.isRead"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div class="header-user">
               <div class="header-avatar">
                 {{ authService.currentUser()!.fullName!.charAt(0) || '?' }}
@@ -281,6 +318,124 @@ import { NotificationService } from '../../core/services/notification.service';
         margin: 0 auto;
       }
 
+      .notification-wrapper {
+        position: relative;
+      }
+
+      .notif-dropdown {
+        position: absolute;
+        top: 48px;
+        right: 0;
+        width: 340px;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+        border: 1px solid #e2e8f0;
+        z-index: 100;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .notif-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+      }
+
+      .notif-header h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #0f172a;
+      }
+
+      .mark-all-btn {
+        background: transparent;
+        border: none;
+        color: #3b82f6;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+      }
+
+      .mark-all-btn:hover {
+        background: #eff6ff;
+      }
+
+      .notif-body {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .empty-notif {
+        padding: 32px 20px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 13px;
+      }
+
+      .notif-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      .notif-item:hover {
+        background: #f8fafc;
+      }
+
+      .notif-item.unread {
+        background: #eff6ff;
+      }
+
+      .notif-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .notif-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 4px;
+      }
+
+      .notif-message {
+        font-size: 12px;
+        color: #475569;
+        line-height: 1.5;
+        /* Rút gọn text nếu quá 2 dòng */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .notif-time {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 8px;
+      }
+
+      .unread-dot {
+        width: 8px;
+        height: 8px;
+        background: #3b82f6;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
       @media (max-width: 900px) {
         .top-header {
           padding: 14px 16px;
@@ -306,14 +461,27 @@ export class HrLayoutComponent implements OnInit {
   constructor(
     public authService: AuthService,
     public notifService: NotificationService,
-  ) {}
+    private router: Router
+  ) { }
 
   ngOnInit(): void {
     this.notifService.getAll().subscribe();
+    this.notifService.connectSocket();
   }
 
   toggleNotifications() {
     this.showNotifDropdown.update((v) => !v);
+  }
+
+  onNotificationClick(notif: any) {
+    if (!notif.isRead) {
+      this.notifService.markRead(notif.id).subscribe();
+    }
+
+    if (notif.linkUrl) {
+      this.router.navigateByUrl(notif.linkUrl);
+      this.showNotifDropdown.set(false);
+    }
   }
 
   markAsRead(id: string, linkUrl?: string) {

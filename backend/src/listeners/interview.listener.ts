@@ -6,6 +6,8 @@ import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { ApplicationService } from 'src/services/application.service';
 import { NotificationsService } from 'src/notification/notification.service';
 import { ApplicationStatus } from 'src/common/enum';
+import { UserService } from 'src/services/user.service';
+import { UserRole } from 'src/common/enum';
 
 @Injectable()
 export class InterviewListener {
@@ -14,6 +16,7 @@ export class InterviewListener {
     private applicationService: ApplicationService,
     private eventEmitter: EventEmitter2,
     private notificationsService: NotificationsService,
+    private userService: UserService,
   ) { }
 
   @OnEvent('interview.scheduled')
@@ -31,7 +34,7 @@ export class InterviewListener {
         title: 'Interview Scheduled',
         message: `System has scheduled an interview for ${payload.candidateName}`,
         type: 'SUCCESS',
-        linkUrl: `/hr-portal/interviews/${payload.interviewId}`,
+        linkUrl: `/hr-portal/interviews`,
       });
       // 3. Emit event to Socket Gateway (for real-time frontend update)
       this.eventEmitter.emit('notification.send', savedNotif);
@@ -49,7 +52,7 @@ export class InterviewListener {
   async handleInterviewRescheduled(payload: any) {
     try {
       const savedNotif = await this.notificationsService.create({
-        userId: payload.hrId,
+        userId: payload.userId,
         title: 'Interview Rescheduled',
         message: `Interview with ${payload.candidateName} has been rescheduled to ${new Date(payload.newTime).toLocaleString()}.`,
         type: 'INFO',
@@ -68,7 +71,7 @@ export class InterviewListener {
   async handleInterviewCancelled(payload: any) {
     try {
       const savedNotif = await this.notificationsService.create({
-        userId: payload.hrId,
+        userId: payload.userId,
         title: 'Interview Cancelled',
         message: `Interview with ${payload.candidateName} has been cancelled.`,
         type: 'WARNING', // Warning type to highlight cancellation
@@ -80,6 +83,39 @@ export class InterviewListener {
       this.logger.error(
         `Error processing interview.cancelled event: ${error.message}`,
       );
+    }
+  }
+
+  @OnEvent('interview.result_submitted')
+  async handleInterviewResultSubmitted(payload: any) {
+    console.log('[DEBUG] Event Payload:', payload);
+    try {
+      const targetUserIds = new Set<number | string>();
+
+      if (payload.targetHrId) {
+        targetUserIds.add(payload.targetHrId);
+      }
+
+      const superAdmins = await this.userService.findByRole(UserRole.SUPER_ADMIN);
+      if (superAdmins && superAdmins.length > 0) {
+        superAdmins.forEach(admin => targetUserIds.add(admin.id));
+      }
+
+      for (const userId of Array.from(targetUserIds)) {
+        const savedNotif = await this.notificationsService.create({
+          userId: userId,
+          title: 'Interview Result Submitted',
+          message: `Interviewer ${payload.interviewerName} has submitted the result (${payload.vote}) for candidate ${payload.candidateName}.`,
+          type: payload.vote === 'Pass' ? 'SUCCESS' : 'WARNING',
+          linkUrl: `/hr-portal/interviews`,
+        });
+
+        this.eventEmitter.emit('notification.send', savedNotif);
+      }
+
+      this.logger.log(`Successfully processed result_submitted for Interview ID: ${payload.interviewId}`);
+    } catch (error: any) {
+      this.logger.error(`Error processing interview.result_submitted event: ${error.message}`);
     }
   }
 }

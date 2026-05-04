@@ -187,4 +187,4 @@ import { SendMailService } from './services/bullmq/send-mail-worker/send-mail.se
     SendMailService,
   ],
 })
-export class AppModule {}
+export class AppModule { }

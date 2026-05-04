@@ -20,12 +20,11 @@ import { JwtService } from '@nestjs/jwt';
   namespace: '/notifications',
 })
 export class NotificationGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(private readonly jwtService: JwtService) { }
 
   async handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -36,8 +35,7 @@ export class NotificationGateway
 
       const decoded = this.jwtService.verify(token);
 
-      const userId = decoded.id;
-
+      const userId = String(decoded.sub || decoded.id);
       await client.join(userId);
 
       console.log(
@@ -58,7 +56,7 @@ export class NotificationGateway
   @OnEvent('notification.send')
   handleSendNotification(payload: any) {
     console.log(`[Socket] Sending notification to User: ${payload.userId}`);
-
-    this.server.to(payload.userId).emit('onNewNotification', payload);
+    const targetRoom = String(payload.userId);
+    this.server.to(targetRoom).emit('onNewNotification', payload);
   }
 }

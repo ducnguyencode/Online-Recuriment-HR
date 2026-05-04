@@ -111,7 +111,10 @@
           </button>
           }
           @if (canSubmitResult()) {
-          <button class="btn-primary btn-sm" (click)="openResultDialog(item, $event)">
+          <button class="btn-primary btn-sm" [disabled]="isBeforeStartTime(item)"
+            [class.opacity-50]="isBeforeStartTime(item)" [class.cursor-not-allowed]="isBeforeStartTime(item)"
+            [title]="isBeforeStartTime(item) ? 'Cannot submit before interview starts' : ''"
+            (click)="openResultDialog(item, $event)">
             Submit Result
           </button>
           }
@@ -273,9 +276,11 @@
       </button>
       }
       @if (canSubmitResult()) {
-      <button class="btn-primary" (click)="
-                openResultDialog(selectedInterview()!, $event); closeDetail()
-              ">
+      <button class="btn-primary" [disabled]="isBeforeStartTime(selectedInterview()!)"
+        [class.opacity-50]="isBeforeStartTime(selectedInterview()!)"
+        [class.cursor-not-allowed]="isBeforeStartTime(selectedInterview()!)"
+        [title]="isBeforeStartTime(selectedInterview()!) ? 'Cannot submit before interview starts' : ''"
+        (click)="openResultDialog(selectedInterview()!, $event); closeDetail()">
         Submit Result
       </button>
       }
