@@ -55,6 +55,15 @@ export class ApplicationService {
     return this.http.post<ApiResponse<Application>>(`${this.base}/create`, dto);
   }
 
+  applicantCreate(
+    dto: CreateApplicationDto,
+  ): Observable<ApiResponse<Application>> {
+    return this.http.post<ApiResponse<Application>>(
+      `${this.base}/applicant-create`,
+      dto,
+    );
+  }
+
   /** Change application status from the Applicant-Vacancy workflow. */
   changeStatus(
     id: string,

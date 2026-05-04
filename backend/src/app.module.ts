@@ -69,6 +69,9 @@ import { AiPreviewGateway } from './services/bullmq/ai-worker/ai-preview.gateway
 import { SendMailProcessor } from './services/bullmq/send-mail-worker/send-mail.processor';
 import { SEND_MAIL_QUEUE } from './services/bullmq/send-mail-worker/send-mail.constants';
 import { SendMailService } from './services/bullmq/send-mail-worker/send-mail.service';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { APPLICATION_APPLY_QUEUE } from './services/bullmq/application-apply-worker/application-apply-worker.constants';
+import { ApplicationApplyProcessor } from './services/bullmq/application-apply-worker/application-apply-worker.procssor';
 
 @Module({
   imports: [
@@ -132,7 +135,12 @@ import { SendMailService } from './services/bullmq/send-mail-worker/send-mail.se
     BullModule.registerQueue(
       { name: AI_PREVIEW_QUEUE },
       { name: SEND_MAIL_QUEUE },
+      { name: APPLICATION_APPLY_QUEUE },
     ),
+    RedisModule.forRoot({
+      type: 'single',
+      url: 'redis://localhost:6379',
+    }),
   ],
   controllers: [
     VacancyController,
@@ -185,6 +193,7 @@ import { SendMailService } from './services/bullmq/send-mail-worker/send-mail.se
     AiPreviewGateway,
     SendMailProcessor,
     SendMailService,
+    ApplicationApplyProcessor,
   ],
 })
-export class AppModule { }
+export class AppModule {}
