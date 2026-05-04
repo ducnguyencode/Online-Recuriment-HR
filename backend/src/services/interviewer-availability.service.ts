@@ -1,8 +1,7 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import { InterviewerAvailability } from '../entities/interviewer-availability.entity';
-import { AvailabilityCreateDto } from '../dto/availability-create.dto';
 
 @Injectable()
 export class InterviewerAvailabilityService {
@@ -12,10 +11,13 @@ export class InterviewerAvailabilityService {
   ) { }
 
   async findByEmployee(employeeId: string) {
+    const today = new Date();
+    const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000));
+    const todayString = localDate.toISOString().split('T')[0];
+
     return await this.availabilityRepo.find({
-      where: { employeeId },
+      where: { employeeId, availableDate: MoreThanOrEqual(todayString as any), },
       order: { availableDate: 'ASC', startTime: 'ASC' },
     });
   }
-
 }

@@ -29,7 +29,7 @@ export class UserService {
     private jwtService: JwtService,
     private mailService: MailService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   async findByEmail(email: string) {
     return await this.userTable.findOne({ where: { email } });
@@ -375,5 +375,12 @@ export class UserService {
     });
 
     return this.userTable.save(admin);
+  }
+
+  async findByRole(role: UserRole) {
+    return await this.userTable.find({
+      where: { role: role },
+      select: ['id', 'email', 'fullName', 'role'],
+    });
   }
 }

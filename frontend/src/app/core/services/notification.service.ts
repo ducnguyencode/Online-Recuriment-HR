@@ -1,4 +1,4 @@
-import { computed, effect, Injectable, signal } from '@angular/core';
+import { computed, effect, Injectable, NgZone, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -9,7 +9,7 @@ import { AuthService } from './auth.service';
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private readonly base = `${environment.apiUrl}/notifications`;
-  private socket: Socket;
+  private socket!: Socket;
 
   private _notifications = signal<InAppNotification[]>([]);
 
@@ -22,25 +22,39 @@ export class NotificationService {
   constructor(
     private http: HttpClient,
     private authService: AuthService,
+    private zone: NgZone,
   ) {
-    const token = authService.getToken();
-    this.socket = io(`${environment.apiUrl}/notifications`, {
-      // withCredentials: true,
+    this.connectSocket();
+  }
+
+  public connectSocket() {
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+
+    const token = this.authService.getToken();
+    if (!token) return;
+
+    this.socket = io(`${environment.baseUrl}/notifications`, {
       auth: {
         token: token,
       },
+      transports: ['websocket']
     });
 
-    effect(() => {
-      const currentUser = this.authService.currentUser();
-      if (currentUser?.id) {
-        this.socket.on(
-          `notification_${currentUser.id}`,
-          (notif: InAppNotification) => {
-            this._notifications.update((list) => [notif, ...list]);
-          },
-        );
-      }
+    this.socket.on('connect', () => {
+      console.log('✅ Socket connected! ID:', this.socket.id);
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error.message);
+    });
+
+    this.socket.on('onNewNotification', (notif: InAppNotification) => {
+      console.log('🔔 New Notification Received:', notif);
+      this.zone.run(() => {
+        this._notifications.update((list) => [notif, ...list]);
+      });
     });
   }
 
