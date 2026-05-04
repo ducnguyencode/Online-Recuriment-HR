@@ -98,7 +98,7 @@ export class CareersComponent implements OnInit {
       cvId: this.selectedCvId() as string,
     };
 
-    this.applicationService.create(dto).subscribe({
+    this.applicationService.applicantCreate(dto).subscribe({
       next: () => {
         this.loading.set(false);
         this.closeApplyModal();

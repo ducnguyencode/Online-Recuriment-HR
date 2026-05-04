@@ -241,7 +241,7 @@ export class ApplicationService {
     }
     if (application.status === ApplicationStatus.ACCEPTED) {
       await this.sendMailService.addToQueue(
-        'oanhvu93@gmail.com',
+        application.applicant.user.email,
         `${application.applicant.user.fullName}`,
         'Congratulation',
         {
