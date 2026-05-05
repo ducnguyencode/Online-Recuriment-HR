@@ -102,7 +102,10 @@ export class AuthService {
 
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
-    const resetUrl = `${frontendUrl}/forgot-password?token=${resetToken}`;
+    const scopeQuery = dto.scope?.trim()
+      ? `&scope=${encodeURIComponent(dto.scope.trim())}`
+      : '';
+    const resetUrl = `${frontendUrl}/forgot-password?token=${resetToken}${scopeQuery}`;
     await this.userService.sendPasswordReset(
       user.email,
       user.fullName,

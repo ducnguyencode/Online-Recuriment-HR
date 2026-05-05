@@ -18,6 +18,7 @@ export class ForgotPasswordComponent {
 
   email = '';
   token = this.route.snapshot.queryParamMap.get('token') ?? '';
+  scope = this.route.snapshot.queryParamMap.get('scope') ?? '';
   newPassword = '';
   confirmPassword = '';
   isLoading = false;
@@ -30,13 +31,19 @@ export class ForgotPasswordComponent {
     return !!this.token;
   }
 
+  get isHrScope() {
+    return this.scope === 'hr';
+  }
+
   sendResetLink() {
     if (!this.email.trim()) return;
 
     this.errorMessage = '';
     this.successMessage = '';
     this.isLoading = true;
-    this.auth.forgotPassword(this.email.trim()).subscribe({
+    this.auth
+      .forgotPassword(this.email.trim(), this.isHrScope ? 'hr' : undefined)
+      .subscribe({
       next: (res) => {
         this.isLoading = false;
         this.isSent = true;
@@ -79,6 +86,6 @@ export class ForgotPasswordComponent {
   }
 
   returnLogin() {
-    this.router.navigate(['/login']);
+    this.router.navigate([this.isHrScope ? '/hr/login' : '/login']);
   }
 }
