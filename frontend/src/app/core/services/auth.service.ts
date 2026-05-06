@@ -143,6 +143,21 @@ export class AuthService {
   }
 
   logout(redirectTo: string = '/login') {
+    const hasToken = !!this.getToken();
+    if (hasToken) {
+      this.http.post<ApiResponse<{ message: string }>>(
+        `${environment.apiUrl}/auth/logout`,
+        {},
+      ).subscribe({
+        error: () => this.finalizeLogout(redirectTo),
+        complete: () => this.finalizeLogout(redirectTo),
+      });
+      return;
+    }
+    this.finalizeLogout(redirectTo);
+  }
+
+  private finalizeLogout(redirectTo: string) {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.DEV_ROLE_KEY);

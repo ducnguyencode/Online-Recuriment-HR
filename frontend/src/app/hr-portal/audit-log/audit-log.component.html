@@ -27,7 +27,7 @@
         type="text"
         class="form-input search-input"
         [(ngModel)]="actionFilter"
-        placeholder="Filter by action (e.g. AUTH_LOGIN_SUCCESS)"
+        placeholder="Filter by action (e.g. STAFF_UPDATE)"
         (keyup.enter)="applyFilters()"
       />
     </div>
@@ -41,7 +41,7 @@
         Reset
       </button>
     </div>
-    <span class="result-count">{{ logs().length }} records</span>
+    <span class="result-count">{{ visibleLogsCount() }} records</span>
   </div>
   <div class="filters-meta">
     @if (hasActiveFilters()) {
@@ -52,6 +52,15 @@
       </div>
     } @else {
       <span class="muted">No active filters</span>
+    }
+    @if (isSuperAdmin) {
+      <button
+        type="button"
+        class="btn-ghost btn-sm"
+        (click)="toggleMyActionsVisibility()"
+      >
+        {{ showMyActions() ? 'Hide my actions' : 'Show my actions' }}
+      </button>
     }
   </div>
 
@@ -64,14 +73,15 @@
           <th>Action</th>
           <th>Target</th>
           <th>Details</th>
+          <th>Session</th>
         </tr>
       </thead>
       <tbody>
-        @for (item of logs(); track item.id) {
+        @for (item of pagedLogs(); track item.id) {
           <tr>
             <td class="mono-id">{{ item.createdAt | date:'MM/dd/yyyy HH:mm' }}</td>
             <td><span class="badge" [ngClass]="getActorRoleClass(item.actorRoleSnapshot)">{{ item.actorRoleSnapshot }}</span></td>
-            <td><span class="badge" [ngClass]="getActionClass(item.action)">{{ item.action }}</span></td>
+            <td><span class="badge" [ngClass]="getActionClass(item.action)">{{ formatActionLabel(item.action) }}</span></td>
             <td>
               <div class="entity-stack">
                 <span>{{ item.targetRoleSnapshot || '—' }}</span>
@@ -79,10 +89,20 @@
               </div>
             </td>
             <td>{{ formatDetails(item) }}</td>
+            <td>
+              <button
+                type="button"
+                class="btn-ghost btn-sm"
+                (click)="viewSession(item)"
+                [disabled]="isSessionLoading()"
+              >
+                View
+              </button>
+            </td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="5" class="empty-state">
+            <td colspan="6" class="empty-state">
               <p>{{ isLoading() ? 'Loading audit logs...' : 'No audit logs available for current filters' }}</p>
             </td>
           </tr>
@@ -90,4 +110,92 @@
       </tbody>
     </table>
   </div>
+  <div class="pagination-bar">
+    <span class="pagination-summary">
+      Page {{ currentPage() }} / {{ totalPages() }}
+    </span>
+    <div class="pagination-actions">
+      <button
+        type="button"
+        class="btn-secondary btn-sm"
+        (click)="prevPage()"
+        [disabled]="currentPage() === 1"
+      >
+        Prev
+      </button>
+      @for (page of pageNumbers(); track page) {
+        <button
+          type="button"
+          class="btn-ghost btn-sm"
+          [class.active-page]="page === currentPage()"
+          (click)="goToPage(page)"
+        >
+          {{ page }}
+        </button>
+      }
+      <button
+        type="button"
+        class="btn-secondary btn-sm"
+        (click)="nextPage()"
+        [disabled]="currentPage() === totalPages()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  @if (selectedSession()) {
+    <div class="modal-backdrop" (click)="closeSession()">
+      <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">User Session Details</h3>
+            <p class="page-subtitle">
+              {{ selectedSession()!.email }} · {{ selectedSession()!.role }}
+            </p>
+            <p class="page-subtitle">
+              Login: {{ selectedSession()!.loginAt ? (selectedSession()!.loginAt | date:'MM/dd/yyyy HH:mm:ss') : 'Unknown' }}
+              ·
+              Logout: {{ selectedSession()!.logoutAt ? (selectedSession()!.logoutAt | date:'MM/dd/yyyy HH:mm:ss') : 'Still online / Unknown' }}
+              ·
+              Actions: {{ selectedSession()!.actions.length }}
+            </p>
+          </div>
+          <button type="button" class="btn-ghost btn-sm" (click)="closeSession()">
+            Close
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="card" style="overflow:hidden;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Action</th>
+                  <th>Target</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (action of selectedSession()!.actions; track action.id) {
+                  <tr>
+                    <td class="mono-id">{{ action.createdAt | date:'MM/dd/yyyy HH:mm' }}</td>
+                    <td><span class="badge" [ngClass]="getActionClass(action.action)">{{ formatActionLabel(action.action) }}</span></td>
+                    <td>{{ action.targetRoleSnapshot || '—' }} / {{ action.targetId || '—' }}</td>
+                    <td>{{ formatDetails(action) }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="empty-state">
+                      <p>No work actions found in this login session</p>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 </div>

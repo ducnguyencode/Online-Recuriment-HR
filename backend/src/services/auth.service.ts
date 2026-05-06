@@ -306,6 +306,28 @@ export class AuthService {
     return { message: 'Password changed successfully.' };
   }
 
+  async logout(userId: number, context?: AuthRequestContext) {
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Account not found');
+    }
+
+    try {
+      await this.auditLogService.createLog({
+        actorId: user.id,
+        actorRoleSnapshot: user.role,
+        action: 'AUTH_LOGOUT',
+        targetId: user.id,
+        targetRoleSnapshot: user.role,
+        context,
+      });
+    } catch (logError) {
+      console.error('Failed to write logout audit log', logError);
+    }
+
+    return { message: 'Logout success.' };
+  }
+
   private verifyEmailJwtToken(token: string): any {
     try {
       return this.jwtService.verify(token, {

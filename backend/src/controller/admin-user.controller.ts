@@ -11,6 +11,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { CurrentUser, Roles } from 'src/common/decorator/decorator';
 import { UserRole } from 'src/common/enum';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -49,8 +50,9 @@ export class AdminUserController {
   async createStaff(
     @CurrentUser() actor: SafeUserDto,
     @Body() dto: CreateStaffAccountDto,
+    @Req() req: Request,
   ): Promise<ApiResponse<User>> {
-    const data = await this.adminUserService.createStaff(actor, dto);
+    const data = await this.adminUserService.createStaff(actor, dto, req);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Staff account created',
@@ -63,8 +65,9 @@ export class AdminUserController {
     @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateStaffAccountDto,
+    @Req() req: Request,
   ): Promise<ApiResponse<User>> {
-    const data = await this.adminUserService.updateStaff(actor, id, dto);
+    const data = await this.adminUserService.updateStaff(actor, id, dto, req);
     return {
       statusCode: HttpStatus.OK,
       message: 'Staff account updated',
@@ -110,8 +113,9 @@ export class AdminUserController {
   async deactivate(
     @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
   ): Promise<ApiResponse<User>> {
-    const data = await this.adminUserService.deactivate(actor, id);
+    const data = await this.adminUserService.deactivate(actor, id, req);
     return {
       statusCode: HttpStatus.OK,
       message: 'Staff account disabled',
@@ -124,8 +128,9 @@ export class AdminUserController {
   async activate(
     @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
   ): Promise<ApiResponse<User>> {
-    const data = await this.adminUserService.activate(actor, id);
+    const data = await this.adminUserService.activate(actor, id, req);
     return {
       statusCode: HttpStatus.OK,
       message: 'Staff account enabled',
@@ -137,8 +142,9 @@ export class AdminUserController {
   async resendInvite(
     @CurrentUser() actor: SafeUserDto,
     @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
   ): Promise<ApiResponse<null>> {
-    await this.adminUserService.resendInvite(actor, id);
+    await this.adminUserService.resendInvite(actor, id, req);
     return {
       statusCode: HttpStatus.OK,
       message: 'Activation email sent',

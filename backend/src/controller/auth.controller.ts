@@ -147,4 +147,15 @@ export class AuthController {
       data,
     };
   }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(@CurrentUser() user: SafeUserDto, @Req() req: Request) {
+    const data = await this.authService.logout(user.id, this.extractContext(req));
+    return {
+      statusCode: HttpStatus.OK,
+      message: data.message,
+      data,
+    };
+  }
 }
