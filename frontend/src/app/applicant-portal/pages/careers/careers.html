@@ -16,7 +16,7 @@
     @for (job of vacancies(); track job.id) {
       <div class="bg-white rounded-[16px] p-5 border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors duration-200">
         <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div>
+          <div class="w-full">
             <span class="inline-flex items-center h-6 px-3 rounded-full bg-blue-50 text-blue-600 text-[11px] font-semibold mb-3 border border-blue-100/50">
               {{ job.department?.name || 'Open Position' }}
             </span>
@@ -33,7 +33,26 @@
               </div>
             </div>
           </div>
-          <button (click)="applyJob(job)" class="px-6 py-2.5 w-full sm:w-auto bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shrink-0">Apply Now</button>
+
+          <div class="flex items-center justify-start sm:justify-end gap-2 w-full sm:w-auto mt-4 sm:mt-0 shrink-0">
+            <!-- Heart Button -->
+            <button (click)="toggleSaveJob(job)" class="w-10 h-10 flex items-center justify-center rounded-xl border transition-colors shadow-sm shrink-0"
+                    [ngClass]="isJobSaved(job.id) ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'border-slate-200 bg-white text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50'">
+              <svg class="w-5 h-5" [attr.fill]="isJobSaved(job.id) ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+            </button>
+
+            <!-- View Detail Button (GỌI CHUNG HÀM CŨ CỦA TEAM) -->
+            <button (click)="applyJob(job)" class="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl transition-all shadow-sm whitespace-nowrap">
+              View Detail
+            </button>
+
+            <!-- Apply Now Button (GỌI CHUNG HÀM CŨ CỦA TEAM) -->
+            <button (click)="applyJob(job)" class="px-5 py-2.5 bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shrink-0 whitespace-nowrap">
+              Apply Now
+            </button>
+          </div>
         </div>
       </div>
     }
