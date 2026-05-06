@@ -6,7 +6,7 @@ export class AiPreviewGateway {
   @WebSocketServer()
   server: Server;
 
-  emitCompleted(data: any, applicationId: number) {
+  emitUpdateApplication(data: any, applicationId: number) {
     this.server.emit(`ai-preview`, { data, applicationId });
   }
 }

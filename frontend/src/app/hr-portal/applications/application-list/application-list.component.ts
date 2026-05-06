@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { catchError, forkJoin, of, Subject } from 'rxjs';
+import { catchError, of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { ApplicantService } from '../../../core/services/applicant.service';
 import { ApplicationService } from '../../../core/services/application.service';
@@ -14,6 +14,7 @@ import { VacancyService } from '../../../core/services/vacancy.service';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import {
+  AiPreviewStatus,
   Applicant,
   Application,
   ApplicationStatus,
@@ -36,6 +37,7 @@ import { ToastService } from '../../../core/services/toast.service';
   styleUrl: './application-list.component.scss',
 })
 export class ApplicationListComponent implements OnInit, OnDestroy {
+  AiPreviewStatus = AiPreviewStatus;
   ApplicationStatus = ApplicationStatus;
   UserRole = UserRole;
   applicationStatusList = Object.values(ApplicationStatus);
@@ -115,6 +117,10 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.socketService.connect();
     this.socketService.onDone((res) => {
       const { applicationId, data } = res;
+      if (data === 'new') {
+        this.loadApplications();
+        return;
+      }
       this.applications.update((apps) =>
         apps.map((a) =>
           a.id == applicationId ? { ...a, aiPreview: data } : a,
@@ -465,14 +471,15 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     if (deptId) {
       this.employeeService.getInterviewersByDepartment(deptId).subscribe({
         next: (res: any) => {
-          const rawData = res?.data?.items || res?.data || res?.items || res || [];
+          const rawData =
+            res?.data?.items || res?.data || res?.items || res || [];
           const dataArray = Array.isArray(rawData) ? rawData : [];
 
           const mappedInterviewers = dataArray.map((emp: any) => ({
             ...emp,
             id: String(emp.id || emp.employeeId || Math.random()),
             fullName: emp.user?.fullName || emp.fullName || 'Unknown Name',
-            position: emp.position || emp.role || 'Interviewer'
+            position: emp.position || emp.role || 'Interviewer',
           }));
 
           this.availableInterviewers.set(mappedInterviewers);
@@ -484,7 +491,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       });
     } else {
       this.availableInterviewers.set([]);
-      this.interviewError = 'Note: This vacancy has not been assigned a department, so the list of interviewers cannot be loaded!';
+      this.interviewError =
+        'Note: This vacancy has not been assigned a department, so the list of interviewers cannot be loaded!';
     }
   }
 
@@ -510,13 +518,14 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
 
     this.employeeService.getInterviewersByDepartment(departmentId).subscribe({
       next: (res: any) => {
-        const rawData = res?.data?.items || res?.data || res?.items || res || [];
+        const rawData =
+          res?.data?.items || res?.data || res?.items || res || [];
         const dataArray = Array.isArray(rawData) ? rawData : [];
         const mappedInterviewers = dataArray.map((emp: any) => ({
           ...emp,
           id: String(emp.id || emp.employeeId || Math.random()),
           fullName: emp.user?.fullName || emp.fullName || 'Unknown Name',
-          position: emp.position || emp.role || 'Interviewer'
+          position: emp.position || emp.role || 'Interviewer',
         }));
 
         this.availableInterviewers.set(mappedInterviewers);
@@ -532,17 +541,18 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
 
     if (!employeeId) return;
 
-    this.interviewService.getAvailability({
-      employeeId: employeeId,
-      startDate: '2024-01-01',
-      endDate: '2030-12-31',
-    }).pipe(
-      catchError(() => of({ data: [] }))
-    ).subscribe({
-      next: (res) => {
-        this.busySlots.set(Array.isArray(res.data) ? res.data : []);
-      }
-    });
+    this.interviewService
+      .getAvailability({
+        employeeId: employeeId,
+        startDate: '2024-01-01',
+        endDate: '2030-12-31',
+      })
+      .pipe(catchError(() => of({ data: [] })))
+      .subscribe({
+        next: (res) => {
+          this.busySlots.set(Array.isArray(res.data) ? res.data : []);
+        },
+      });
   }
 
   getEmployeeName(employeeId: string): string {
@@ -553,14 +563,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   }
 
   saveInterview() {
-    const {
-      applicationId,
-      title,
-      description,
-      date,
-      startTime,
-      endTime,
-    } = this.interviewData;
+    const { applicationId, title, description, date, startTime, endTime } =
+      this.interviewData;
     const applicantId =
       this.interviewApplication()?.applicantId ??
       this.interviewApplication()?.applicant?.id;
@@ -599,7 +603,9 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       next: () => {
         this.loading.set(false);
         // alert('Interview scheduled successfully! Emails and Google Meet links are being sent.');
-        this.toastService.success('Interview scheduled successfully! Emails and Google Meet links are being sent.');
+        this.toastService.success(
+          'Interview scheduled successfully! Emails and Google Meet links are being sent.',
+        );
         this.closeInterviewDialog();
         this.loadApplications();
       },

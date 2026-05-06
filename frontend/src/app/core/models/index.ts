@@ -53,6 +53,12 @@ export enum InterviewStatus {
   POSTPONED = 'Postponed',
 }
 
+export enum AiPreviewStatus {
+  IDLE = 'Idle',
+  RUNNING = 'Running',
+  COMPLETE = 'Completed',
+  FAILED = 'Failed',
+}
 // ==================== MODELS ====================
 
 export interface Department {
@@ -154,8 +160,9 @@ export interface AiPreview {
     workHistory?: { company: string; role: string; duration: string }[];
     summary?: string;
   };
-  matchScore: number;
-  sumaryAnalysis: string;
+  matchScore?: number;
+  sumaryAnalysis?: string;
+  status: AiPreviewStatus;
 }
 
 export interface Application {

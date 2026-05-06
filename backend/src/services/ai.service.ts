@@ -7,7 +7,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import pdfParse from 'pdf-parse';
-import { AiResponseDto } from 'src/dto/ai.response.dto';
+import { AiPreviewStatus, AiResponseDto } from 'src/dto/ai.response.dto';
 import axios from 'axios';
 import { Application } from 'src/entities/application.entity';
 @Injectable()
@@ -83,7 +83,10 @@ export class AiService {
 
       // 3. Clean + parse JSON
       const clean = text.replace(/```json|```/g, '').trim();
-      const finalData = JSON.parse(clean);
+      const finalData = {
+        ...JSON.parse(clean),
+        status: AiPreviewStatus.COMPLETE,
+      };
 
       return finalData as AiResponseDto;
     }

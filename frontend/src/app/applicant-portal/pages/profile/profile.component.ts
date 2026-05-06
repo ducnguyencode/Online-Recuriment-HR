@@ -5,6 +5,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ApplicantService } from '../../../core/services/applicant.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { CV } from '../../../core/models';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-profile',
@@ -128,5 +129,9 @@ export class ProfileComponent implements OnInit {
       },
       error: (err) => this.toast.error(err.error.message),
     });
+  }
+
+  openCV(url: string) {
+    window.open(`${environment.baseUrl}/uploads/${url}`);
   }
 }

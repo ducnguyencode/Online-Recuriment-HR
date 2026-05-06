@@ -136,12 +136,24 @@
                 </svg>
               </div><span class="text-sm font-bold text-slate-700">{{ cv.fileName }}</span>
             </div>
-            <button (click)="deleteCv(cv.id)"
-              class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><svg
-                class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg></button>
+            <div class="flex gap-1">
+              <button (click)="openCV(cv.fileUrl||'')"
+                class="w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><svg
+                  xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  class="icon icon-tabler icons-tabler-outline icon-tabler-external-link">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+                  <path d="M11 13l9 -9" />
+                  <path d="M15 4h5v5" />
+                </svg></button>
+              <button (click)="deleteCv(cv.id)"
+                class="w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><svg
+                  class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg></button>
+            </div>
           </div>
           }
           <div class="relative group mt-4"><input type="file" (change)="uploadCv($event)" [disabled]="isUploadingCv()"

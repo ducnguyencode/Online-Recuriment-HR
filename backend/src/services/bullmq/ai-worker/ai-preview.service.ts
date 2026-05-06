@@ -6,7 +6,7 @@ import { AiPreviewJobData } from './ai-preview.type';
 import { Application } from 'src/entities/application.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AiResponseDto } from 'src/dto/ai.response.dto';
+import { AiPreviewStatus, AiResponseDto } from 'src/dto/ai.response.dto';
 import { AiService } from '../../ai.service';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class AiPreviewService {
       {
         applicationId,
       },
-      { removeOnComplete: true, removeOnFail: false },
+      { removeOnComplete: true, removeOnFail: false, attempts: 2 },
     );
   }
 
@@ -41,6 +41,22 @@ export class AiPreviewService {
     return { success: true };
   }
 
+  async updateApplicationOnPreviewError(id: number) {
+    const app = await this.applicationTable.findOne({ where: { id } });
+
+    if (!app) {
+      throw new NotFoundException('Application Not Found');
+    }
+
+    app.aiPreview = {
+      ...app.aiPreview,
+      status: AiPreviewStatus.FAILED,
+    };
+
+    await this.applicationTable.save(app);
+
+    return { success: true };
+  }
   async reviewCvApplication(
     applicationId: number,
   ): Promise<AiResponseDto | null> {
