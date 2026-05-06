@@ -84,7 +84,7 @@
           </svg>
         </div>
       </div>
-      <div class="stat-value">{{ (stats().applicantsHiredThisMonth/stats().applicationsProcessingThisMonth)*100 }}%
+      <div class="stat-value">{{ (stats().applicantsHiredThisMonth/stats().applicationsProcessingThisMonth)*100 || 0 }}%
       </div>
       <div class="stat-trend trend-up">
         Last month: {{ (stats().applicantsHiredLastMonth/stats().applicationsProcessingLastMonth)*100 || 0 }}%
@@ -110,12 +110,12 @@
         <a class="view-all-link" routerLink="/hr-portal/interviews">View All →</a>
       </div>
       <div class="interview-list">
-        @for (item of upcomingInterviews(); track item.applicant) {
+        @for (item of upcomingInterviews(); track item.application) {
         <div class="interview-item">
           <div class="interview-left-bar"></div>
           <div class="interview-info">
-            <p class="interview-applicant">{{ item.applicant }}</p>
-            <p class="interview-vacancy">{{ item.vacancy }}</p>
+            <p class="interview-applicant">{{ item.application!.applicant!.user?.fullName }}</p>
+            <p class="interview-vacancy">{{ item.application?.vacancy?.title }}</p>
             <div class="interview-meta">
               <span class="meta-item">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -125,7 +125,7 @@
                   <path d="M8 2v4" />
                   <path d="M3 10h18" />
                 </svg>
-                {{ item.date }}
+                {{ item.startTime | date: 'MM/dd/yyyy' }}
               </span>
               <span class="meta-item">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -133,12 +133,12 @@
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
-                {{ item.time }}
+                {{ item.startTime | date: 'hh:mm' }} - {{item.endTime | date: 'hh:mm'}}
               </span>
             </div>
           </div>
           <div class="interview-action">
-            <span class="platform-tag">{{ item.platform }}</span>
+            <span class="platform-tag">{{ item.meetPlatform }}</span>
           </div>
         </div>
         }
@@ -162,13 +162,13 @@
         @for (app of recentApplications(); track app.applicant) {
         <div class="application-item">
           <div class="application-avatar">
-            {{ app.applicant.user.fullName.charAt(0) }}
+            {{ app.applicant!.user!.fullName.charAt(0) }}
           </div>
           <div class="application-info">
             <p class="application-name">
-              {{ app.applicant.user.fullName }}
+              {{ app.applicant!.user!.fullName }}
             </p>
-            <p class="application-vacancy">{{ app.vacancy.title }}</p>
+            <p class="application-vacancy">{{ app.vacancy!.title }}</p>
           </div>
           <div class="application-right">
             <span class="badge" [ngClass]="getStatusClass(app.status)">{{
@@ -212,7 +212,7 @@
         <tr>
           <td class="font-mono text-xs">{{ v.id }}</td>
           <td class="font-medium">{{ v.title }}</td>
-          <td>{{ v.department.name }}</td>
+          <td>{{ v.department!.name }}</td>
           <td>{{ v.filledCount }}/{{ v.numberOfOpenings }}</td>
           <td>
             <span class="badge" [ngClass]="getStatusClass(v.status)">{{
@@ -276,16 +276,16 @@
       <h3 class="card-title">My Interview Schedule</h3>
     </div>
     <div class="interview-list">
-      @for (item of upcomingInterviews(); track item.applicant) {
+      @for (item of upcomingInterviews(); track item.application) {
       <div class="interview-item">
         <div class="interview-left-bar"></div>
         <div class="interview-info">
-          <p class="interview-applicant">{{ item.applicant }}</p>
-          <p class="interview-vacancy">{{ item.vacancy }}</p>
+          <p class="interview-applicant">{{ item.application?.applicant?.user?.fullName }}</p>
+          <p class="interview-vacancy">{{ item.application?.vacancy?.title }}</p>
           <div class="interview-meta">
-            <span class="meta-item">📅 {{ item.date }}</span>
-            <span class="meta-item">🕐 {{ item.time }}</span>
-            <span class="meta-item">📹 {{ item.platform }}</span>
+            <span class="meta-item">📅 {{ item.startTime | date: 'MM/dd/yyyy' }}</span>
+            <span class="meta-item">🕐 {{ item.startTime | date: 'hh:mm' }} - {{ item.endTime | date: 'hh:mm' }}</span>
+            <span class="meta-item">📹 {{ item.meetPlatform }}</span>
           </div>
         </div>
         <button class="btn-primary btn-sm">Join</button>

@@ -18,6 +18,7 @@ import {
   loginGuard,
   authApplicantGuard,
   careersGuard,
+  loginAdminGuard,
 } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -30,16 +31,17 @@ export const routes: Routes = [
   {
     path: 'set-initial-password',
     loadComponent: () =>
-      import(
-        './shared/components/set-initial-password/set-initial-password.component'
-      ).then((m) => m.SetInitialPasswordComponent),
+      import('./shared/components/set-initial-password/set-initial-password.component').then(
+        (m) => m.SetInitialPasswordComponent,
+      ),
   },
 
   // --- Luồng Login cho HR ---
   {
     path: 'hr/login',
     component: LoginComponent,
-    data: { role: 'HR' }
+    data: { role: 'HR' },
+    canActivate: [loginAdminGuard],
   },
 
   // --- Tuyến đường cho Applicant Portal (Dev 5) ---
@@ -47,18 +49,22 @@ export const routes: Routes = [
     path: '',
     component: ApplicantLayoutComponent,
     children: [
-      { path: 'careers', component: CareersComponent, canActivate: [careersGuard] },
+      {
+        path: 'careers',
+        component: CareersComponent,
+        canActivate: [careersGuard],
+      },
 
       // ĐÃ BẬT LẠI KHÓA CHO TRANG NỘI BỘ
       {
         path: 'applicant',
         component: DashboardComponent,
-        canActivate: [authApplicantGuard]
+        canActivate: [authApplicantGuard],
       },
       {
         path: 'profile',
         component: ProfileComponent,
-        canActivate: [authApplicantGuard]
+        canActivate: [authApplicantGuard],
       },
 
       // ĐÃ BẬT LẠI GUARD CHẶN TRANG LOGIN
@@ -66,7 +72,7 @@ export const routes: Routes = [
         path: 'login',
         component: LoginComponent,
         canActivate: [loginGuard],
-        data: { role: 'Applicant' }
+        data: { role: 'Applicant' },
       },
       { path: 'register', component: RegisterComponent },
       { path: 'forgot-password', component: ForgotPasswordComponent },
