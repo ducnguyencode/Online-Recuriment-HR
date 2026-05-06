@@ -61,6 +61,9 @@ import { InterviewerAvailabilityController } from './controller/interviewer-avai
 import { InterviewerAvailabilityService } from './services/interviewer-availability.service';
 import { DashboardService } from './services/dashboard.service';
 import { DashboardController } from './controller/dashboard.controller';
+import { LoginHistory } from './entities/login-history.entity';
+import { LoginHistoryService } from './services/login-history.service';
+import { LoginHistoryController } from './controller/login-history.controller';
 
 @Module({
   imports: [
@@ -101,6 +104,7 @@ import { DashboardController } from './controller/dashboard.controller';
       InAppNotification,
       EmailQueue,
       AuditLog,
+      LoginHistory,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -127,6 +131,7 @@ import { DashboardController } from './controller/dashboard.controller';
     AuditLogController,
     InterviewerAvailabilityController,
     DashboardController,
+    LoginHistoryController,
   ],
   providers: [
     VacanciesService,
@@ -156,6 +161,7 @@ import { DashboardController } from './controller/dashboard.controller';
     AccountCleanupCronService,
     InterviewerAvailabilityService,
     DashboardService,
+    LoginHistoryService,
   ],
 })
 export class AppModule {}

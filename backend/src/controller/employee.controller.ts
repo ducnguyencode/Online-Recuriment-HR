@@ -7,6 +7,9 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Roles } from 'src/common/decorator/decorator';
+import { UserRole } from 'src/common/enum';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorator/decorator';
 import { EmployeeChangePasswordDto } from 'src/dto/employee/employee.change-password.dto';
@@ -19,10 +22,12 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { EmployeeService } from 'src/services/employee.service';
 
 @Controller('employee')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class EmployeeController {
   constructor(private employeeService: EmployeeService) {}
 
   @Get()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.HR, UserRole.INTERVIEWER)
   async findAll(
     @Query() query: EmployeeFindDto,
   ): Promise<ApiResponse<FindResponseDto<Employee>>> {
@@ -35,7 +40,7 @@ export class EmployeeController {
   }
 
   @Put('update-account')
-  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.HR, UserRole.INTERVIEWER)
   async updateAccount(
     @Body() employeeUpdateDto: EmployeeUpdateDto,
     @CurrentUser() user: SafeUserDto,
@@ -52,7 +57,7 @@ export class EmployeeController {
   }
 
   @Put('change-password')
-  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.HR, UserRole.INTERVIEWER)
   async changePassword(
     @Body() employeeChangePasswordDto: EmployeeChangePasswordDto,
     @CurrentUser() user: SafeUserDto,
