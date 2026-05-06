@@ -25,6 +25,7 @@ import {
 } from 'src/common/enum';
 import { AiPreviewService } from './bullmq/ai-worker/ai-preview.service';
 import { SendMailService } from './bullmq/send-mail-worker/send-mail.service';
+import { AiPreviewStatus } from 'src/dto/ai.response.dto';
 
 @Injectable()
 export class ApplicationService {
@@ -156,21 +157,10 @@ export class ApplicationService {
       );
 
       application = await manager.save(application);
-      // AI preview
-      // if (application.cv) {
-      //   this.aiService
-      //     .reviewCv(application)
-      //     .then(async (res) => {
-      //       if (res) {
-      //         await this.applicationsTable.update(application.id, {
-      //           aiPreview: res,
-      //         });
-      //       }
-      //     })
-      //     .catch(console.log);
-      // }
 
       if (application.cv) {
+        application.aiPreview.status = AiPreviewStatus.RUNNING;
+        await manager.save(application);
         await this.aiPreviewService.start(application.id);
       }
     });
