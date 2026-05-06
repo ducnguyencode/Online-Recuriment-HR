@@ -91,6 +91,7 @@ export class AdminUserService {
   async createStaff(
     actor: SafeUserDto,
     dto: CreateStaffAccountDto,
+    req?: Request,
   ): Promise<User> {
     this.assertStaffRole(dto.role);
     this.assertActorCanManageRole(actor, dto.role);
@@ -153,7 +154,30 @@ export class AdminUserService {
         return exists;
       });
       await this.userService.sendVerification(saved);
-      return this.findByIdOrThrow(saved.id);
+      const refreshed = await this.findByIdOrThrow(saved.id);
+      try {
+        await this.auditLogs.createLog({
+          actorId: actor.id,
+          actorRoleSnapshot: actor.role,
+          action: 'STAFF_CREATE',
+          targetId: refreshed.id,
+          targetRoleSnapshot: refreshed.role,
+          payload: {
+            mode: 'REUSE_PENDING_ACCOUNT',
+            email: refreshed.email,
+            fullName: refreshed.fullName,
+            departmentId: refreshed.employee?.department?.id ?? null,
+            position: refreshed.employee?.jobTitle ?? null,
+          },
+          context: {
+            ipAddress: req?.ip,
+            userAgent: req?.headers?.['user-agent'],
+          },
+        });
+      } catch (logError) {
+        console.error('Failed to write staff create audit log', logError);
+      }
+      return refreshed;
     }
 
     const saved = await this.users.manager.transaction(async (manager) => {
@@ -195,13 +219,37 @@ export class AdminUserService {
     });
 
     await this.userService.sendVerification(saved);
-    return this.findByIdOrThrow(saved.id);
+    const refreshed = await this.findByIdOrThrow(saved.id);
+    try {
+      await this.auditLogs.createLog({
+        actorId: actor.id,
+        actorRoleSnapshot: actor.role,
+        action: 'STAFF_CREATE',
+        targetId: refreshed.id,
+        targetRoleSnapshot: refreshed.role,
+        payload: {
+          mode: 'NEW_ACCOUNT',
+          email: refreshed.email,
+          fullName: refreshed.fullName,
+          departmentId: refreshed.employee?.department?.id ?? null,
+          position: refreshed.employee?.jobTitle ?? null,
+        },
+        context: {
+          ipAddress: req?.ip,
+          userAgent: req?.headers?.['user-agent'],
+        },
+      });
+    } catch (logError) {
+      console.error('Failed to write staff create audit log', logError);
+    }
+    return refreshed;
   }
 
   async updateStaff(
     actor: SafeUserDto,
     userId: number,
     dto: UpdateStaffAccountDto,
+    req?: Request,
   ): Promise<User> {
     this.assertStaffRole(dto.role);
     this.assertActorCanManageRole(actor, dto.role);
@@ -210,6 +258,13 @@ export class AdminUserService {
     if (user.role === UserRole.SUPER_ADMIN) {
       throw new ForbiddenException('Superadmin cannot be edited here');
     }
+    const beforeSnapshot = {
+      fullName: user.fullName,
+      phone: user.phone,
+      role: user.role,
+      departmentId: user.employee?.department?.id ?? null,
+      position: user.employee?.jobTitle ?? null,
+    };
 
     const department = await this.resolveDepartmentForRole(
       dto.role,
@@ -242,7 +297,33 @@ export class AdminUserService {
     employee.isActive = user.isActive;
     await this.employees.save(employee);
 
-    return this.findByIdOrThrow(userId);
+    const refreshed = await this.findByIdOrThrow(userId);
+    try {
+      await this.auditLogs.createLog({
+        actorId: actor.id,
+        actorRoleSnapshot: actor.role,
+        action: 'STAFF_UPDATE',
+        targetId: refreshed.id,
+        targetRoleSnapshot: refreshed.role,
+        payload: {
+          before: beforeSnapshot,
+          after: {
+            fullName: refreshed.fullName,
+            phone: refreshed.phone,
+            role: refreshed.role,
+            departmentId: refreshed.employee?.department?.id ?? null,
+            position: refreshed.employee?.jobTitle ?? null,
+          },
+        },
+        context: {
+          ipAddress: req?.ip,
+          userAgent: req?.headers?.['user-agent'],
+        },
+      });
+    } catch (logError) {
+      console.error('Failed to write staff update audit log', logError);
+    }
+    return refreshed;
   }
 
   async getRoleChangePreconditions(userId: number, newRole: UserRole) {
@@ -307,8 +388,6 @@ export class AdminUserService {
       const user = await manager
         .createQueryBuilder(User, 'user')
         .setLock('pessimistic_write')
-        .leftJoinAndSelect('user.employee', 'employee')
-        .leftJoinAndSelect('employee.department', 'department')
         .where('user.id = :id', { id: userId })
         .getOne();
       if (!user) {
@@ -375,23 +454,67 @@ export class AdminUserService {
     return updatedUser;
   }
 
-  async deactivate(actor: SafeUserDto, userId: number): Promise<User> {
+  async deactivate(
+    actor: SafeUserDto,
+    userId: number,
+    req?: Request,
+  ): Promise<User> {
     const user = await this.findByIdOrThrow(userId);
     this.assertActorCanManageRole(actor, user.role);
     user.isActive = false;
     await this.users.save(user);
+    try {
+      await this.auditLogs.createLog({
+        actorId: actor.id,
+        actorRoleSnapshot: actor.role,
+        action: 'STAFF_DEACTIVATE',
+        targetId: user.id,
+        targetRoleSnapshot: user.role,
+        payload: { isActive: false },
+        context: {
+          ipAddress: req?.ip,
+          userAgent: req?.headers?.['user-agent'],
+        },
+      });
+    } catch (logError) {
+      console.error('Failed to write staff deactivate audit log', logError);
+    }
     return user;
   }
 
-  async activate(actor: SafeUserDto, userId: number): Promise<User> {
+  async activate(
+    actor: SafeUserDto,
+    userId: number,
+    req?: Request,
+  ): Promise<User> {
     const user = await this.findByIdOrThrow(userId);
     this.assertActorCanManageRole(actor, user.role);
     user.isActive = true;
     await this.users.save(user);
+    try {
+      await this.auditLogs.createLog({
+        actorId: actor.id,
+        actorRoleSnapshot: actor.role,
+        action: 'STAFF_ACTIVATE',
+        targetId: user.id,
+        targetRoleSnapshot: user.role,
+        payload: { isActive: true },
+        context: {
+          ipAddress: req?.ip,
+          userAgent: req?.headers?.['user-agent'],
+        },
+      });
+    } catch (logError) {
+      console.error('Failed to write staff activate audit log', logError);
+    }
     return user;
   }
 
-  async resendInvite(actor: SafeUserDto, userId: number): Promise<void> {
+  async resendInvite(
+    actor: SafeUserDto,
+    userId: number,
+    req?: Request,
+  ): Promise<void> {
     const user = await this.findByIdOrThrow(userId);
     this.assertStaffRole(user.role);
     this.assertActorCanManageRole(actor, user.role);
@@ -428,6 +551,22 @@ export class AdminUserService {
         user.fullName,
         resetUrl,
       );
+      try {
+        await this.auditLogs.createLog({
+          actorId: actor.id,
+          actorRoleSnapshot: actor.role,
+          action: 'STAFF_RESEND_INVITE',
+          targetId: user.id,
+          targetRoleSnapshot: user.role,
+          payload: { mode: 'PASSWORD_RESET_LINK' },
+          context: {
+            ipAddress: req?.ip,
+            userAgent: req?.headers?.['user-agent'],
+          },
+        });
+      } catch (logError) {
+        console.error('Failed to write resend invite audit log', logError);
+      }
       return;
     }
 
@@ -440,6 +579,22 @@ export class AdminUserService {
     );
     await this.users.save(user);
     await this.userService.sendVerification(user);
+    try {
+      await this.auditLogs.createLog({
+        actorId: actor.id,
+        actorRoleSnapshot: actor.role,
+        action: 'STAFF_RESEND_INVITE',
+        targetId: user.id,
+        targetRoleSnapshot: user.role,
+        payload: { mode: 'VERIFY_EMAIL_LINK' },
+        context: {
+          ipAddress: req?.ip,
+          userAgent: req?.headers?.['user-agent'],
+        },
+      });
+    } catch (logError) {
+      console.error('Failed to write resend invite audit log', logError);
+    }
   }
 
   private async findByIdOrThrow(userId: number): Promise<User> {
