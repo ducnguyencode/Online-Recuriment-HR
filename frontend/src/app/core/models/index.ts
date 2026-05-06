@@ -210,6 +210,7 @@ export interface Interview {
   panel: InterviewerPanel[];
   createdAt: string;
   updatedAt: string;
+  meetPlatform?: string;
 }
 
 export interface ActivityLog {

@@ -4,9 +4,13 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { VacancyService } from '../../../core/services/vacancy.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { ApplicationService, CreateApplicationDto } from '../../../core/services/application.service';
+import {
+  ApplicationService,
+  CreateApplicationDto,
+} from '../../../core/services/application.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ApplicantService } from '../../../core/services/applicant.service';
+import { VacancyStatus } from '../../../core/models';
 
 @Component({
   selector: 'app-careers',
@@ -49,21 +53,28 @@ export class CareersComponent implements OnInit {
   // --- ORIGINAL FUNCTIONS (KEEP UNCHANGED) ---
   fetchJobs() {
     this.loading.set(true);
-    this.vacancyService.getAll({ search: this.searchQuery || undefined }).subscribe({
-      next: (res: any) => {
-        this.vacancies.set(res.data?.items ?? res.data ?? []);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.toast.error('Failed to load vacancies.');
-        this.loading.set(false);
-      },
-    });
+    this.vacancyService
+      .getAll({
+        search: this.searchQuery || undefined,
+        status: VacancyStatus.OPENED,
+      })
+      .subscribe({
+        next: (res: any) => {
+          this.vacancies.set(res.data?.items ?? res.data ?? []);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.toast.error('Failed to load vacancies.');
+          this.loading.set(false);
+        },
+      });
   }
 
   fetchUserCvs() {
     if (this.auth.isLoggedIn()) {
-      this.applicantServce.findAllCvByApplicantId(this.auth.currentUser()?.applicantId || '').subscribe((res) => this.myCvs.set(res.data));
+      this.applicantServce
+        .findAllCvByApplicantId(this.auth.currentUser()?.applicantId || '')
+        .subscribe((res) => this.myCvs.set(res.data));
     }
   }
 
@@ -73,7 +84,10 @@ export class CareersComponent implements OnInit {
     } else {
       this.selectedJobTitle = vacancy.title;
       this.selectedCvId.set(null);
-      this.applyForm = { applicantId: this.auth.currentUser()?.applicantId || '', vacancyId: vacancy.id };
+      this.applyForm = {
+        applicantId: this.auth.currentUser()?.applicantId || '',
+        vacancyId: vacancy.id,
+      };
       this.isApplyModalOpen = true;
     }
   }
@@ -100,7 +114,11 @@ export class CareersComponent implements OnInit {
       return;
     }
     this.loading.set(true);
-    const dto: CreateApplicationDto = { applicantId: this.applyForm.applicantId, vacancyId: this.applyForm.vacancyId, cvId: this.selectedCvId() as string };
+    const dto: CreateApplicationDto = {
+      applicantId: this.applyForm.applicantId,
+      vacancyId: this.applyForm.vacancyId,
+      cvId: this.selectedCvId() as string,
+    };
 
     this.applicationService.applicantCreate(dto).subscribe({
       next: () => {

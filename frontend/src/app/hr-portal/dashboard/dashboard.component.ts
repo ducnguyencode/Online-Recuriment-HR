@@ -4,12 +4,18 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { VacancyService } from '../../core/services/vacancy.service';
-import { Application, Vacancy } from '../../core/models';
+import {
+  Application,
+  Interview,
+  InterviewStatus,
+  Vacancy,
+} from '../../core/models';
 import { ApplicationService } from '../../core/services/application.service';
 import {
   DashboardService,
   OverviewDto,
 } from '../../core/services/dasboard.service';
+import { InterviewService } from '../../core/services/interview.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -33,9 +39,9 @@ export class DashboardComponent implements OnInit {
     interviewToday: 0,
   });
 
-  recentVacancies = signal<any[]>([]);
-  upcomingInterviews = signal<any[]>([]);
-  recentApplications = signal<any[]>([]);
+  recentVacancies = signal<Vacancy[]>([]);
+  upcomingInterviews = signal<Interview[]>([]);
+  recentApplications = signal<Application[]>([]);
 
   constructor(
     private auth: AuthService,
@@ -43,6 +49,7 @@ export class DashboardComponent implements OnInit {
     private vacanciesService: VacancyService,
     private applicationService: ApplicationService,
     private dashboardService: DashboardService,
+    private interviewService: InterviewService,
   ) {}
 
   ngOnInit() {
@@ -54,22 +61,30 @@ export class DashboardComponent implements OnInit {
       error: (err) => {},
     });
 
+    this.interviewService
+      .getAll({ status: InterviewStatus.SCHEDULED })
+      .subscribe({
+        next: (res) => {
+          this.upcomingInterviews.set(res.data.items);
+        },
+      });
+
     this.vacanciesService.getAll({ limit: 5 }).subscribe({
       next: (res) => {
         this.recentVacancies.set(res.data.items as Vacancy[]);
       },
       error: (err) => {
-        const vacs = this.mockData.getVacancies();
-        this.recentVacancies.set(
-          vacs.slice(0, 5).map((v) => ({
-            id: v.id,
-            title: v.title,
-            department: v.department?.name || '',
-            filledCount: v.filledCount,
-            openings: v.numberOfOpenings,
-            status: v.status,
-          })),
-        );
+        // const vacs = this.mockData.getVacancies();
+        // this.recentVacancies.set(
+        //   vacs.slice(0, 5).map((v) => ({
+        //     id: v.id,
+        //     title: v.title,
+        //     department: v.department?.name || '',
+        //     filledCount: v.filledCount,
+        //     openings: v.numberOfOpenings,
+        //     status: v.status,
+        //   })),
+        // );
       },
     });
 
@@ -78,15 +93,15 @@ export class DashboardComponent implements OnInit {
         this.recentApplications.set(res.data.items as Application[]);
       },
       error: (error) => {
-        const apps = this.mockData.getApplications();
-        this.recentApplications.set(
-          apps.slice(0, 4).map((a) => ({
-            applicant: a.applicant?.fullName || '',
-            vacancy: a.vacancy?.title || '',
-            status: a.status,
-            time: this.timeAgo(a.createdAt || ''),
-          })),
-        );
+        // const apps = this.mockData.getApplications();
+        // this.recentApplications.set(
+        //   apps.slice(0, 4).map((a) => ({
+        //     applicant: a.applicant?.fullName || '',
+        //     vacancy: a.vacancy?.title || '',
+        //     status: a.status,
+        //     time: this.timeAgo(a.createdAt || ''),
+        //   })),
+        // );
       },
     });
   }
@@ -123,12 +138,15 @@ export class DashboardComponent implements OnInit {
       value = ((current - previous) / previous) * 100;
     }
 
+    value = 0 && value == -100;
+
     const formatted = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 1,
-    }).format(Math.abs(value));
+    }).format(value);
 
-    const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+    const sign = value > 0 ? '+' : '';
+
     return `${sign}${formatted}%`;
   }
 }
