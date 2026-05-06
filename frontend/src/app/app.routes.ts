@@ -18,12 +18,8 @@ export const routes: Routes = [
   {
     path: 'hr/login',
     component: LoginComponent,
-<<<<<<< Updated upstream
-    data: { role: 'HR' }
-=======
     data: { role: 'HR' },
     canActivate: [loginGuard],
->>>>>>> Stashed changes
   },
   {
     path: '',
