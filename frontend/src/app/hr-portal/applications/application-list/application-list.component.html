@@ -340,16 +340,17 @@
         <textarea class="form-input" rows="2" [(ngModel)]="interviewData.description"></textarea>
       </div>
 
-      <div class="form-row">
-        <div class="form-group" style="flex: 1">
+      <div class="form-row" style="display: flex; flex-wrap: nowrap; gap: 12px; align-items: flex-start;">
+        <div class="form-group" style="flex: 1; min-width: 120px;">
           <label class="form-label">Date <span class="required">*</span></label>
           <input type="date" class="form-input" [(ngModel)]="interviewData.date" [min]="getMinDate()" />
         </div>
-        <div class="form-group" style="width: 120px">
+        <div class="form-group" style="width: 110px; flex-shrink: 0;">
           <label class="form-label">Start <span class="required">*</span></label>
-          <input type="time" class="form-input" [(ngModel)]="interviewData.startTime" />
+          <input type="time" class="form-input" [(ngModel)]="interviewData.startTime"
+            (ngModelChange)="onStartTimeChange($event)" />
         </div>
-        <div class="form-group" style="width: 120px">
+        <div class="form-group" style="width: 110px; flex-shrink: 0;">
           <label class="form-label">End <span class="required">*</span></label>
           <input type="time" class="form-input" [(ngModel)]="interviewData.endTime" />
         </div>

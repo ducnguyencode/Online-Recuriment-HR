@@ -102,7 +102,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private socketService: SocketService,
     protected authService: AuthService,
     private toastService: ToastService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadVacancies();
@@ -800,5 +800,24 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  onStartTimeChange(newStartTime: string) {
+    if (!newStartTime) return;
+
+    const parts = newStartTime.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+
+    let endHours = hours + 1;
+
+    if (endHours >= 24) {
+      endHours = endHours - 24;
+    }
+
+    const endHoursStr = endHours.toString().padStart(2, '0');
+    const minutesStr = minutes.toString().padStart(2, '0');
+
+    this.interviewData.endTime = `${endHoursStr}:${minutesStr}`;
   }
 }
