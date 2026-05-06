@@ -1,0 +1,93 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Audit Log</h1>
+      <p class="page-subtitle">Review internal activity events for recruitment operations and status changes.</p>
+      <p class="page-subtitle access-note">
+        {{ accessMessage() }}
+      </p>
+    </div>
+  </div>
+
+  <div class="filters-bar">
+    <div class="search-box">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <input
+        type="text"
+        class="form-input search-input"
+        [(ngModel)]="actionFilter"
+        placeholder="Filter by action (e.g. AUTH_LOGIN_SUCCESS)"
+        (keyup.enter)="applyFilters()"
+      />
+    </div>
+    <input type="date" class="form-input filter-date" [(ngModel)]="fromDate" />
+    <input type="date" class="form-input filter-date" [(ngModel)]="toDate" />
+    <div class="filters-actions">
+      <button type="button" class="btn-primary" (click)="applyFilters()" [disabled]="isLoading()">
+        Apply Filters
+      </button>
+      <button type="button" class="btn-secondary" (click)="resetFilters()" [disabled]="isLoading()">
+        Reset
+      </button>
+    </div>
+    <span class="result-count">{{ logs().length }} records</span>
+  </div>
+  <div class="filters-meta">
+    @if (hasActiveFilters()) {
+      <div class="active-filters">
+        <span class="filter-chip">Action: {{ actionFilter.trim() || 'Any' }}</span>
+        <span class="filter-chip">From: {{ fromDate || 'Any' }}</span>
+        <span class="filter-chip">To: {{ toDate || 'Any' }}</span>
+      </div>
+    } @else {
+      <span class="muted">No active filters</span>
+    }
+  </div>
+
+  <div class="card" style="overflow:hidden;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Actor Role</th>
+          <th>Action</th>
+          <th>Target</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of logs(); track item.id) {
+          <tr>
+            <td class="mono-id">{{ item.createdAt | date:'MM/dd/yyyy HH:mm' }}</td>
+            <td><span class="badge" [ngClass]="getActorRoleClass(item.actorRoleSnapshot)">{{ item.actorRoleSnapshot }}</span></td>
+            <td><span class="badge" [ngClass]="getActionClass(item.action)">{{ item.action }}</span></td>
+            <td>
+              <div class="entity-stack">
+                <span>{{ item.targetRoleSnapshot || '—' }}</span>
+                <span class="mono-id">{{ item.targetId || '—' }}</span>
+              </div>
+            </td>
+            <td>{{ formatDetails(item) }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="empty-state">
+              <p>{{ isLoading() ? 'Loading audit logs...' : 'No audit logs available for current filters' }}</p>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

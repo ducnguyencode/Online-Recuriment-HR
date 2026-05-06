@@ -20,6 +20,9 @@ import { ApplicationStatusAccess } from 'src/common/decorator/application-status
 import { Roles } from 'src/common/decorator/decorator';
 import { ApplicationStatus, UserRole } from 'src/common/enum';
 import { ApplicationStatusPolicyGuard } from 'src/common/guards/application-status-policy.guard';
+import { Roles } from 'src/common/decorator/decorator';
+import { ApplicationStatus, UserRole } from 'src/common/enum';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
 import { ApplicationFindDto } from 'src/dto/application/application.find.dto';
@@ -33,6 +36,7 @@ import {
 } from 'src/services/bullmq/application-apply-worker/application-apply-worker.constants';
 
 @Controller('application')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ApplicationController {
   constructor(
     @InjectQueue(APPLICATION_APPLY_QUEUE)
@@ -42,6 +46,7 @@ export class ApplicationController {
   ) {}
 
   @Post('create')
+  @Roles(UserRole.APPLICANT, UserRole.HR, UserRole.SUPER_ADMIN)
   async create(@Body() applicationCreateDto: ApplicationCreateDto) {
     const data = await this.applicationService.create(applicationCreateDto);
     return {
@@ -83,6 +88,7 @@ export class ApplicationController {
   }
 
   @Get()
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async findAll(
     @Query() query: ApplicationFindDto,
   ): Promise<ApiResponse<FindResponseDto<Application>>> {
@@ -95,6 +101,7 @@ export class ApplicationController {
   }
 
   @Get(':id')
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async findById(@Param('id') id: number) {
     try {
       return await this.applicationService.findById(id);
@@ -107,6 +114,7 @@ export class ApplicationController {
   @ApplicationStatusAccess({ allowSameStatus: false })
   @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   @Patch('change-status')
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async changeStatus(
     @Query('id') id: number,
     @Query('status') status: ApplicationStatus,
