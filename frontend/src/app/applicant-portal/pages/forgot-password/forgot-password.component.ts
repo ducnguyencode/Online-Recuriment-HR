@@ -1,39 +1,91 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
-  templateUrl: './forgot-password.component.html'
+  imports: [CommonModule, RouterModule, FormsModule],
+  templateUrl: './forgot-password.component.html',
+  styleUrls: ['./forgot-password.component.scss']
 })
 export class ForgotPasswordComponent {
+  private auth = inject(AuthService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
   email = '';
-  isLoading = signal(false);
+  token = this.route.snapshot.queryParamMap.get('token') ?? '';
+  scope = this.route.snapshot.queryParamMap.get('scope') ?? '';
+  newPassword = '';
+  confirmPassword = '';
+  isLoading = false;
+  isSent = false;
+  isResetDone = false;
+  errorMessage = '';
+  successMessage = '';
 
-  private authService = inject(AuthService);
-  private toast = inject(ToastService);
+  get isResetMode() {
+    return !!this.token;
+  }
 
-  onSubmit() {
-    if (!this.email) {
-      this.toast.error('Please enter your email.');
+  get isHrScope() {
+    return this.scope === 'hr';
+  }
+
+  sendResetLink() {
+    if (!this.email.trim()) return;
+
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.isLoading = true;
+    this.auth
+      .forgotPassword(this.email.trim(), this.isHrScope ? 'hr' : undefined)
+      .subscribe({
+      next: (res) => {
+        this.isLoading = false;
+        this.isSent = true;
+        this.successMessage = res.message;
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage =
+          err?.error?.message ?? 'Unable to send reset link. Please try again.';
+      },
+    });
+  }
+
+  submitResetPassword() {
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    if (!this.newPassword || this.newPassword.length < 6) {
+      this.errorMessage = 'Password must have at least 6 characters.';
       return;
     }
-    this.isLoading.set(true);
-    // Thay đổi method API cho đúng với service team ông nha
-    this.authService.forgotPassword(this.email).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.toast.success('Reset link sent to your email!');
+    if (this.newPassword !== this.confirmPassword) {
+      this.errorMessage = 'Confirm password does not match.';
+      return;
+    }
+
+    this.isLoading = true;
+    this.auth.resetPassword(this.token, this.newPassword).subscribe({
+      next: (res) => {
+        this.isLoading = false;
+        this.isResetDone = true;
+        this.successMessage = res.message;
       },
-      error: (err: any) => {
-        this.isLoading.set(false);
-        this.toast.error(err.error?.message || 'Failed to send reset link.');
-      }
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage =
+          err?.error?.message ?? 'Unable to reset password. Please try again.';
+      },
     });
+  }
+
+  returnLogin() {
+    this.router.navigate([this.isHrScope ? '/hr/login' : '/login']);
   }
 }

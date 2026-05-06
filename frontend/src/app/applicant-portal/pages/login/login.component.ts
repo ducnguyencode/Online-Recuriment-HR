@@ -38,6 +38,11 @@ export class LoginComponent implements OnInit {
       ? UserRoleLogin.HR
       : UserRoleLogin.APPLICANT;
 
+    if (this.selectedRole === UserRoleLogin.HR && this.auth.isLoggedIn()) {
+      this.auth.logout('/hr/login');
+      return;
+    }
+
     if (this.selectedRole == UserRoleLogin.HR) {
       this.form = { email: 'admin@test.com', password: '123456' };
     } else {
