@@ -1,50 +1,61 @@
-import { ApplicantStatus } from 'src/enum/applicant-staus.enum';
 import {
-  BeforeInsert,
-  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
+import { Application } from './application.entity';
+import { ApplicantStatus } from 'src/common/enum';
+import { User } from './user.entity';
+import { Expose } from 'class-transformer';
 
 @Entity('applicants')
-@Index('UQ_applicant_email', ['email'], { unique: true })
+@Index('UQ_applicant_user', ['user'], { unique: true })
 export class Applicant {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true, nullable: true })
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `'A' || LPAD(id::text, 4,'0')`,
+  })
   code!: string;
 
-  @Column()
-  fullName!: string;
+  @Expose()
+  @OneToOne(() => User, (u) => u.applicant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user!: User;
 
-  @Column()
-  email!: string;
-
-  @Column({ nullable: true })
-  phone!: string;
+  @OneToMany(() => Application, (a) => a.applicant)
+  applications!: Application[];
 
   @Column({
     type: 'enum',
     enum: ApplicantStatus,
     default: ApplicantStatus.NOT_IN_PROCESS,
   })
-  status!: string;
+  status!: ApplicantStatus;
 
-  @Column('boolean', { default: true })
-  isActive!: boolean;
-
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn()
   createdAt!: Date;
 
-  @BeforeInsert()
-  @BeforeUpdate()
-  normalize() {
-    if (this.email) {
-      this.email = this.email.trim();
-    }
+  @UpdateDateColumn()
+  updatedAt!: Date;
+  // email: any;
+  // fullName: any;
+
+  @Expose()
+  get email(): string {
+    return this.user?.email || '';
+  }
+
+  @Expose()
+  get fullName(): string {
+    return this.user?.fullName || '';
   }
 }

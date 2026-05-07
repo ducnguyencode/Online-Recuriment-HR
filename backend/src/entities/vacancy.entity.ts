@@ -1,23 +1,24 @@
-import { Exclude } from 'class-transformer';
+import { VacancyStatus } from 'src/common/enum';
 import { Department } from 'src/entities/department.entity';
-import { VacancyStatus } from 'src/enum/vacancy-status.enum';
 import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { User } from './user.entity';
 
 @Entity('vacancies')
-@Index('UQ_vacancy_title_department', ['title', 'department'], { unique: true })
 export class Vacancy {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true, nullable: true })
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `'V' || LPAD(id::text, 4,'0')`,
+  })
   code!: string;
 
   @ManyToOne(() => Department, (d) => d.id, {
@@ -29,6 +30,13 @@ export class Vacancy {
 
   @Column({ nullable: true })
   departmentId!: number;
+
+  @ManyToOne(() => User, (u) => u.id, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'createdById' })
+  createdBy!: User;
+
+  @Column()
+  createdById!: number;
 
   @Column()
   title!: string;
@@ -43,7 +51,7 @@ export class Vacancy {
   filledCount!: number;
 
   @Column({ type: 'enum', enum: VacancyStatus, default: VacancyStatus.OPENED })
-  status!: string;
+  status!: VacancyStatus;
 
   @Column('date', { nullable: true })
   closingDate!: Date;

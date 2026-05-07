@@ -1,14 +1,19 @@
 <div class="page-container">
   <div class="page-header">
     <div>
-      <h1 class="page-title">Staff Accounts</h1>
+      <h1 class="page-title">{{ pageTitle }}</h1>
       <p class="page-subtitle">
-        Create and manage HR and Interviewer accounts. Login credentials are
-        emailed automatically on creation.
+        @if (isSuperadminView) {
+          Create and manage HR and Interviewer accounts. Activation instructions
+          are emailed automatically on creation.
+        } @else {
+          Manage Interviewer accounts only. Activation instructions are emailed
+          automatically on creation.
+        }
       </p>
     </div>
     <button class="btn-primary header-action" (click)="openCreateDialog()">
-      + Create staff account
+      + Create employee account
     </button>
   </div>
 
@@ -35,19 +40,23 @@
         (input)="onFilterChange()"
       />
     </div>
-    <select
-      class="form-select filter-select"
-      [ngModel]="filterRole()"
-      (ngModelChange)="filterRole.set($event); onFilterChange()"
-    >
-      <option value="">All roles</option>
-      <option value="HR">HR</option>
-      <option value="Interviewer">Interviewer</option>
-    </select>
+    @if (isSuperadminView) {
+      <select
+        class="form-select filter-select"
+        [ngModel]="filterRole()"
+        (ngModelChange)="filterRole.set($event); onFilterChange()"
+      >
+        <option value="">All roles</option>
+        <option value="{{ UserRole.HR }}">{{ UserRole.HR }}</option>
+        <option value="{{ UserRole.INTERVIEWER }}">
+          {{ UserRole.INTERVIEWER }}
+        </option>
+      </select>
+    }
     <select
       class="form-select filter-select"
       [ngModel]="filterDepartment()"
-      (ngModelChange)="filterDepartment.set($event); onFilterChange()"
+      (ngModelChange)="filterDepartment.set($event ? +$event : ''); onFilterChange()"
     >
       <option value="">All departments</option>
       @for (d of departments(); track d.id) {
@@ -76,12 +85,13 @@
 
   @if (loading()) {
     <div class="loading-state">Loading accounts…</div>
-  } @else if (users().length === 0) {
+  } @else if (employees().length === 0) {
     <div class="empty-state">
       <p class="empty-title">No staff accounts yet</p>
       <p class="empty-hint">
         Click <strong>Create staff account</strong> to add your first HR or
-        Interviewer. The system will email login instructions automatically.
+        Interviewer. The system will email activation instructions
+        automatically.
       </p>
     </div>
   } @else {
@@ -89,7 +99,7 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>Staff</th>
+            <th>Employee</th>
             <th>Email</th>
             <th>Role</th>
             <th>Status</th>
@@ -98,45 +108,62 @@
           </tr>
         </thead>
         <tbody>
-          @for (user of users(); track user.id) {
+          @for (employee of employees(); track employee.id) {
             <tr>
               <td>
                 <div class="user-cell">
-                  <div class="avatar">{{ getInitials(user.fullName) }}</div>
+                  <div class="avatar">
+                    {{ getInitials(employee.user!.fullName) }}
+                  </div>
                   <div>
-                    <div class="user-name">{{ user.fullName }}</div>
-                    <div class="user-meta">ID: {{ user.id }}</div>
+                    <div class="user-name">{{ employee.user!.fullName }}</div>
+                    <div class="user-meta">ID: {{ employee.code }}</div>
                   </div>
                 </div>
               </td>
-              <td>{{ user.email }}</td>
+              <td>{{ employee.user!.email }}</td>
               <td>
-                <span class="badge" [class]="roleBadgeClass(user.role)">
-                  {{ user.role }}
+                <span
+                  class="badge"
+                  [class]="roleBadgeClass(employee.user!.role)"
+                >
+                  {{ employee.user!.role }}
                 </span>
               </td>
               <td>
-                @if (user.isActive) {
+                @if (employee.user?.isActive) {
                   <span class="badge badge-success">Active</span>
                 } @else {
-                  <span class="badge badge-danger">Disabled</span>
+                  <span class="badge badge-danger">Inactive</span>
                 }
               </td>
-              <td>—</td>
+              <td>{{ employee.createdAt | date: "MM/dd/yyyy" }}</td>
               <td class="actions-cell">
                 <button
                   class="btn-ghost btn-sm"
-                  (click)="resendCredentials(user)"
-                  title="Send a fresh temporary password"
+                  (click)="openEditDialog(employee)"
+                  [disabled]="employee.user!.role === UserRole.SUPER_ADMIN"
+                  title="Edit account"
                 >
-                  Resend pass
+                  Edit
                 </button>
                 <button
                   class="btn-ghost btn-sm"
-                  (click)="toggleActive(user)"
-                  [title]="user.isActive ? 'Disable account' : 'Enable account'"
+                  (click)="toggleActive(employee.user)"
+                  [title]="
+                    employee.user!.isActive
+                      ? 'Deactivate account'
+                      : 'Activate account'
+                  "
                 >
-                  {{ user.isActive ? 'Disable' : 'Enable' }}
+                  {{ employee.user!.isActive ? "Deactivate" : "Activate" }}
+                </button>
+                <button
+                  class="btn-ghost btn-sm"
+                  (click)="resendCredentials(employee.user)"
+                  title="Send activation/reset password email"
+                >
+                  Activate by email
                 </button>
               </td>
             </tr>
@@ -174,6 +201,13 @@
       <button class="toast-close" (click)="formSuccess.set('')">×</button>
     </div>
   }
+
+  @if (errorMsg()) {
+    <div class="toast toast-error">
+      {{ errorMsg() }}
+      <button class="toast-close" (click)="errorMsg.set('')">×</button>
+    </div>
+  }
 </div>
 
 @if (showCreateDialog()) {
@@ -181,16 +215,20 @@
   <div class="modal">
     <div class="modal-header">
       <h2>Create staff account</h2>
-      <button class="btn-ghost btn-icon" (click)="closeCreateDialog()">×</button>
+      <button class="btn-ghost btn-icon" (click)="closeCreateDialog()">
+        ×
+      </button>
     </div>
     <div class="modal-body">
       <p class="help-text">
-        The system will generate a one-time password and email it to the
-        address below. The new user will be required to change it on first
-        login. You will never see that password.
+        The system will send an activation email to the address below. After
+        verifying the invite, the new user will set an initial password before
+        signing in.
       </p>
 
-      <label class="form-label" for="staff-email">Email <span class="required">*</span></label>
+      <label class="form-label" for="staff-email"
+        >Email <span class="required">*</span></label
+      >
       <input
         id="staff-email"
         type="email"
@@ -199,7 +237,9 @@
         [(ngModel)]="formData.email"
       />
 
-      <label class="form-label" for="staff-name">Full name <span class="required">*</span></label>
+      <label class="form-label" for="staff-name"
+        >Full name <span class="required">*</span></label
+      >
       <input
         id="staff-name"
         type="text"
@@ -208,17 +248,41 @@
         [(ngModel)]="formData.fullName"
       />
 
-      <label class="form-label" for="staff-role">Role <span class="required">*</span></label>
-      <select id="staff-role" class="form-select" [(ngModel)]="formData.role">
-        <option value="HR">HR</option>
-        <option value="Interviewer">Interviewer</option>
-      </select>
+      <label class="form-label" for="staff-role"
+        >Role <span class="required">*</span></label
+      >
+      @if (isSuperadminView) {
+        <select
+          id="staff-role"
+          class="form-select"
+          [ngModel]="formData.role"
+          (ngModelChange)="onCreateRoleChange($event)"
+        >
+          <option value="HR">HR</option>
+          <option value="Interviewer">Interviewer</option>
+        </select>
+      } @else {
+        <input id="staff-role" class="form-input" value="Interviewer" disabled />
+      }
 
-      <label class="form-label" for="staff-dept">Department <span class="required">*</span></label>
-      <select id="staff-dept" class="form-select" [(ngModel)]="formData.departmentId">
-        <option value="">Select department</option>
+      <label class="form-label" for="staff-dept"
+        >Department <span class="required">*</span></label
+      >
+      <select
+        id="staff-dept"
+        class="form-select"
+        [(ngModel)]="formData.departmentId"
+        [disabled]="formData.role === UserRole.HR"
+      >
+        <option value="">
+          {{
+            formData.role === UserRole.HR
+              ? "Auto-assigned to HR department"
+              : "Select department"
+          }}
+        </option>
         @for (d of departments(); track d.id) {
-          <option [value]="d.id">{{ d.name }}</option>
+          <option [ngValue]="d.id">{{ d.name }}</option>
         }
       </select>
 
@@ -245,12 +309,91 @@
       }
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeCreateDialog()" [disabled]="creating()">
+      <button
+        class="btn-secondary"
+        (click)="closeCreateDialog()"
+        [disabled]="creating()"
+      >
         Cancel
       </button>
       <button class="btn-primary" (click)="saveStaff()" [disabled]="creating()">
-        {{ creating() ? 'Creating…' : 'Create account' }}
+        {{ creating() ? "Creating…" : "Create account" }}
       </button>
     </div>
   </div>
 }
+
+@if (showEditDialog()) {
+  <div class="modal-backdrop" (click)="closeEditDialog()"></div>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Edit staff account</h2>
+      <button class="btn-ghost btn-icon" (click)="closeEditDialog()">×</button>
+    </div>
+    <div class="modal-body">
+      <label class="form-label">Full name <span class="required">*</span></label>
+      <input class="form-input" [(ngModel)]="editFormData.fullName" />
+
+      <label class="form-label">Role <span class="required">*</span></label>
+      @if (isSuperadminView) {
+        <select
+          class="form-select"
+          [ngModel]="editFormData.role"
+          (ngModelChange)="onEditRoleChange($event)"
+        >
+          <option value="HR">HR</option>
+          <option value="Interviewer">Interviewer</option>
+        </select>
+      } @else {
+        <input class="form-input" [value]="editFormData.role" disabled />
+      }
+
+      <label class="form-label"
+        >Department <span class="required">*</span></label
+      >
+      <select
+        class="form-select"
+        [(ngModel)]="editFormData.departmentId"
+        [disabled]="editFormData.role === UserRole.HR"
+      >
+        <option value="">
+          {{
+            editFormData.role === UserRole.HR
+              ? "Auto-assigned to HR department"
+              : "Select department"
+          }}
+        </option>
+        @for (d of departments(); track d.id) {
+          <option [ngValue]="d.id">{{ d.name }}</option>
+        }
+      </select>
+
+      <label class="form-label">Job title</label>
+      <input class="form-input" [(ngModel)]="editFormData.position" />
+
+      <label class="form-label">Phone</label>
+      <input class="form-input" [(ngModel)]="editFormData.phone" />
+
+      @if (formError()) {
+        <div class="alert alert-danger">{{ formError() }}</div>
+      }
+    </div>
+    <div class="modal-footer">
+      <button
+        class="btn-secondary"
+        (click)="closeEditDialog()"
+        [disabled]="updating()"
+      >
+        Cancel
+      </button>
+      <button
+        class="btn-primary"
+        (click)="saveEditedStaff()"
+        [disabled]="updating()"
+      >
+        {{ updating() ? "Saving..." : "Save changes" }}
+      </button>
+    </div>
+  </div>
+}
+

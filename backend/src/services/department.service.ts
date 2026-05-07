@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Department } from 'src/entities/department.entity';
 import { DepartmentCreateDto } from 'src/dto/department.create.dto';
@@ -11,17 +11,26 @@ export class DepartmentService {
     private deparmentsTable: Repository<Department>,
   ) {}
 
-  findAll(): Promise<Department[]> {
-    return this.deparmentsTable.find();
+  async findAll(): Promise<Department[]> {
+    return await this.deparmentsTable.find();
   }
 
-  create(data: DepartmentCreateDto) {
+  async create(data: DepartmentCreateDto) {
     return this.deparmentsTable.manager.transaction(async (manager) => {
       const department = manager.create(Department, data);
-      const newDepartment = await manager.save(department);
-
-      newDepartment.code = `D${newDepartment.id.toString().padStart(4, '0')}`;
-      return manager.save(newDepartment);
+      return await manager.save(department);
     });
+  }
+
+  async changeStatus(id: number, status: boolean) {
+    const department = await this.deparmentsTable.findOneBy({ id });
+
+    if (!department) {
+      throw new NotFoundException('Department not found');
+    }
+
+    department.isActive = status;
+
+    return this.deparmentsTable.save(department);
   }
 }

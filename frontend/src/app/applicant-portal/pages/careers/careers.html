@@ -1,91 +1,109 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-sans animate-in fade-in duration-500">
-
-  <div class="text-center mb-10">
-    <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
-      Explore <span class="text-blue-500">Career</span> Opportunities
-    </h1>
-    <p class="text-lg text-slate-500 max-w-2xl mx-auto">
-      Join our team and build the future together. Discover roles that match your passion and skills.
-    </p>
+<div class="min-h-screen bg-slate-50 py-10 px-4 font-sans">
+  <!-- Search Header -->
+  <div class="max-w-5xl mx-auto mb-10 text-center">
+    <h1 class="text-3xl font-extrabold text-slate-900 mb-4">Explore <span class="text-blue-600">Career</span> Opportunities</h1>
+    <div class="max-w-2xl mx-auto mt-8 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex gap-2 relative">
+      <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+        <div class="w-8 h-8 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+      </div>
+      <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="fetchJobs()" placeholder="Search jobs by title..." class="flex-1 pl-14 pr-4 outline-none text-sm font-medium">
+      <button (click)="fetchJobs()" class="bg-slate-900 hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md">Search</button>
+    </div>
   </div>
 
-  <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 mb-10 flex flex-col md:flex-row gap-3 relative z-10">
-    <div class="flex-1 relative flex items-center">
-      <svg class="w-5 h-5 text-slate-400 absolute left-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="text" placeholder="Job title or keywords..." class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 bg-slate-50/50 text-sm font-medium">
-    </div>
-    <button class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl transition shadow-sm">
-      Search
-    </button>
+  <!-- Vacancy List -->
+  <div class="max-w-4xl mx-auto space-y-4">
+    @for (job of vacancies(); track job.id) {
+      <div class="bg-white rounded-[16px] p-5 border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors duration-200">
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div class="w-full">
+            <span class="inline-flex items-center h-6 px-3 rounded-full bg-blue-50 text-blue-600 text-[11px] font-semibold mb-3 border border-blue-100/50">
+              {{ job.department?.name || 'Open Position' }}
+            </span>
+            <h2 class="text-lg font-bold text-slate-900 mb-2">{{ job.title }}</h2>
+            <p class="text-sm text-slate-500 mb-4 line-clamp-2">{{ job.description }}</p>
+            <div class="flex items-center gap-4 text-[11px] font-medium text-slate-500">
+              <span class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-[8px] border border-slate-200 bg-white flex items-center justify-center"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg></div>{{ job.code }}</span>
+              <span class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-[8px] border border-slate-200 bg-white flex items-center justify-center"><svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>Closing: {{ job.closingDate }}</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center justify-start sm:justify-end gap-2 w-full sm:w-auto mt-4 sm:mt-0 shrink-0">
+            <button (click)="toggleSaveJob(job)" class="w-10 h-10 flex items-center justify-center rounded-xl border transition-colors shadow-sm shrink-0"
+                    [ngClass]="isJobSaved(job.id) ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'border-slate-200 bg-white text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50'">
+              <svg class="w-5 h-5" [attr.fill]="isJobSaved(job.id) ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+            </button>
+
+            <!-- Corrected Function Call for View Detail -->
+            <button (click)="viewJobDetail(job)" class="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl transition-all shadow-sm whitespace-nowrap">
+              View Detail
+            </button>
+
+            <button (click)="applyJob(job)" class="px-5 py-2.5 bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shrink-0 whitespace-nowrap">
+              Apply Now
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   </div>
-
-  @if (isLoading) {
-    <div class="flex flex-col justify-center items-center py-20 gap-4">
-      <div class="w-10 h-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div>
-    </div>
-  } @else {
-    <div class="space-y-4">
-      @for (job of jobs; track job.id) {
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-blue-300 hover:shadow-md transition duration-200 group">
-          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-3 mb-3">
-                <span class="inline-block px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold rounded-lg uppercase">
-                  {{ job.department?.name || 'General' }}
-                </span>
-                <span class="text-xs font-semibold text-slate-400">#{{ job.id }}</span>
-              </div>
-
-              <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-500 transition-colors mb-2">
-                {{ job.title }}
-              </h3>
-
-              <p class="text-sm text-slate-500 mb-4 line-clamp-2">{{ job.description }}</p>
-
-              <div class="flex flex-wrap items-center gap-x-8 gap-y-3 text-sm font-medium">
-                <div class="flex items-center gap-2 text-slate-600">
-                  <span class="text-slate-400 uppercase text-[10px] font-bold">Opening:</span>
-                  <span>{{ job.createdAt | date:'dd/MM/yyyy' }}</span>
-                </div>
-                <div class="flex items-center gap-2 text-orange-600">
-                  <span class="text-orange-300 uppercase text-[10px] font-bold">Closing:</span>
-                  <span>{{ job.closingDate | date:'dd/MM/yyyy' }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-3 w-full md:w-auto">
-              <button (click)="toggleFavorite(job)"
-                class="p-3 rounded-xl border border-slate-200 transition-all"
-                [ngClass]="job.isFavorite ? 'bg-red-50 text-red-500 border-red-100' : 'text-slate-400 hover:bg-slate-50'">
-                <svg class="w-5 h-5" [attr.fill]="job.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-                </svg>
-              </button>
-
-              @if (job.isApplied) {
-                <button class="flex-1 md:flex-none px-8 py-2.5 bg-green-100 text-green-600 text-sm font-bold rounded-xl cursor-default flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                  Applied
-                </button>
-              } @else {
-                <button (click)="applyJob(job)" class="flex-1 md:flex-none px-8 py-2.5 bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-sm">
-                  Apply Now
-                </button>
-              }
-            </div>
-
-          </div>
-        </div>
-      } @empty {
-        <div class="text-center py-20 bg-white border border-dashed border-slate-200 rounded-3xl">
-          <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          </div>
-          <p class="text-slate-400 font-medium">No vacancies match your criteria.</p>
-        </div>
-      }
-    </div>
-  }
 </div>
+
+<!-- JOB DETAIL MODAL (NEW) -->
+@if (isDetailModalOpen && selectedJob) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
+    <div class="bg-white w-full max-w-3xl rounded-[24px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50 shrink-0">
+        <div>
+          <span class="inline-flex items-center h-6 px-3 rounded-full bg-blue-50 text-blue-600 text-[11px] font-semibold mb-3 border border-blue-100/50">{{ selectedJob.department?.name }}</span>
+          <h2 class="text-2xl font-bold text-slate-900">{{ selectedJob.title }}</h2>
+        </div>
+        <button (click)="closeDetailModal()" class="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+      </div>
+      <div class="p-6 overflow-y-auto text-slate-700 text-sm leading-relaxed whitespace-pre-wrap flex-grow">
+        {{ selectedJob.description }}
+      </div>
+      <div class="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
+        <button (click)="closeDetailModal()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl text-sm">Close</button>
+        <button (click)="closeDetailModal(); applyJob(selectedJob)" class="px-8 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-blue-600 shadow-lg text-sm">Apply Now</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- APPLY MODAL (KEEP UNCHANGED) -->
+@if (isApplyModalOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div class="bg-white w-full max-w-2xl rounded-[24px] shadow-2xl m-4 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl border border-blue-100 bg-blue-50 flex items-center justify-center text-blue-600"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></div>
+          Apply for <span class="text-blue-600 ml-1">{{ selectedJobTitle }}</span>
+        </h3>
+        <button (click)="closeApplyModal()" class="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+      </div>
+      <div class="p-6 max-h-[60vh] overflow-y-auto">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-4 ml-1">Select your Resume</label>
+        <div class="grid grid-cols-1 gap-3">
+          @for (cv of myCvs(); track cv.id) {
+            <label class="relative flex items-center p-4 border rounded-[16px] cursor-pointer transition-all hover:bg-slate-50" [class.border-blue-500]="selectedCvId() === cv.id" [class.bg-blue-50]="selectedCvId() === cv.id" [class.border-slate-200]="selectedCvId() !== cv.id">
+              <input type="radio" name="cv" [value]="cv.id" (change)="selectedCvId.set(cv.id)" class="absolute opacity-0">
+              <div class="flex items-center gap-4 w-full">
+                <div class="w-10 h-10 rounded-xl border flex items-center justify-center transition-colors" [class.bg-blue-500]="selectedCvId() === cv.id" [class.border-blue-600]="selectedCvId() === cv.id" [class.text-white]="selectedCvId() === cv.id" [class.bg-white]="selectedCvId() !== cv.id" [class.border-slate-200]="selectedCvId() !== cv.id" [class.text-slate-400]="selectedCvId() !== cv.id"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
+                <span class="font-bold text-sm" [class.text-blue-700]="selectedCvId() === cv.id" [class.text-slate-700]="selectedCvId() !== cv.id">{{ cv.fileName }}</span>
+              </div>
+            </label>
+          }
+        </div>
+      </div>
+      <div class="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+        <button (click)="submitApplication()" [disabled]="loading()" class="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg disabled:opacity-50 text-sm">{{ loading() ? 'Submitting...' : 'Submit Application' }}</button>
+      </div>
+    </div>
+  </div>
+}

@@ -9,7 +9,11 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "assets": [
-      "mail/**/*"
+      "mail/**/*",
+      {
+        "include": "services/bullmq/send-mail-worker/templates/**/*.hbs",
+        "outDir": "dist"
+      }
     ],
     "watchAssets": true
   }

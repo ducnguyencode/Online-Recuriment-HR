@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
-import { ApplicationStatus } from 'src/enum/application-status.enum';
+import { ApplicationStatus } from 'src/common/enum';
 
 export class ApplicationFindDto {
   @IsOptional()

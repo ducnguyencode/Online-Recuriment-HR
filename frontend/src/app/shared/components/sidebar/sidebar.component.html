@@ -104,31 +104,6 @@
   </nav>
 
   <!-- User Footer -->
-  <div class="sidebar-footer">
-    <!-- Dev Role Switcher -->
-    <div class="role-switcher-wrap">
-      @if (showRoleMenu()) {
-        <div class="role-menu">
-          <div class="role-menu-header">Switch Role (Dev)</div>
-          @for (item of devRoles; track item.role) {
-            <button
-              class="role-menu-item"
-              [class.active]="auth.currentUser()?.role === item.role"
-              (click)="switchRole(item.role)"
-            >
-              <div class="role-menu-avatar">{{ item.role.charAt(0) }}</div>
-              <div class="role-menu-info">
-                <span class="role-menu-label">{{ item.label }}</span>
-                <span class="role-menu-email">{{ item.email }}</span>
-              </div>
-              @if (auth.currentUser()?.role === item.role) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              }
-            </button>
-          }
-        </div>
-      }
-    </div>
 
     <div class="user-info" (click)="toggleRoleMenu()" [title]="collapsed() ? 'Switch Role' : ''">
       <div class="user-avatar">
@@ -147,7 +122,6 @@
         </button>
       }
     </div>
-  </div>
 </aside>
 
 @if (showRoleMenu()) {

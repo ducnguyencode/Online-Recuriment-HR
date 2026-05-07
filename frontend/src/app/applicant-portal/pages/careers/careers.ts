@@ -1,99 +1,166 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { VacancyService } from '../../../core/services/vacancy.service';
-import { Vacancy } from '../../../core/models';
+import { AuthService } from '../../../core/services/auth.service';
+import {
+  ApplicationService,
+  CreateApplicationDto,
+} from '../../../core/services/application.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { ApplicantService } from '../../../core/services/applicant.service';
+import { VacancyStatus } from '../../../core/models';
 
 @Component({
   selector: 'app-careers',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './careers.html',
-  styleUrls: ['./careers.scss']
 })
 export class CareersComponent implements OnInit {
-  isLoggedIn = false;
-  jobs: any[] = [];
-  isLoading = true;
+  // --- EXISTING DATA SIGNALS ---
+  vacancies = signal<any[]>([]);
+  loading = signal(false);
+  searchQuery = '';
+
+  // --- APPLY MODAL STATE ---
+  isApplyModalOpen = false;
+  selectedJobTitle = '';
+  applyForm = { applicantId: '', vacancyId: '' };
+
+  // --- JOB DETAIL MODAL STATE (NEW) ---
+  isDetailModalOpen = false;
+  selectedJob: any = null;
+
+  myCvs = signal<any[]>([]);
+  selectedCvId = signal<string | null>(null);
+  savedJobIds = signal<string[]>([]);
 
   private router = inject(Router);
   private vacancyService = inject(VacancyService);
-
-  private mockData = [
-    {
-      id: 'V0001',
-      title: 'Senior Frontend Developer (Angular)',
-      description: 'Lead the development of our recruitment platform using Angular 17 and Tailwind CSS.',
-      department: { name: 'Engineering' },
-      createdAt: new Date().toISOString(),
-      closingDate: '2026-06-30',
-      numberOfOpenings: 2,
-      isFavorite: false
-    },
-    {
-      id: 'V0002',
-      title: 'Backend Developer (NestJS)',
-      description: 'Build scalable microservices and manage MongoDB databases for high-traffic applications.',
-      department: { name: 'Engineering' },
-      createdAt: new Date().toISOString(),
-      closingDate: '2026-07-15',
-      numberOfOpenings: 5,
-      isFavorite: true
-    },
-    {
-      id: 'V0003',
-      title: 'UI/UX Product Designer',
-      description: 'Design intuitive and beautiful user interfaces for our applicant tracking system.',
-      department: { name: 'Design' },
-      createdAt: new Date().toISOString(),
-      closingDate: '2026-05-20',
-      numberOfOpenings: 1,
-      isFavorite: false
-    }
-  ];
+  private auth = inject(AuthService);
+  private applicationService = inject(ApplicationService);
+  private toast = inject(ToastService);
+  private applicantServce = inject(ApplicantService);
 
   ngOnInit() {
     this.fetchJobs();
+    this.fetchUserCvs();
+    this.loadSavedJobs();
   }
 
+  // --- ORIGINAL FUNCTIONS (KEEP UNCHANGED) ---
   fetchJobs() {
-    this.isLoading = true;
+    this.loading.set(true);
+    this.vacancyService
+      .getAll({
+        search: this.searchQuery || undefined,
+        status: VacancyStatus.OPENED,
+      })
+      .subscribe({
+        next: (res: any) => {
+          this.vacancies.set(res.data?.items ?? res.data ?? []);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.toast.error('Failed to load vacancies.');
+          this.loading.set(false);
+        },
+      });
+  }
 
-    this.vacancyService.getAll({ status: 'Opened' }).subscribe({
-      next: (response: any) => {
-        const apiJobs = response?.data?.items || response?.data || [];
+  fetchUserCvs() {
+    if (this.auth.isLoggedIn()) {
+      this.applicantServce
+        .findAllCvByApplicantId(this.auth.currentUser()?.applicantId || '')
+        .subscribe((res) => this.myCvs.set(res.data));
+    }
+  }
 
-        if (apiJobs && apiJobs.length > 0) {
-          this.jobs = apiJobs.map((job: any) => ({
-            ...job,
-            isFavorite: false
-          }));
-        } else {
-          this.jobs = [...this.mockData];
-        }
-        this.isLoading = false;
+  applyJob(vacancy: any) {
+    if (!this.auth.isLoggedIn()) {
+      this.router.navigate(['/login']);
+    } else {
+      this.selectedJobTitle = vacancy.title;
+      this.selectedCvId.set(null);
+      this.applyForm = {
+        applicantId: this.auth.currentUser()?.applicantId || '',
+        vacancyId: vacancy.id,
+      };
+      this.isApplyModalOpen = true;
+    }
+  }
+
+  // --- NEW DETAIL MODAL FUNCTIONS ---
+  viewJobDetail(job: any) {
+    this.selectedJob = job;
+    this.isDetailModalOpen = true;
+  }
+
+  closeDetailModal() {
+    this.isDetailModalOpen = false;
+    this.selectedJob = null;
+  }
+
+  // --- REMAINING UTILITIES ---
+  closeApplyModal() {
+    this.isApplyModalOpen = false;
+  }
+
+  submitApplication() {
+    if (!this.selectedCvId()) {
+      this.toast.error('Please select a resume to apply!');
+      return;
+    }
+    this.loading.set(true);
+    const dto: CreateApplicationDto = {
+      applicantId: this.applyForm.applicantId,
+      vacancyId: this.applyForm.vacancyId,
+      cvId: this.selectedCvId() as string,
+    };
+
+    this.applicationService.applicantCreate(dto).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.closeApplyModal();
+        this.toast.success('Applied successfully!');
       },
-      error: (err) => {
-        console.error('API connection failed, using fallback mock data:', err);
-        this.jobs = [...this.mockData];
-        this.isLoading = false;
-      }
+      error: (err: any) => {
+        this.loading.set(false);
+        this.toast.error(err.error?.message || 'Application failed.');
+      },
     });
   }
 
-  toggleFavorite(job: any) {
-    job.isFavorite = !job.isFavorite;
-  }
-
-  viewDetails(job: any) {
-    alert('Opening details for: ' + job.title);
-  }
-
-  applyJob(job: any) {
-    if (!this.isLoggedIn) {
-      this.router.navigate(['/login']);
-    } else {
-      alert('Applied successfully for: ' + job.title);
+  loadSavedJobs() {
+    const saved = localStorage.getItem('saved_jobs');
+    if (saved) {
+      this.savedJobIds.set(JSON.parse(saved).map((j: any) => j.id));
     }
+  }
+
+  isJobSaved(id: string): boolean {
+    return this.savedJobIds().includes(id);
+  }
+
+  toggleSaveJob(job: any) {
+    if (!this.auth.isLoggedIn()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    let saved = [];
+    const savedStr = localStorage.getItem('saved_jobs');
+    if (savedStr) saved = JSON.parse(savedStr);
+    const index = saved.findIndex((j: any) => j.id === job.id);
+    if (index > -1) {
+      saved.splice(index, 1);
+      this.toast.success('Removed from saved jobs!');
+    } else {
+      saved.push(job);
+      this.toast.success('Job saved to your Dashboard!');
+    }
+    localStorage.setItem('saved_jobs', JSON.stringify(saved));
+    this.savedJobIds.set(saved.map((j: any) => j.id));
   }
 }

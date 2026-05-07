@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { EmployeeService } from '../../core/services/employee.service';
 
 @Component({
   selector: 'app-LProfile',
@@ -12,7 +13,9 @@ import { AuthService } from '../../core/services/auth.service';
       <div class="page-header">
         <div>
           <h1 class="page-title">My Profile</h1>
-          <p class="page-subtitle">Update personal details and change your password after login.</p>
+          <p class="page-subtitle">
+            Update personal details and change your password after login.
+          </p>
         </div>
       </div>
 
@@ -21,13 +24,18 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Personal Details</h2>
-              <p class="panel-copy">These details are shown in the HR portal header and internal account record.</p>
+              <p class="panel-copy">
+                These details are shown in the HR portal header and internal
+                account record.
+              </p>
             </div>
             <div class="profile-avatar">{{ initials() }}</div>
           </div>
 
           @if (detailMessage()) {
-            <div class="info-banner info-banner-info">{{ detailMessage() }}</div>
+            <div class="info-banner info-banner-info">
+              {{ detailMessage() }}
+            </div>
           }
 
           <div class="form-group">
@@ -41,22 +49,36 @@ import { AuthService } from '../../core/services/auth.service';
             </div>
             <div class="form-group">
               <label class="form-label">Role</label>
-              <input class="form-input" [ngModel]="auth.currentUser()?.role" disabled />
+              <input
+                class="form-input"
+                [ngModel]="auth.currentUser()?.role"
+                disabled
+              />
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Employee ID</label>
-              <input class="form-input" [ngModel]="auth.currentUser()?.employeeId || '—'" disabled />
+              <input
+                class="form-input"
+                [ngModel]="auth.currentUser()?.employeeId || '—'"
+                disabled
+              />
             </div>
             <div class="form-group">
               <label class="form-label">Applicant ID</label>
-              <input class="form-input" [ngModel]="auth.currentUser()?.applicantId || '—'" disabled />
+              <input
+                class="form-input"
+                [ngModel]="auth.currentUser()?.applicantId || '—'"
+                disabled
+              />
             </div>
           </div>
 
           <div class="panel-actions">
-            <button class="btn-primary" (click)="saveDetails()">Save Details</button>
+            <button class="btn-primary" (click)="saveDetails()">
+              Save Details
+            </button>
           </div>
         </section>
 
@@ -64,12 +86,16 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Change Password</h2>
-              <p class="panel-copy">Update your password to keep your account secure.</p>
+              <p class="panel-copy">
+                Update your password to keep your account secure.
+              </p>
             </div>
           </div>
 
           @if (passwordMessage()) {
-            <div class="info-banner info-banner-info">{{ passwordMessage() }}</div>
+            <div class="info-banner info-banner-info">
+              {{ passwordMessage() }}
+            </div>
           }
 
           @if (passwordError()) {
@@ -78,41 +104,102 @@ import { AuthService } from '../../core/services/auth.service';
 
           <div class="form-group">
             <label class="form-label">Current Password</label>
-            <input class="form-input" type="password" [(ngModel)]="passwordForm.currentPassword" />
+            <input
+              class="form-input"
+              type="password"
+              [(ngModel)]="passwordForm.currentPassword"
+            />
           </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">New Password</label>
-              <input class="form-input" type="password" [(ngModel)]="passwordForm.newPassword" />
+              <input
+                class="form-input"
+                type="password"
+                [(ngModel)]="passwordForm.newPassword"
+              />
             </div>
             <div class="form-group">
               <label class="form-label">Confirm Password</label>
-              <input class="form-input" type="password" [(ngModel)]="passwordForm.confirmPassword" />
+              <input
+                class="form-input"
+                type="password"
+                [(ngModel)]="passwordForm.confirmPassword"
+              />
             </div>
           </div>
 
           <div class="panel-actions">
-            <button class="btn-primary" (click)="changePassword()">Update Password</button>
+            <button class="btn-primary" (click)="changePassword()">
+              Update Password
+            </button>
           </div>
         </section>
       </div>
     </div>
   `,
-  styles: [`
-    .profile-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:16px; }
-    .panel { padding: 20px; }
-    .panel-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
-    .panel-title { margin:0 0 4px; font-size:16px; font-weight:600; color: var(--shell-text-strong); }
-    .panel-copy { margin:0; color: var(--shell-text-soft); font-size:12px; line-height:1.6; }
-    .panel-actions { display:flex; justify-content:flex-end; margin-top:8px; }
-    .profile-avatar {
-      width: 44px; height: 44px; border-radius: 16px; background: var(--shell-brand-soft); color: var(--shell-brand);
-      display:inline-flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; flex-shrink:0;
-    }
-    @media (max-width: 900px) {
-      .profile-grid { grid-template-columns: 1fr; }
-    }
-  `]
+  styles: [
+    `
+      .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .panel {
+        padding: 20px;
+      }
+      .panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .panel-title {
+        margin: 0 0 4px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--shell-text-strong);
+      }
+      .panel-copy {
+        margin: 0;
+        color: var(--shell-text-soft);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .panel-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px;
+      }
+      .profile-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 16px;
+        background: var(--shell-brand-soft);
+        color: var(--shell-brand);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .form-error-banner {
+        margin-bottom: 14px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: var(--shell-danger-soft);
+        color: var(--shell-danger);
+        font-size: 12px;
+      }
+      @media (max-width: 900px) {
+        .profile-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    `,
+  ],
 })
 export class ProfileComponent {
   detailMessage = signal('');
@@ -130,7 +217,10 @@ export class ProfileComponent {
     confirmPassword: '',
   };
 
-  constructor(public auth: AuthService) {
+  constructor(
+    public auth: AuthService,
+    private employeeService: EmployeeService,
+  ) {
     this.detailForm = {
       fullName: this.auth.currentUser()?.fullName ?? '',
       email: this.auth.currentUser()?.email ?? '',
@@ -138,15 +228,32 @@ export class ProfileComponent {
   }
 
   initials() {
-    return this.auth.currentUser()?.fullName?.split(' ').map(part => part[0]).slice(-2).join('').toUpperCase() || '?';
+    return (
+      this.auth
+        .currentUser()
+        ?.fullName?.split(' ')
+        .map((part) => part[0])
+        .slice(-2)
+        .join('')
+        .toUpperCase() || '?'
+    );
   }
 
   saveDetails() {
-    this.auth.updateCurrentUser({
-      fullName: this.detailForm.fullName,
-      email: this.detailForm.email,
-    });
-    this.detailMessage.set('Profile details updated successfully.');
+    this.employeeService
+      .updateAccount({
+        fullName: this.detailForm.fullName,
+        email: this.detailForm.email,
+      })
+      .subscribe({
+        next: (res) => {
+          this.auth.handleUpdateAccountSuccess(res);
+          this.detailMessage.set('Profile details updated successfully.');
+        },
+        error: (err) => {
+          this.detailMessage.set(err.error.message);
+        },
+      });
     setTimeout(() => this.detailMessage.set(''), 2500);
   }
 
@@ -154,12 +261,12 @@ export class ProfileComponent {
     this.passwordError.set('');
     this.passwordMessage.set('');
 
-    if (!this.passwordForm.currentPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmPassword) {
+    if (
+      !this.passwordForm.currentPassword ||
+      !this.passwordForm.newPassword ||
+      !this.passwordForm.confirmPassword
+    ) {
       this.passwordError.set('All password fields are required.');
-      return;
-    }
-    if (this.passwordForm.currentPassword !== '123456') {
-      this.passwordError.set('Current password is incorrect for the mock account.');
       return;
     }
     if (this.passwordForm.newPassword.length < 6) {
@@ -171,8 +278,20 @@ export class ProfileComponent {
       return;
     }
 
-    this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
-    this.passwordMessage.set('Password updated successfully in the mock workflow.');
+    this.employeeService.changePassword(this.passwordForm).subscribe({
+      next: (res) => {
+        this.passwordMessage.set('Password updated successfully!');
+        this.passwordForm = {
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        };
+      },
+      error: (err) => {
+        this.passwordError.set(err.error.message);
+      },
+    });
+
     setTimeout(() => this.passwordMessage.set(''), 2500);
   }
 }
