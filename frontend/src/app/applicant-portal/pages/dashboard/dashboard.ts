@@ -5,6 +5,8 @@ import { ApplicationService } from '../../../core/services/application.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ApplicationStatus } from '../../../core/models';
 import { ToastService } from '../../../core/services/toast.service';
+import { CreateApplicationDto } from '../../../core/services/application.service';
+import { InterviewService } from '../../../core/services/interview.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -15,15 +17,53 @@ import { ToastService } from '../../../core/services/toast.service';
 export class DashboardComponent implements OnInit {
   applications = signal<any[]>([]);
   savedJobs = signal<any[]>([]);
+  activeTab = signal<'APPLIED' | 'SAVED' | 'INTERVIEWS'>('APPLIED');
+
+  interviews = signal<any[]>([]);
+
+  isApplyModalOpen = false;
+  selectedJobTitle = '';
+  applyForm = { applicantId: '', vacancyId: '' };
+  myCvs = signal<any[]>([]);
+  selectedCvId = signal<string | null>(null);
   loading = signal(false);
 
   private applicationService = inject(ApplicationService);
   private authService = inject(AuthService);
   private toast = inject(ToastService);
 
+  // CONSTRUCTOR GỐC (GIỮ NGUYÊN KHÔNG ĐỤNG CHẠM)
+  constructor(
+    private applicationService: ApplicationService,
+    private authService: AuthService,
+    private interviewService: InterviewService,
+  ) { }
+
+  // NGONINIT GỐC (CHỈ THÊM 2 DÒNG GỌI HÀM MỚI BÊN DƯỚI)
   ngOnInit(): void {
-    this.fetchApplications();
+    const applicantId = this.authService.currentUser()?.applicantId;
+    // Đoạn code gốc của team:
+    this.applicationService
+      .getAll({
+        applicantId: this.authService.currentUser()?.applicantId,
+      })
+      .subscribe({
+        next: (res) => {
+          this.applications.set((res.data as any)?.items) ?? [];
+        },
+      });
+
+    // Đoạn code mới thêm vào:
     this.loadSavedJobs();
+    this.fetchUserCvs();
+
+    if (applicantId) {
+      this.interviewService.getAll({ applicantId: applicantId }).subscribe({
+        next: (res) => {
+          this.interviews.set((res.data as any)?.items) ?? [];
+        }
+      });
+    }
   }
 
   fetchApplications() {
