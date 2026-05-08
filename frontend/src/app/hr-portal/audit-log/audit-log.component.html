@@ -42,6 +42,7 @@
       </button>
     </div>
     <span class="result-count">{{ visibleLogsCount() }} records</span>
+    <span class="result-count">Auto refresh: 5s</span>
   </div>
   <div class="filters-meta">
     @if (hasActiveFilters()) {
@@ -70,6 +71,7 @@
       <thead>
         <tr>
           <th>Time</th>
+          <th>Account</th>
           <th>Actor Role</th>
           <th>Action</th>
           <th>Target</th>
@@ -81,6 +83,7 @@
         @for (item of pagedLogs(); track item.id) {
           <tr>
             <td class="mono-id">{{ item.createdAt | date:'MM/dd/yyyy HH:mm' }}</td>
+            <td>{{ actorFullName(item) }}</td>
             <td><span class="badge" [ngClass]="getActorRoleClass(item.actorRoleSnapshot)">{{ item.actorRoleSnapshot }}</span></td>
             <td><span class="badge" [ngClass]="getActionClass(item.action)">{{ formatActionLabel(item.action) }}</span></td>
             <td>
@@ -103,7 +106,7 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="6" class="empty-state">
+            <td colspan="7" class="empty-state">
               <p>{{ isLoading() ? 'Loading audit logs...' : 'No audit logs available for current filters' }}</p>
             </td>
           </tr>

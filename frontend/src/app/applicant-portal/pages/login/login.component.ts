@@ -155,6 +155,10 @@ export class LoginComponent implements OnInit {
     });
   }
 
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
   // --- HÀM XÁC THỰC MÃ 6 SỐ CỦA HR ---
   submit2FA() {
     this.formError = '';

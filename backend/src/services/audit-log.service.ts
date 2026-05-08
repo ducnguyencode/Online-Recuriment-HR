@@ -50,6 +50,7 @@ export class AuditLogService {
   async createLog(input: {
     actorId?: number | null;
     actorRoleSnapshot: string;
+    actorFullName?: string | null;
     action: string;
     targetId?: number | null;
     targetRoleSnapshot?: string | null;
@@ -65,6 +66,7 @@ export class AuditLogService {
       targetRoleSnapshot: input.targetRoleSnapshot ?? null,
       payload: {
         ...(input.payload ?? {}),
+        actorFullName: input.actorFullName ?? null,
         ipAddress: input.context?.ipAddress ?? null,
         userAgent: input.context?.userAgent ?? null,
       },
@@ -100,7 +102,9 @@ export class AuditLogService {
       });
     }
     if (input.action?.trim()) {
-      qb.andWhere('log.action = :action', { action: input.action.trim() });
+      qb.andWhere('log.action ILIKE :action', {
+        action: `%${input.action.trim()}%`,
+      });
     }
     if (input.from) {
       qb.andWhere('log.createdAt >= :from', { from: input.from });

@@ -9,6 +9,8 @@ import { TypeOrmExceptionFilter } from './common/api-response-format/typeorm-exc
 import { HttpExceptionFilter } from './common/api-response-format/http-exception.filter';
 import { CleanInputPipe } from './helper/clean-input-pipe';
 import { capitalize } from './helper/function.helper';
+import { ActivityAuditInterceptor } from './common/interceptor/activity-audit.interceptor';
+import { AuditLogService } from './services/audit-log.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -46,7 +48,10 @@ async function bootstrap() {
     credentials: true,
   });
   app.useGlobalFilters(new TypeOrmExceptionFilter(), new HttpExceptionFilter());
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get(Reflector)),
+    new ActivityAuditInterceptor(app.get(AuditLogService)),
+  );
   app.setGlobalPrefix('api');
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     index: false,

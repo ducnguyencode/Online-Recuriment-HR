@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { AuditLogItem, AuditLogService } from '../../core/services/audit-log.service';
 import {
@@ -18,7 +18,7 @@ import { ToastService } from '../../core/services/toast.service';
   templateUrl: './audit-log.component.html',
   styleUrl: './audit-log.component.scss',
 })
-export class AuditLogComponent implements OnInit {
+export class AuditLogComponent implements OnInit, OnDestroy {
   private static readonly CRUD_PATTERN =
     /(CREATE|UPDATE|DELETE|PATCH|ACTIVATE|DEACTIVATE|ROLE_CHANGED)/i;
   private static readonly AUTH_LOGIN_ACTION = 'AUTH_LOGIN_SUCCESS';
@@ -36,6 +36,7 @@ export class AuditLogComponent implements OnInit {
   actionFilter = '';
   fromDate = '';
   toDate = '';
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private auditLogService: AuditLogService,
@@ -57,37 +58,44 @@ export class AuditLogComponent implements OnInit {
       );
     }
 
-    this.loadLogs();
+    this.loadLogs({ resetPage: true, showErrorToast: true });
+    this.startRealtimeRefresh();
   }
 
   applyFilters() {
-    this.loadLogs();
+    this.loadLogs({ resetPage: true, showErrorToast: true });
   }
 
   resetFilters() {
     this.actionFilter = '';
     this.fromDate = '';
     this.toDate = '';
-    this.loadLogs();
+    this.loadLogs({ resetPage: true, showErrorToast: true });
   }
 
-  private loadLogs() {
-    const from = this.fromDate ? `${this.fromDate}T00:00:00.000Z` : undefined;
-    const to = this.toDate ? `${this.toDate}T23:59:59.999Z` : undefined;
+  private loadLogs(input: { resetPage: boolean; showErrorToast: boolean }) {
+    const from = this.toUtcStartOfDay(this.fromDate);
+    const to = this.toUtcEndOfDay(this.toDate);
     const action = this.actionFilter.trim() || undefined;
 
     this.isLoading.set(true);
     this.auditLogService.getLogs({ limit: 200, action, from, to }).subscribe({
       next: (res) => {
         this.logs.set(res.data ?? []);
-        this.currentPage.set(1);
+        if (input.resetPage) {
+          this.currentPage.set(1);
+        } else if (this.currentPage() > this.totalPages()) {
+          this.currentPage.set(this.totalPages());
+        }
       },
       error: (err) => {
         this.logs.set([]);
-        this.currentPage.set(1);
-        this.toast.error(
-          err?.error?.message ?? 'Unable to load audit logs. Please try again.',
-        );
+        if (input.resetPage) this.currentPage.set(1);
+        if (input.showErrorToast) {
+          this.toast.error(
+            err?.error?.message ?? 'Unable to load audit logs. Please try again.',
+          );
+        }
         this.isLoading.set(false);
       },
       complete: () => this.isLoading.set(false),
@@ -127,15 +135,23 @@ export class AuditLogComponent implements OnInit {
     );
   }
 
+  private authTimelineLogs(): AuditLogItem[] {
+    return this.visibleLogs().filter(
+      (item) =>
+        item.action === AuditLogComponent.AUTH_LOGIN_ACTION ||
+        item.action === AuditLogComponent.AUTH_LOGOUT_ACTION,
+    );
+  }
+
   pagedLogs(): AuditLogItem[] {
     const page = this.currentPage();
     const start = (page - 1) * this.pageSize;
     const end = start + this.pageSize;
-    return this.visibleLogs().slice(start, end);
+    return this.authTimelineLogs().slice(start, end);
   }
 
   totalPages(): number {
-    const total = this.visibleLogs().length;
+    const total = this.authTimelineLogs().length;
     return total > 0 ? Math.ceil(total / this.pageSize) : 1;
   }
 
@@ -144,7 +160,7 @@ export class AuditLogComponent implements OnInit {
   }
 
   visibleLogsCount(): number {
-    return this.visibleLogs().length;
+    return this.authTimelineLogs().length;
   }
 
   goToPage(page: number): void {
@@ -164,6 +180,12 @@ export class AuditLogComponent implements OnInit {
     return action.replace(/^AUTH_/i, '').replace(/_/g, ' ');
   }
 
+  actorFullName(item: AuditLogItem): string {
+    const payload = item.payload ?? {};
+    const fromPayload = this.readTextField(payload, 'actorFullName');
+    return fromPayload || 'Unknown';
+  }
+
   formatDetails(item: AuditLogItem): string {
     const payload = item.payload ?? {};
     const base = this.buildActionDetail(item.action, payload);
@@ -171,7 +193,10 @@ export class AuditLogComponent implements OnInit {
     const userAgent = this.readTextField(payload, 'userAgent');
     const device = this.summarizeUserAgent(userAgent);
     const context =
-      [ip ? `IP: ${ip}` : '', device ? `Device: ${device}` : '']
+      [
+        ip ? `IP: ${ip} (${this.classifyIp(ip)})` : '',
+        device ? `Device: ${device}` : '',
+      ]
         .filter(Boolean)
         .join(' | ') || '';
     return [base, context].filter(Boolean).join(' | ') || '—';
@@ -222,6 +247,13 @@ export class AuditLogComponent implements OnInit {
 
   closeSession() {
     this.selectedSession.set(null);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
   }
 
   private buildSessionDetail(
@@ -365,7 +397,12 @@ export class AuditLogComponent implements OnInit {
 
   private describeGenericPayload(payload: Record<string, unknown>): string {
     const text = Object.entries(payload)
-      .filter(([key]) => key !== 'ipAddress' && key !== 'userAgent')
+      .filter(
+        ([key]) =>
+          key !== 'ipAddress' &&
+          key !== 'userAgent' &&
+          key !== 'actorFullName',
+      )
       .map(([key, value]) => `${this.humanizeFieldName(key)}: ${this.formatUnknown(value)}`);
     return text.join(' | ');
   }
@@ -412,6 +449,46 @@ export class AuditLogComponent implements OnInit {
       return 'Safari';
     }
     return 'Unknown Client';
+  }
+
+  private startRealtimeRefresh() {
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+    this.refreshTimer = setInterval(() => {
+      this.loadLogs({ resetPage: false, showErrorToast: false });
+    }, 5000);
+  }
+
+  private toUtcStartOfDay(value: string): string | undefined {
+    if (!value) return undefined;
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return undefined;
+    return date.toISOString();
+  }
+
+  private toUtcEndOfDay(value: string): string | undefined {
+    if (!value) return undefined;
+    const date = new Date(`${value}T23:59:59.999`);
+    if (Number.isNaN(date.getTime())) return undefined;
+    return date.toISOString();
+  }
+
+  private classifyIp(ip: string): string {
+    const value = ip.trim();
+    if (
+      value === '::1' ||
+      value.startsWith('127.') ||
+      value.toLowerCase() === 'localhost'
+    ) {
+      return 'localhost';
+    }
+    if (
+      value.startsWith('10.') ||
+      value.startsWith('192.168.') ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(value)
+    ) {
+      return 'private network';
+    }
+    return 'public network';
   }
 
   private formatUnknown(value: unknown): string {

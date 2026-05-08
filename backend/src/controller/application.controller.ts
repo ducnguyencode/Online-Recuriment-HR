@@ -15,13 +15,10 @@ import {
 } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { ApplicationStatusAccess } from 'src/common/decorator/application-status-access.decorator';
 import { Roles } from 'src/common/decorator/decorator';
 import { ApplicationStatus, UserRole } from 'src/common/enum';
 import { ApplicationStatusPolicyGuard } from 'src/common/guards/application-status-policy.guard';
-import { Roles } from 'src/common/decorator/decorator';
-import { ApplicationStatus, UserRole } from 'src/common/enum';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
@@ -114,7 +111,6 @@ export class ApplicationController {
   @ApplicationStatusAccess({ allowSameStatus: false })
   @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   @Patch('change-status')
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async changeStatus(
     @Query('id') id: number,
     @Query('status') status: ApplicationStatus,

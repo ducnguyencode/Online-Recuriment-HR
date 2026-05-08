@@ -65,6 +65,7 @@ export class AuthService {
         await this.auditLogService.createLog({
           actorId: user.id,
           actorRoleSnapshot: user.role,
+          actorFullName: user.fullName,
           action: 'AUTH_LOGIN_SUCCESS',
           targetId: user.id,
           targetRoleSnapshot: user.role,
@@ -161,6 +162,7 @@ export class AuthService {
       await this.auditLogService.createLog({
         actorId: user.id,
         actorRoleSnapshot: user.role,
+        actorFullName: user.fullName,
         action: 'AUTH_FORGOT_PASSWORD_REQUESTED',
         targetId: user.id,
         targetRoleSnapshot: user.role,
@@ -226,6 +228,7 @@ export class AuthService {
       await this.auditLogService.createLog({
         actorId: user.id,
         actorRoleSnapshot: user.role,
+        actorFullName: user.fullName,
         action: 'AUTH_PASSWORD_RESET_SUCCESS',
         targetId: user.id,
         targetRoleSnapshot: user.role,
@@ -294,6 +297,7 @@ export class AuthService {
       await this.auditLogService.createLog({
         actorId: user.id,
         actorRoleSnapshot: user.role,
+        actorFullName: user.fullName,
         action: 'AUTH_PASSWORD_CHANGED',
         targetId: user.id,
         targetRoleSnapshot: user.role,
@@ -316,6 +320,7 @@ export class AuthService {
       await this.auditLogService.createLog({
         actorId: user.id,
         actorRoleSnapshot: user.role,
+        actorFullName: user.fullName,
         action: 'AUTH_LOGOUT',
         targetId: user.id,
         targetRoleSnapshot: user.role,
