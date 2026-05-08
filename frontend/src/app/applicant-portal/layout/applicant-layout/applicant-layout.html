@@ -34,9 +34,12 @@
         } @else {
           <!-- KHI ĐANG Ở TRANG AUTH → NÚT BACK TO CAREERS; CÒN LẠI → NÚT SIGN IN -->
           @if (isAuthPage) {
-            <button routerLink="/careers" class="px-6 py-2 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
-              ← Back to Careers
-            </button>
+            <a routerLink="/careers" class="inline-flex items-center gap-1.5 text-[13px] font-medium text-blue-600 hover:text-blue-700 transition-colors no-underline">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
+              </svg>
+              Back to Careers
+            </a>
           } @else {
             <button routerLink="/login" class="px-6 py-2 bg-slate-900 text-white text-xs font-black rounded-xl hover:bg-blue-600 transition-all shadow-md uppercase italic tracking-widest">
               Sign In
