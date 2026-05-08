@@ -27,6 +27,13 @@ export class CvService {
     if (!file) {
       throw new BadRequestException('Invalid file');
     }
+    if (file.mimetype != 'application/pdf') {
+      throw new BadRequestException('Only accept pdf');
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('File size too large');
+    }
+
     return this.cvsTable.manager.transaction(async (manager) => {
       if (
         (await manager.count(CV, {
