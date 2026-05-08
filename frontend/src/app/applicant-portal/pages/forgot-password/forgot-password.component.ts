@@ -26,6 +26,7 @@ export class ForgotPasswordComponent {
   isResetDone = false;
   errorMessage = '';
   successMessage = '';
+  private resetRedirectTimer: ReturnType<typeof setTimeout> | null = null;
   showPassword = false;
   showConfirmPassword = false;
   currentYear = new Date().getFullYear();
@@ -72,16 +73,20 @@ export class ForgotPasswordComponent {
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
-      this.errorMessage = 'Confirm password does not match.';
+      this.errorMessage = 'Passwords do not match.';
       return;
     }
 
     this.isLoading = true;
     this.auth.resetPassword(this.token, this.newPassword).subscribe({
-      next: (res) => {
+      next: () => {
         this.isLoading = false;
         this.isResetDone = true;
-        this.successMessage = res.message;
+        this.successMessage = 'Password reset successfully';
+        this.resetRedirectTimer = setTimeout(() => {
+          this.router.navigate(['/login']);
+          this.resetRedirectTimer = null;
+        }, 3000);
       },
       error: (err) => {
         this.isLoading = false;
@@ -100,6 +105,10 @@ export class ForgotPasswordComponent {
   }
 
   returnLogin() {
+    if (this.resetRedirectTimer) {
+      clearTimeout(this.resetRedirectTimer);
+      this.resetRedirectTimer = null;
+    }
     this.router.navigate([this.isHrScope ? '/hr/login' : '/login']);
   }
 }

@@ -50,10 +50,11 @@
         <span class="filter-chip">From: {{ fromDate || 'Any' }}</span>
         <span class="filter-chip">To: {{ toDate || 'Any' }}</span>
       </div>
-    } @else {
-      <span class="muted">No active filters</span>
     }
-    @if (isSuperAdmin) {
+    <!-- } @else {
+      <span class="muted">No active filters</span>
+    } -->
+    <!-- @if (isSuperAdmin) {
       <button
         type="button"
         class="btn-ghost btn-sm"
@@ -61,7 +62,7 @@
       >
         {{ showMyActions() ? 'Hide my actions' : 'Show my actions' }}
       </button>
-    }
+    } -->
   </div>
 
   <div class="card" style="overflow:hidden;">
@@ -85,7 +86,7 @@
             <td>
               <div class="entity-stack">
                 <span>{{ item.targetRoleSnapshot || '—' }}</span>
-                <span class="mono-id">{{ item.targetId || '—' }}</span>
+                <span class="mono-id">{{ item.targetfullName || '—' }}</span>
               </div>
             </td>
             <td>{{ formatDetails(item) }}</td>

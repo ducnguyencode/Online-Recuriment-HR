@@ -30,7 +30,11 @@ export class AuditLogController {
     const toDate = to ? new Date(to) : undefined;
     const actorRolesByAccess =
       user.role === UserRole.SUPER_ADMIN
-        ? [UserRole.SUPER_ADMIN, UserRole.HR, UserRole.INTERVIEWER]
+        ? [
+            // UserRole.SUPER_ADMIN, // hidden from audit log list
+            UserRole.HR,
+            UserRole.INTERVIEWER,
+          ]
         : [UserRole.INTERVIEWER];
 
     const data = await this.auditLogs.list({

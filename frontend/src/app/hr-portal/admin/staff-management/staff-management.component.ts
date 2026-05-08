@@ -242,12 +242,6 @@ export class StaffManagementComponent implements OnInit {
 
   resendCredentials(user: UserAccount | undefined) {
     if (!user) return;
-    if (
-      !confirm(
-        `Send an activation/reset password email to ${user.email}?`,
-      )
-    )
-      return;
     this.errorMsg.set('');
     this.formSuccess.set('');
     this.adminService.resendTemporaryPassword(user.id).subscribe({

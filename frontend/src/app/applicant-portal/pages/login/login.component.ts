@@ -25,7 +25,9 @@ export class LoginComponent implements OnInit {
   form = { email: '', password: '' };
   formError = '';
   successMessage = '';
+  resendVerifyMessage = '';
   isLoading = false;
+  isResendingVerify = false;
   showPassword = false;
 
   // --- BIẾN CHO LUỒNG 2FA ---
@@ -59,6 +61,7 @@ export class LoginComponent implements OnInit {
 
   submit() {
     this.formError = '';
+    this.resendVerifyMessage = '';
     this.isLoading = true;
 
     this.auth.login(this.form).subscribe({
@@ -100,8 +103,35 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  togglePasswordVisibility(): void {
-    this.showPassword = !this.showPassword;
+  canShowResendVerify(): boolean {
+    const email = this.form.email.trim();
+    if (!email || this.selectedRole !== UserRoleLogin.APPLICANT) return false;
+    const message = this.formError.toLowerCase();
+    return (
+      message.includes('please verify your email first') ||
+      message.includes('account not verified')
+    );
+  }
+
+  resendVerification() {
+    const email = this.form.email.trim();
+    if (!email || this.isResendingVerify) return;
+    this.resendVerifyMessage = '';
+    this.isResendingVerify = true;
+    this.auth.resendVerify(email).subscribe({
+      next: (res) => {
+        this.isResendingVerify = false;
+        this.resendVerifyMessage =
+          res?.message ??
+          'If your account exists, a verification link has been sent.';
+      },
+      error: (err) => {
+        this.isResendingVerify = false;
+        this.resendVerifyMessage =
+          err?.error?.message ??
+          'Unable to resend verification email. Please try again.';
+      },
+    });
   }
 
   // --- HÀM XÁC THỰC MÃ 6 SỐ CỦA HR ---

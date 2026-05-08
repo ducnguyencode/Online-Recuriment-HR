@@ -107,6 +107,13 @@ export class AuthService {
     );
   }
 
+  resendVerify(email: string) {
+    return this.http.post<ApiResponse<{ message: string }>>(
+      `${environment.apiUrl}/auth/resend-verify`,
+      { email },
+    );
+  }
+
   resetPassword(token: string, newPassword: string) {
     return this.http.post<ApiResponse<{ message: string }>>(
       `${environment.apiUrl}/auth/reset-password`,

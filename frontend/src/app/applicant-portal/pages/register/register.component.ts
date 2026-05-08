@@ -69,8 +69,20 @@ export class RegisterComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
     this.successMessage = '';
+    if (this.form.password !== this.form.confirmPassword) {
+      this.errorMessage = 'Passwords do not match.';
+      return;
+    }
 
-    this.auth.register(this.form).subscribe({
+    this.isLoading = true;
+
+    this.auth
+      .register({
+        fullName: this.form.fullName,
+        email: this.form.email,
+        password: this.form.password,
+      })
+      .subscribe({
       next: () => {
         this.isLoading = false;
         this.isRegistered = true;
@@ -83,7 +95,7 @@ export class RegisterComponent implements OnInit {
         this.errorMessage =
           err.error?.message || 'Registration failed. Please try again.';
       },
-    });
+      });
   }
 
   returnLogin() {
