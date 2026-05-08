@@ -62,9 +62,12 @@ export class ApplicationController {
 
       const minutes = Math.ceil(ttl / 60);
       const seconds = ttl % 60;
-      throw new BadRequestException(
-        `Please wait ${minutes}m ${seconds}s before applying again`,
-      );
+      const limit = await this.redis.incrby(key, 1);
+      if (limit > 10) {
+        throw new BadRequestException(
+          `Please wait ${minutes}m ${seconds}s before applying again`,
+        );
+      }
     }
 
     const { data } = await this.applicationApplyQueue.add(

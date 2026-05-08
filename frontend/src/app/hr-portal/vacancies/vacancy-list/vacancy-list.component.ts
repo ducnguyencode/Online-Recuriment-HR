@@ -23,6 +23,7 @@ import {
   VacancyStatus,
   ApplicationStatus,
 } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-vacancy-list',
@@ -84,6 +85,7 @@ export class VacancyListComponent implements OnInit {
     private vacancyService: VacancyService,
     private applicationService: ApplicationService,
     private departmentService: DepartmentService,
+    private toast: ToastService,
     private mockData: MockDataService, // fallback when backend not ready
   ) {}
 
@@ -286,7 +288,10 @@ export class VacancyListComponent implements OnInit {
 
   openEditDialog(v: Vacancy, event: Event) {
     event.stopPropagation();
-    if (!this.canEdit(v)) return;
+    if (!this.canEdit(v)) {
+      this.toast.show(this.editTitle(v), 'error');
+      return;
+    }
     this.isEditing.set(true);
     this.selectedVacancy.set(v);
     this.formData = {
@@ -385,9 +390,8 @@ export class VacancyListComponent implements OnInit {
 
     this.vacancyService.changeStatus(v.id, status).subscribe({
       next: () => this.loadVacancies(),
-      error: () => {
-        this.mockData.updateVacancyStatus(v.id, status);
-        this.loadVacancies();
+      error: (err) => {
+        this.toast.show(err.error.message, 'error');
       },
     });
   }
