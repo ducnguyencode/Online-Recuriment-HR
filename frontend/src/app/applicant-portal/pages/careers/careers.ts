@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +6,8 @@ import { VacancyService } from '../../../core/services/vacancy.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ApplicantService } from '../../../core/services/applicant.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-careers',
@@ -16,9 +18,27 @@ import { AuthService } from '../../../core/services/auth.service';
 export class CareersComponent implements OnInit {
   vacancies = signal<any[]>([]);
   loading = signal(false);
-  searchQuery = '';
 
-  // Modal states
+  searchQuery = '';
+  searchSubject = new Subject<string>();
+
+  selectedDepartment = signal<string>('');
+
+  departments = computed(() => {
+    const jobs = this.vacancies();
+    const deps = jobs.map(j => j.department?.name).filter(Boolean);
+    return deps.filter((item, index) => deps.indexOf(item) === index);
+  });
+
+  filteredVacancies = computed(() => {
+    let jobs = this.vacancies();
+    const dep = this.selectedDepartment();
+    if (dep) {
+      jobs = jobs.filter(j => j.department?.name === dep);
+    }
+    return jobs;
+  });
+
   isDetailModalOpen = false;
   selectedJobDetail: any = null;
   isApplyModalOpen = false;
@@ -35,6 +55,18 @@ export class CareersComponent implements OnInit {
   ngOnInit() {
     this.fetchJobs();
     this.fetchUserCvs();
+
+    this.searchSubject.pipe(
+      debounceTime(500),
+      distinctUntilChanged()
+    ).subscribe(query => {
+      this.searchQuery = query;
+      this.fetchJobs();
+    });
+  }
+
+  onSearchInput(value: string) {
+    this.searchSubject.next(value);
   }
 
   fetchJobs() {

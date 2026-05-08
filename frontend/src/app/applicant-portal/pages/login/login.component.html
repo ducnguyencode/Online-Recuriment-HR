@@ -3,11 +3,13 @@
 
     @if (currentStep === 'LOGIN') {
       <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 text-white font-black text-xl rounded-2xl shadow-sm mb-4">
-          HR
-        </div>
+        <img src="/logo-hr-portal.svg" alt="Recruitment Logo" class="h-14 mx-auto mb-4 drop-shadow-sm" onerror="this.style.display='none'">
         <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
-          {{ selectedRole === UserRoleLogin.APPLICANT ? 'Applicant Login' : 'HR Portal Access' }}
+          @if (selectedRole === UserRoleLogin.APPLICANT) {
+            Applicant <span class="text-blue-600">Login</span>
+          } @else {
+            HR Portal <span class="text-blue-600">Access</span>
+          }
         </h2>
         <p class="text-sm text-slate-500 mt-2">
           Enter your details to access your account.
@@ -36,11 +38,7 @@
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
-            <a
-              [routerLink]="['/forgot-password']"
-              [queryParams]="selectedRole === UserRoleLogin.HR ? { scope: 'hr' } : null"
-              class="text-xs font-bold text-blue-500 hover:text-blue-700 transition"
-            >
+            <a [routerLink]="['/forgot-password']" [queryParams]="selectedRole === UserRoleLogin.HR ? { scope: 'hr' } : null" class="text-xs font-bold text-blue-500 hover:text-blue-700 transition">
               {{ selectedRole === UserRoleLogin.HR ? 'Reset HR Password' : 'Forgot?' }}
             </a>
           </div>
@@ -56,24 +54,19 @@
 
       @if (selectedRole === UserRoleLogin.APPLICANT) {
         <div class="mt-8 text-center text-sm font-medium text-slate-500">
-          Don't have an account?
-          <a routerLink="/register" class="text-blue-600 font-bold hover:underline">Sign up now</a>
+          Don't have an account? <a routerLink="/register" class="text-blue-600 font-bold hover:underline">Sign up now</a>
         </div>
       }
 
     } @else if (currentStep === 'SETUP_2FA') {
       <div class="text-center animate-in zoom-in duration-300">
-        <h3 class="text-xl font-bold text-slate-900 mb-2">Bảo mật 2 Lớp (2FA)</h3>
-        <p class="text-sm text-slate-500 mb-6 px-2">Mở ứng dụng <strong>Google Authenticator</strong> để quét mã QR này.</p>
-
+        <h3 class="text-xl font-bold text-slate-900 mb-2">Two-Factor Authentication (2FA)</h3>
+        <p class="text-sm text-slate-500 mb-6 px-2">Open your <strong>Google Authenticator</strong> app to scan this QR code.</p>
         <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 inline-block mb-6">
           <img [src]="mockQrUrl" alt="QR Code" class="w-40 h-40 mx-auto rounded-lg" />
         </div>
-
-        <button (click)="currentStep = 'VERIFY_2FA'" class="w-full py-3.5 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition shadow-md">
-          Đã quét xong, Tiếp tục &rarr;
-        </button>
-        <button (click)="currentStep = 'LOGIN'" class="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 transition">Quay lại đăng nhập</button>
+        <button (click)="currentStep = 'VERIFY_2FA'" class="w-full py-3.5 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition shadow-md">Scanned, Continue &rarr;</button>
+        <button (click)="currentStep = 'LOGIN'" class="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 transition">Back to login</button>
       </div>
 
     } @else {
@@ -81,23 +74,15 @@
         <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-50 text-blue-500 rounded-full mb-4">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
         </div>
-        <h3 class="text-xl font-bold text-slate-900 mb-2">Xác thực 2 Bước</h3>
-        <p class="text-sm text-slate-500 mb-6 px-4">Nhập mã 6 chữ số từ ứng dụng Google Authenticator của bạn.</p>
-
-        <input type="text" [(ngModel)]="twoFactorCode" maxlength="6" placeholder="000000"
-          class="w-full text-center text-3xl tracking-[0.4em] px-4 py-4 rounded-xl border border-slate-200 focus:border-blue-500 bg-slate-50/50 outline-none transition font-mono font-bold text-slate-800 mb-4" />
-
-        @if (formError) {
-          <p class="text-red-500 text-xs font-bold mb-4">{{ formError }}</p>
-        }
-
+        <h3 class="text-xl font-bold text-slate-900 mb-2">Two-Step Verification</h3>
+        <p class="text-sm text-slate-500 mb-6 px-4">Enter the 6-digit code from your Google Authenticator app.</p>
+        <input type="text" [(ngModel)]="twoFactorCode" maxlength="6" placeholder="000000" class="w-full text-center text-3xl tracking-[0.4em] px-4 py-4 rounded-xl border border-slate-200 focus:border-blue-500 bg-slate-50/50 outline-none transition font-mono font-bold text-slate-800 mb-4" />
+        @if (formError) { <p class="text-red-500 text-xs font-bold mb-4">{{ formError }}</p> }
         <button (click)="submit2FA()" [disabled]="isLoading" class="w-full py-3.5 bg-slate-900 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition shadow-md disabled:opacity-50">
-          {{ isLoading ? 'Đang kiểm tra...' : 'Xác nhận' }}
+          {{ isLoading ? 'Verifying...' : 'Confirm' }}
         </button>
-
-        <button (click)="currentStep = 'LOGIN'" class="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 transition">&larr; Quay lại</button>
+        <button (click)="currentStep = 'LOGIN'" class="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 transition">&larr; Go Back</button>
       </div>
     }
-
   </div>
 </div>
