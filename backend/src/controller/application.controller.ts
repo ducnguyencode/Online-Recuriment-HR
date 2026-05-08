@@ -111,6 +111,7 @@ export class ApplicationController {
   @ApplicationStatusAccess({ allowSameStatus: false })
   @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   @Patch('change-status')
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async changeStatus(
     @Query('id') id: number,
     @Query('status') status: ApplicationStatus,
