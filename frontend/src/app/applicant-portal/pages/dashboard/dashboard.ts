@@ -31,13 +31,7 @@ export class DashboardComponent implements OnInit {
   private applicationService = inject(ApplicationService);
   private authService = inject(AuthService);
   private toast = inject(ToastService);
-
-  // CONSTRUCTOR GỐC (GIỮ NGUYÊN KHÔNG ĐỤNG CHẠM)
-  constructor(
-    private applicationService: ApplicationService,
-    private authService: AuthService,
-    private interviewService: InterviewService,
-  ) { }
+  private interviewService = inject(InterviewService);
 
   // NGONINIT GỐC (CHỈ THÊM 2 DÒNG GỌI HÀM MỚI BÊN DƯỚI)
   ngOnInit(): void {
@@ -99,5 +93,52 @@ export class DashboardComponent implements OnInit {
       [ApplicationStatus.SELECTED]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     };
     return map[status] ?? 'bg-slate-50 text-slate-500 border-slate-200';
+  }
+
+  fetchUserCvs() {
+    const applicantId = this.authService.currentUser()?.applicantId;
+    if (!applicantId) return;
+    this.applicationService.getMyCvs(applicantId).subscribe({
+      next: (res: any) => {
+        this.myCvs.set(res.data?.items ?? res.data ?? []);
+      },
+    });
+  }
+
+  applySavedJob(job: any) {
+    this.selectedJobTitle = job.title ?? job.jobTitle ?? '';
+    this.isApplyModalOpen = true;
+    this.applyForm.vacancyId = job.id ?? job.vacancyId ?? '';
+    this.applyForm.applicantId = this.authService.currentUser()?.applicantId ?? '';
+  }
+
+  closeApplyModal() {
+    this.isApplyModalOpen = false;
+    this.selectedCvId.set(null);
+  }
+
+  submitApplication() {
+    if (!this.selectedCvId()) {
+      this.toast.warning('Please select a CV');
+      return;
+    }
+    this.loading.set(true);
+    const dto: CreateApplicationDto = {
+      applicantId: this.authService.currentUser()?.applicantId ?? '',
+      vacancyId: this.applyForm.vacancyId,
+      cvId: this.selectedCvId()!,
+    };
+    this.applicationService.create(dto).subscribe({
+      next: () => {
+        this.toast.success('Application submitted successfully');
+        this.closeApplyModal();
+        this.loading.set(false);
+        this.fetchApplications();
+      },
+      error: () => {
+        this.toast.error('Failed to submit application');
+        this.loading.set(false);
+      },
+    });
   }
 }
