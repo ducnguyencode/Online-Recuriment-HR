@@ -9,6 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-LAudit-LLog',
@@ -40,6 +41,7 @@ export class AuditLogComponent implements OnInit {
     private auditLogService: AuditLogService,
     private loginHistoryService: LoginHistoryService,
     private auth: AuthService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -80,9 +82,12 @@ export class AuditLogComponent implements OnInit {
         this.logs.set(res.data ?? []);
         this.currentPage.set(1);
       },
-      error: () => {
+      error: (err) => {
         this.logs.set([]);
         this.currentPage.set(1);
+        this.toast.error(
+          err?.error?.message ?? 'Unable to load audit logs. Please try again.',
+        );
         this.isLoading.set(false);
       },
       complete: () => this.isLoading.set(false),
@@ -174,6 +179,7 @@ export class AuditLogComponent implements OnInit {
 
   viewSession(item: AuditLogItem) {
     if (typeof item.actorId !== 'number') {
+      this.toast.warning('Session details are unavailable for this log item.');
       this.selectedSession.set({
         email: 'Unknown user',
         role: item.actorRoleSnapshot,
@@ -204,7 +210,10 @@ export class AuditLogComponent implements OnInit {
         );
         this.selectedSession.set(detail);
       },
-      error: () => {
+      error: (err) => {
+        this.toast.error(
+          err?.error?.message ?? 'Unable to load session details. Please try again.',
+        );
         this.selectedSession.set(null);
       },
       complete: () => this.isSessionLoading.set(false),

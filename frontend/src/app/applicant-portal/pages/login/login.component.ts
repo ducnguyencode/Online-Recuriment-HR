@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserRole, UserRoleLogin } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -16,6 +17,7 @@ export class LoginComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private toast = inject(ToastService);
 
   // Expose enum to HTML template
   UserRoleLogin = UserRoleLogin;
@@ -29,6 +31,7 @@ export class LoginComponent implements OnInit {
   isLoading = false;
   isResendingVerify = false;
   showPassword = false;
+  resendLoading = false;
 
   // --- BIẾN CHO LUỒNG 2FA ---
   currentStep: 'LOGIN' | 'SETUP_2FA' | 'VERIFY_2FA' = 'LOGIN';
@@ -42,40 +45,52 @@ export class LoginComponent implements OnInit {
       ? UserRoleLogin.HR
       : UserRoleLogin.APPLICANT;
 
-    // if (this.selectedRole === UserRoleLogin.HR && this.auth.isLoggedIn()) {
-    //   this.auth.logout('/hr/login');
-    //   return;
-    // }
-
-    if (this.selectedRole == UserRoleLogin.HR) {
-      this.form = { email: 'admin@test.com', password: '123456' };
-    } else {
-      this.form = { email: 'applicant@test.com', password: '123456' };
+    if (this.auth.isLoggedIn()) {
+      const role = this.auth.currentUser()?.role;
+      const canOpenHrPortal =
+        role === UserRole.HR || role === UserRole.INTERVIEWER || role === UserRole.SUPER_ADMIN;
+      const canOpenApplicantPortal = role === UserRole.APPLICANT;
+      if (
+        (this.selectedRole === UserRoleLogin.HR && canOpenHrPortal) ||
+        (this.selectedRole === UserRoleLogin.APPLICANT && canOpenApplicantPortal)
+      ) {
+        this.router.navigate([this.selectedRole === UserRoleLogin.HR ? '/hr-portal' : '/']);
+        return;
+      }
     }
 
     if (this.route.snapshot.queryParamMap.get('registered') === '1') {
       this.successMessage =
         'Registration successful. Please check your email to verify your account.';
+      this.toast.success(this.successMessage);
     }
   }
 
   submit() {
     this.formError = '';
-    this.resendVerifyMessage = '';
+    this.successMessage = '';
+    const email = this.form.email.trim().toLowerCase();
+    if (!email || !this.form.password.trim()) {
+      this.formError = 'Please enter email and password.';
+      this.toast.warning(this.formError);
+      return;
+    }
     this.isLoading = true;
 
-    this.auth.login(this.form).subscribe({
+    this.auth.login({ email, password: this.form.password }).subscribe({
       next: (res) => {
         const userRole = res.data.user.role;
 
         if (this.selectedRole === UserRoleLogin.HR && userRole === UserRole.APPLICANT) {
           this.formError = 'Email or password not correct!';
+          this.toast.error(this.formError);
           this.isLoading = false;
           return;
         }
 
         if (this.selectedRole === UserRoleLogin.APPLICANT && userRole !== UserRole.APPLICANT) {
           this.formError = 'Email or password not correct!';
+          this.toast.error(this.formError);
           this.isLoading = false;
           return;
         }
@@ -94,10 +109,16 @@ export class LoginComponent implements OnInit {
         // }
 
         // Nếu là Ứng viên thì vô thẳng như cũ
+        this.toast.success('Login successful.');
         this.auth.handleLoginSuccess(res, this.selectedRole);
       },
       error: (err) => {
-        this.formError = err.error?.message || 'Email or password not correct!';
+        const rawMessage = err?.error?.message || 'Email or password not correct!';
+        this.formError =
+          rawMessage === 'Account already registered. Check your email to verify.'
+            ? 'Please verify your email first'
+            : rawMessage;
+        this.toast.error(this.formError);
         this.isLoading = false;
       },
     });
