@@ -39,7 +39,10 @@ export class ForgotPasswordComponent {
   }
 
   sendResetLink() {
-    if (!this.email.trim()) return;
+    if (!this.email.trim()) {
+      this.errorMessage = 'Please enter your email address.';
+      return;
+    }
 
     this.errorMessage = '';
     this.successMessage = '';

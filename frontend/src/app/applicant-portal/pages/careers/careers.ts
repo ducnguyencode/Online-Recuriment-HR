@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { VacancyService } from '../../../core/services/vacancy.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
@@ -18,7 +19,7 @@ import { VacancyStatus } from '../../../core/models';
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './careers.html',
 })
-export class CareersComponent implements OnInit {
+export class CareersComponent implements OnInit, OnDestroy {
   // --- EXISTING DATA SIGNALS ---
   vacancies = signal<any[]>([]);
   loading = signal(false);
@@ -44,10 +45,27 @@ export class CareersComponent implements OnInit {
   private toast = inject(ToastService);
   private applicantServce = inject(ApplicantService);
 
+  private searchSubject$ = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
   ngOnInit() {
     this.fetchJobs();
     this.fetchUserCvs();
     this.loadSavedJobs();
+
+    // Realtime search with 300ms debounce
+    this.searchSubject$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => this.fetchJobs());
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onSearchInput() {
+    this.searchSubject$.next(this.searchQuery);
   }
 
   // --- ORIGINAL FUNCTIONS (KEEP UNCHANGED) ---

@@ -42,6 +42,12 @@ export class ApplicantLayoutComponent {
     return scope === 'hr';
   }
 
+  // Đang ở trang auth (login / register / forgot-password) → hiện nút Back to Careers thay vì Sign In
+  get isAuthPage(): boolean {
+    const url = this.router.url;
+    return url.startsWith('/login') || url.startsWith('/register') || url.startsWith('/forgot-password');
+  }
+
   logout() {
     this.auth.logout();
     this.isDropdownOpen.set(false);
