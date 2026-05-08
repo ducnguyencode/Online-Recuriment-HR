@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 export class UserCreateDto {
   @IsString()
@@ -7,6 +7,10 @@ export class UserCreateDto {
 
   @IsEmail({}, { message: 'Email must be a valid email address' })
   email!: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
 
   @IsString()
   @IsNotEmpty()

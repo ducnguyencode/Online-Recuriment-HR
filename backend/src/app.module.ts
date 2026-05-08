@@ -53,6 +53,9 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AuditLog } from './entities/audit-log.entity';
 import { AuditLogService } from './services/audit-log.service';
 import { AuditLogController } from './controller/audit-log.controller';
+import { SavedJob } from './entities/saved-job.entity';
+import { SavedJobService } from './services/saved-job.service';
+import { SavedJobController } from './controller/saved-job.controller';
 import { EmailCronService } from './cron/email.cron';
 import { AccountCleanupCronService } from './cron/account-cleanup.cron';
 import { InterviewerAvailabilityController } from './controller/interviewer-availability.controller';
@@ -111,6 +114,7 @@ import { ApplicationApplyProcessor } from './services/bullmq/application-apply-w
       InAppNotification,
       EmailQueue,
       AuditLog,
+      SavedJob,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -158,6 +162,7 @@ import { ApplicationApplyProcessor } from './services/bullmq/application-apply-w
     InterviewerAvailabilityController,
     DashboardController,
     ReportController,
+    SavedJobController,
   ],
   providers: [
     VacanciesService,
@@ -188,6 +193,7 @@ import { ApplicationApplyProcessor } from './services/bullmq/application-apply-w
     InterviewerAvailabilityService,
     DashboardService,
     ReportService,
+    SavedJobService,
     AiPreviewProcessor,
     AiPreviewService,
     AiPreviewGateway,

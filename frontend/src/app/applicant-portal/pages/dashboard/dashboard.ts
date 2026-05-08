@@ -8,6 +8,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { CreateApplicationDto } from '../../../core/services/application.service';
 import { InterviewService } from '../../../core/services/interview.service';
 import { ApplicantService } from '../../../core/services/applicant.service';
+import { FavoriteJobService } from '../../../core/services/favorite-job.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -34,6 +35,7 @@ export class DashboardComponent implements OnInit {
   private applicantService = inject(ApplicantService);
   private toast = inject(ToastService);
   private interviewService = inject(InterviewService);
+  private favoriteJobService = inject(FavoriteJobService);
 
   // NGONINIT GỐC (CHỈ THÊM 2 DÒNG GỌI HÀM MỚI BÊN DƯỚI)
   ngOnInit(): void {
@@ -75,17 +77,22 @@ export class DashboardComponent implements OnInit {
   }
 
   loadSavedJobs() {
-    const saved = localStorage.getItem('saved_jobs');
-    if (saved) this.savedJobs.set(JSON.parse(saved));
+    this.favoriteJobService.getSavedList().subscribe({
+      next: (jobs) => this.savedJobs.set(jobs),
+      error: () => this.savedJobs.set([]),
+    });
   }
 
   unsaveJob(jobId: string) {
-    this.savedJobs.update(jobs => {
-      const filtered = jobs.filter(j => j.id !== jobId);
-      localStorage.setItem('saved_jobs', JSON.stringify(filtered));
-      return filtered;
+    this.favoriteJobService.toggle(jobId).subscribe({
+      next: (res: any) => {
+        if (!res.data?.saved) {
+          this.savedJobs.update(jobs => jobs.filter(j => j.id !== jobId));
+          this.toast.success('Job removed from saved list');
+        }
+      },
+      error: (err: any) => this.toast.error(err.error?.message || 'Failed to unsave'),
     });
-    this.toast.success('Job removed from saved list');
   }
 
   getStatusClass(status: ApplicationStatus): string {
