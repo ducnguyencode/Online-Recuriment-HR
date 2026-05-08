@@ -39,3 +39,4 @@ tmp/
 
 # Local uploaded CV test files
 backend/uploads/cv/
+backend/package-lock.json
