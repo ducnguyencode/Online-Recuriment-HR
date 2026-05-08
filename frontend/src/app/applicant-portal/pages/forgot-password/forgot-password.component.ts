@@ -26,6 +26,9 @@ export class ForgotPasswordComponent {
   isResetDone = false;
   errorMessage = '';
   successMessage = '';
+  showPassword = false;
+  showConfirmPassword = false;
+  currentYear = new Date().getFullYear();
 
   get isResetMode() {
     return !!this.token;
@@ -83,6 +86,14 @@ export class ForgotPasswordComponent {
           err?.error?.message ?? 'Unable to reset password. Please try again.';
       },
     });
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPasswordVisibility() {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
   returnLogin() {
