@@ -149,4 +149,6 @@ export class DashboardComponent implements OnInit {
 
     return `${sign}${formatted}%`;
   }
+
+  calHireRate(hired: number, processing: number) {}
 }

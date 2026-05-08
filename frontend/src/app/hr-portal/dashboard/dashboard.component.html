@@ -84,10 +84,12 @@
           </svg>
         </div>
       </div>
-      <div class="stat-value">{{ (stats().applicantsHiredThisMonth/stats().applicationsProcessingThisMonth)*100 || 0 }}%
+      <div class="stat-value">{{ ((stats().applicantsHiredThisMonth/stats().applicationsProcessingThisMonth)*100 || 0) |
+        number: '1.0-1'}}%
       </div>
       <div class="stat-trend trend-up">
-        Last month: {{ (stats().applicantsHiredLastMonth/stats().applicationsProcessingLastMonth)*100 || 0 }}%
+        Last month: {{ (stats().applicantsHiredLastMonth/stats().applicationsProcessingLastMonth)*100 || 0 |
+        number: '1.0-1'}}%
       </div>
     </div>
   </div>
