@@ -8,6 +8,7 @@ import { Application, ApplicationStatus } from '../../../core/models';
 import { ApplicantService } from '../../../core/services/applicant.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { CreateApplicationDto } from '../../../core/services/application.service';
+import { InterviewService } from '../../../core/services/interview.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,7 +25,9 @@ export class DashboardComponent implements OnInit {
 
   // --- BIẾN MỚI THÊM CHO TÍNH NĂNG ĐÃ LƯU VÀ NỘP CV ---
   savedJobs = signal<any[]>([]);
-  activeTab = signal<'APPLIED' | 'SAVED'>('APPLIED');
+  activeTab = signal<'APPLIED' | 'SAVED' | 'INTERVIEWS'>('APPLIED');
+
+  interviews = signal<any[]>([]);
 
   isApplyModalOpen = false;
   selectedJobTitle = '';
@@ -41,10 +44,12 @@ export class DashboardComponent implements OnInit {
   constructor(
     private applicationService: ApplicationService,
     private authService: AuthService,
-  ) {}
+    private interviewService: InterviewService,
+  ) { }
 
   // NGONINIT GỐC (CHỈ THÊM 2 DÒNG GỌI HÀM MỚI BÊN DƯỚI)
   ngOnInit(): void {
+    const applicantId = this.authService.currentUser()?.applicantId;
     // Đoạn code gốc của team:
     this.applicationService
       .getAll({
@@ -59,6 +64,14 @@ export class DashboardComponent implements OnInit {
     // Đoạn code mới thêm vào:
     this.loadSavedJobs();
     this.fetchUserCvs();
+
+    if (applicantId) {
+      this.interviewService.getAll({ applicantId: applicantId }).subscribe({
+        next: (res) => {
+          this.interviews.set((res.data as any)?.items) ?? [];
+        }
+      });
+    }
   }
 
   // HÀM GỐC CỦA TEAM (GIỮ NGUYÊN)

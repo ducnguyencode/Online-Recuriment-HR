@@ -10,6 +10,7 @@ import {
   InterviewerPanel,
   InterviewStatus,
   formatDisplayId,
+  UserRole,
 } from '../../../core/models';
 import { ToastService } from '../../../core/services/toast.service';
 
@@ -486,11 +487,13 @@ export class InterviewListComponent implements OnInit {
   }
 
   canReschedule(): boolean {
-    return this.auth.isHR();
+    const role = this.auth.currentUser()?.role;
+    return this.auth.isHR() || role === UserRole.SUPER_ADMIN || role === UserRole.HR;
   }
 
   canCancel(): boolean {
-    return this.auth.isHR();
+    const role = this.auth.currentUser()?.role;
+    return this.auth.isHR() || role === UserRole.SUPER_ADMIN || role === UserRole.HR;
   }
 
   getVacancyTitle(item: Interview): string {
