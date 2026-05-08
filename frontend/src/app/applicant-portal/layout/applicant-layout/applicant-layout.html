@@ -1,80 +1,45 @@
 <div class="min-h-screen bg-slate-50 font-sans flex flex-col">
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16 items-center">
-        <div class="flex items-center gap-3 cursor-pointer" routerLink="/careers">
-          <img src="logo-hr-portal.svg" alt="HR Portal" class="w-9 h-9 drop-shadow-sm">
-          <span class="text-lg font-bold text-slate-900 tracking-tight">Recruitment</span>
-        </div>
-
-        <div class="flex items-center gap-4">
-          @if (!isLoggedIn()) {
-          <button routerLink="/login"
-            class="px-6 py-2.5 bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-md">Sign
-            In</button>
-          } @else {
-          <div class="user-dropdown-wrapper relative flex items-center gap-3 border-l border-slate-200 pl-4">
-            <button (click)="toggleDropdown()"
-              class="flex items-center gap-3 hover:bg-slate-50 px-3 py-2 rounded-2xl transition cursor-pointer outline-none">
-              <div class="text-right hidden sm:block">
-                <p class="text-xs font-bold text-slate-900 leading-none mb-1">{{ userName() }}</p>
-                <p class="text-[10px] text-slate-400 font-medium uppercase tracking-tight">Applicant</p>
-              </div>
-              <div
-                class="w-8 h-8 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl flex items-center justify-center text-xs font-bold shadow-sm">
-                {{ userName().charAt(0) }}</div>
-              <div
-                class="w-6 h-6 rounded-[10px] border border-slate-200 bg-white flex items-center justify-center text-slate-400">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </button>
-
-            @if (isDropdownOpen()) {
-            <div
-              class="absolute top-full right-0 mt-3 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
-              <a routerLink="/profile" (click)="isDropdownOpen.set(false)"
-                class="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
-                <div
-                  class="w-8 h-8 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                My Profile
-              </a>
-              <a routerLink="/applicant" (click)="isDropdownOpen.set(false)"
-                class="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
-                <div
-                  class="w-8 h-8 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                My Dashboard
-              </a>
-              <div class="h-px bg-slate-100 my-2"></div>
-              <button (click)="logout()"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-left">
-                <div
-                  class="w-8 h-8 rounded-xl border border-red-100 bg-red-50 flex items-center justify-center text-red-500">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </div>
-                Sign Out
-              </button>
-            </div>
-            }
-          </div>
-          }
-        </div>
+  <!-- HEADER LUÔN HIỆN -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm px-8 h-16 flex justify-between items-center">
+    <div class="flex items-center gap-3 cursor-pointer" routerLink="/careers">
+      <img src="logo-hr-portal.svg" alt="HR Portal" class="w-9 h-9 drop-shadow-sm">
+      <div class="flex flex-col leading-tight">
+        <span class="text-sm font-black uppercase tracking-tighter text-slate-900">Recruitment</span>
+        <span class="text-[10px] text-blue-500 font-bold uppercase">Online Portal</span>
       </div>
     </div>
+
+    <div class="flex items-center gap-4">
+      @if (isLoggedIn()) {
+        <!-- HIỆN PROFILE KHI ĐÃ LOGGED IN -->
+        <div class="group relative">
+          <div class="flex items-center gap-3 bg-slate-50 p-1.5 pr-4 rounded-full border border-slate-200 cursor-pointer hover:bg-white hover:border-blue-300 transition-all">
+            <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold text-[10px]">
+              {{ userName().charAt(0) }}
+            </div>
+            <span class="text-xs font-black text-slate-700 uppercase italic">{{ userName() }}</span>
+            <svg class="w-4 h-4 text-slate-400 group-hover:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+
+          <div class="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            <a routerLink="/applicant" class="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-blue-50">Dashboard</a>
+            <a routerLink="/profile" class="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-blue-50">Profile</a>
+            <div class="border-t border-slate-100 my-1"></div>
+            <button (click)="logout()" class="w-full text-left px-4 py-3 text-xs font-bold text-red-600 hover:bg-red-50 uppercase italic italic">Sign Out</button>
+          </div>
+        </div>
+      } @else {
+        <!-- HIỆN NÚT SIGN IN KHI CHƯA LOGGED IN (ĐỂ ĐI ĐẾN TRANG LOGIN) -->
+        <button routerLink="/login" class="px-6 py-2 bg-slate-900 text-white text-xs font-black rounded-xl hover:bg-blue-600 transition-all shadow-md uppercase italic tracking-widest">
+          Sign In
+        </button>
+      }
+    </div>
   </header>
-  <main class="flex-grow relative"><router-outlet></router-outlet></main>
+
+  <main class="flex-grow relative">
+    <router-outlet></router-outlet>
+  </main>
 </div>
