@@ -7,6 +7,7 @@ import { ApplicationStatus } from '../../../core/models';
 import { ToastService } from '../../../core/services/toast.service';
 import { CreateApplicationDto } from '../../../core/services/application.service';
 import { InterviewService } from '../../../core/services/interview.service';
+import { ApplicantService } from '../../../core/services/applicant.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -30,6 +31,7 @@ export class DashboardComponent implements OnInit {
 
   private applicationService = inject(ApplicationService);
   private authService = inject(AuthService);
+  private applicantService = inject(ApplicantService);
   private toast = inject(ToastService);
   private interviewService = inject(InterviewService);
 

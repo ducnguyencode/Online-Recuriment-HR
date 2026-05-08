@@ -118,4 +118,36 @@ export class InterviewListener {
       this.logger.error(`Error processing interview.result_submitted event: ${error.message}`);
     }
   }
+
+  @OnEvent('application.submitted')
+  async handleApplicationSubmitted(payload: any) {
+    try {
+      const targetUserIds = new Set<number | string>();
+
+      if (payload.targetHrId) {
+        targetUserIds.add(payload.targetHrId);
+      }
+
+      const superAdmins = await this.userService.findByRole(UserRole.SUPER_ADMIN);
+      if (superAdmins && superAdmins.length > 0) {
+        superAdmins.forEach(admin => targetUserIds.add(admin.id));
+      }
+
+      for (const userId of Array.from(targetUserIds)) {
+        const savedNotif = await this.notificationsService.create({
+          userId: userId,
+          title: 'New Application Received',
+          message: `Ứng viên ${payload.candidateName} vừa nộp CV vào vị trí ${payload.vacancyTitle}.`,
+          type: 'INFO',
+          linkUrl: `/hr-portal/applications`,
+        });
+
+        this.eventEmitter.emit('notification.send', savedNotif);
+      }
+
+      this.logger.log(`Successfully processed application.submitted for Application ID: ${payload.applicationId}`);
+    } catch (error: any) {
+      this.logger.error(`Error processing application.submitted event: ${error.message}`);
+    }
+  }
 }
