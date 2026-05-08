@@ -24,9 +24,14 @@ export class RegisterComponent {
 
   isLoading = false;
   isRegistered = false;
+  showPassword = false;
   submittedEmail = '';
   successMessage = '';
   errorMessage = '';
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
 
   /**
    * Submit registration data to the server via AuthService

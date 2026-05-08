@@ -304,10 +304,6 @@
     box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25);
 }
 
-.btn-submit:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25);
-}
-
 .btn-content {
     position: relative;
     z-index: 1;
@@ -418,6 +414,43 @@
 .otp-input:focus {
     border-color: var(--shell-brand);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ============================================ */
+/* APPLICANT LOGIN – Centered card              */
+/* ============================================ */
+.applicant-login-page {
+    min-height: calc(100vh - 64px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    background: var(--shell-bg);
+}
+
+.applicant-card {
+    width: 100%;
+    max-width: 440px;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 28px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    padding: 40px 36px;
+}
+
+.applicant-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    display: block;
+    margin: 0 auto 16px;
+}
+
+.footer-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
 }
 
 /* ============================================ */
