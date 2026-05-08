@@ -38,7 +38,7 @@ export class ApplicationService {
     private eventEmitter: EventEmitter2,
     private aiPreviewService: AiPreviewService,
     private sendMailService: SendMailService,
-  ) {}
+  ) { }
 
   async findAll(
     request: ApplicationFindDto,
@@ -164,28 +164,26 @@ export class ApplicationService {
         await this.aiPreviewService.start(application.id);
       }
     });
-    try {
-      // 1. Phát sự kiện Real-time cho NotificationGateway
-      this.eventEmitter.emit('notification.send', {
-        notificationId: `notif-${application!.id}`,
-        type: 'SUCCESS',
-        message: `Ứng viên ${application!.applicant.user.fullName} vừa nộp CV vào vị trí ${application!.vacancy.title}`,
-        linkUrl: `/hr-portal/applications/${application!.id}`,
-        createdAt: new Date().toISOString(),
-      });
 
-      // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
+    const fullApplication = await this.applicationsTable.findOne({
+      where: { id: application!.id },
+      relations: ['applicant', 'applicant.user', 'vacancy']
+    });
+
+    try {
+      // Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
       this.eventEmitter.emit('application.submitted', {
-        applicationId: application!.id,
-        candidateEmail: application!.applicant.user.email,
-        candidateName: application!.applicant.user.fullName,
-        vacancyTitle: application!.vacancy.title,
+        applicationId: fullApplication!.id,
+        candidateEmail: fullApplication!.applicant.user.email,
+        candidateName: fullApplication!.applicant.user.fullName,
+        vacancyTitle: fullApplication!.vacancy.title,
+        targetHrId: fullApplication!.vacancy.createdById,
       });
     } catch (err) {
       console.log(err);
     }
 
-    return application!;
+    return fullApplication || application!;
   }
 
   async changeStatus(id: number, status: ApplicationStatus) {
