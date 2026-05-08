@@ -1,11 +1,9 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router'; // Thêm để dùng routerLink
+import { RouterModule } from '@angular/router';
 import { ApplicationService } from '../../../core/services/application.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Application, ApplicationStatus } from '../../../core/models';
-// CÁC SERVICE MỚI CẦN CHO TAB ĐÃ LƯU
-import { ApplicantService } from '../../../core/services/applicant.service';
+import { ApplicationStatus } from '../../../core/models';
 import { ToastService } from '../../../core/services/toast.service';
 import { CreateApplicationDto } from '../../../core/services/application.service';
 import { InterviewService } from '../../../core/services/interview.service';
@@ -15,15 +13,9 @@ import { InterviewService } from '../../../core/services/interview.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './dashboard.html',
-  styleUrls: ['./dashboard.scss'],
 })
 export class DashboardComponent implements OnInit {
-  // BIẾN CŨ CỦA TEAM
-  applications = signal<Application[]>([]);
-  showToast = false;
-  toastMessage = '';
-
-  // --- BIẾN MỚI THÊM CHO TÍNH NĂNG ĐÃ LƯU VÀ NỘP CV ---
+  applications = signal<any[]>([]);
   savedJobs = signal<any[]>([]);
   activeTab = signal<'APPLIED' | 'SAVED' | 'INTERVIEWS'>('APPLIED');
 
@@ -36,9 +28,9 @@ export class DashboardComponent implements OnInit {
   selectedCvId = signal<string | null>(null);
   loading = signal(false);
 
-  private applicantService = inject(ApplicantService);
+  private applicationService = inject(ApplicationService);
+  private authService = inject(AuthService);
   private toast = inject(ToastService);
-  // ----------------------------------------------------
 
   // CONSTRUCTOR GỐC (GIỮ NGUYÊN KHÔNG ĐỤNG CHẠM)
   constructor(
@@ -74,77 +66,38 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  // HÀM GỐC CỦA TEAM (GIỮ NGUYÊN)
-  getStatusClass(status: ApplicationStatus): string {
-    const map: Record<string, string> = {
-      [ApplicationStatus.PENDING]: 'badge-neutral',
-      [ApplicationStatus.SCREENING]: 'badge-warning',
-      [ApplicationStatus.INTERVIEW_SCHEDULED]: 'badge-info',
-      [ApplicationStatus.SELECTED]: 'badge-success',
-      [ApplicationStatus.REJECTED]: 'badge-danger',
-      [ApplicationStatus.NOT_REQUIRED]: 'badge-neutral',
-    };
-    return map[status] ?? 'badge-neutral';
+  fetchApplications() {
+    const userId = this.authService.currentUser()?.applicantId;
+    if (userId) {
+      this.applicationService.getAll({ applicantId: userId }).subscribe({
+        next: (res: any) => {
+          const items = res.data?.items ?? res.data ?? [];
+          this.applications.set(items);
+        }
+      });
+    }
   }
 
-  // --- MÃ MỚI THÊM NẰM Ở ĐÂY XUỐNG DƯỚI ---
   loadSavedJobs() {
-    const savedStr = localStorage.getItem('saved_jobs');
-    if (savedStr) {
-      this.savedJobs.set(JSON.parse(savedStr));
-    }
+    const saved = localStorage.getItem('saved_jobs');
+    if (saved) this.savedJobs.set(JSON.parse(saved));
   }
 
   unsaveJob(jobId: string) {
-    let saved = this.savedJobs().filter(j => j.id !== jobId);
-    this.savedJobs.set(saved);
-    localStorage.setItem('saved_jobs', JSON.stringify(saved));
-    this.toast.success('Removed from saved jobs');
-  }
-
-  fetchUserCvs() {
-    if (this.authService.isLoggedIn()) {
-      this.applicantService.findAllCvByApplicantId(this.authService.currentUser()?.applicantId || '').subscribe((res) => this.myCvs.set(res.data));
-    }
-  }
-
-  applySavedJob(job: any) {
-    this.selectedJobTitle = job.title;
-    this.selectedCvId.set(null);
-    this.applyForm = { applicantId: this.authService.currentUser()?.applicantId || '', vacancyId: job.id };
-    this.isApplyModalOpen = true;
-  }
-
-  closeApplyModal() {
-    this.isApplyModalOpen = false;
-  }
-
-  submitApplication() {
-    if (!this.selectedCvId()) {
-      this.toast.error('Please select a resume to apply!');
-      return;
-    }
-    this.loading.set(true);
-    const dto: CreateApplicationDto = { applicantId: this.applyForm.applicantId, vacancyId: this.applyForm.vacancyId, cvId: this.selectedCvId() as string };
-
-    this.applicationService.applicantCreate(dto).subscribe({
-      next: () => {
-        this.loading.set(false);
-        this.closeApplyModal();
-        this.toast.success('Applied successfully!');
-
-        // Refresh lại tab Đã nộp bằng cách gọi lại y chang đoạn logic trong ngOnInit của team
-        this.applicationService.getAll({ applicantId: this.authService.currentUser()?.applicantId }).subscribe({
-          next: (res) => { this.applications.set((res.data as any)?.items) ?? []; }
-        });
-
-        this.unsaveJob(this.applyForm.vacancyId); // Gỡ khỏi tab đã lưu
-        this.activeTab.set('APPLIED'); // Chuyển về tab đã nộp
-      },
-      error: (err: any) => {
-        this.loading.set(false);
-        this.toast.error(err.error?.message || 'Application failed.');
-      },
+    this.savedJobs.update(jobs => {
+      const filtered = jobs.filter(j => j.id !== jobId);
+      localStorage.setItem('saved_jobs', JSON.stringify(filtered));
+      return filtered;
     });
+    this.toast.success('Job removed from saved list');
+  }
+
+  getStatusClass(status: ApplicationStatus): string {
+    const map: any = {
+      [ApplicationStatus.PENDING]: 'bg-blue-50 text-blue-600 border-blue-100',
+      [ApplicationStatus.SCREENING]: 'bg-amber-50 text-amber-600 border-amber-100',
+      [ApplicationStatus.SELECTED]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    };
+    return map[status] ?? 'bg-slate-50 text-slate-500 border-slate-200';
   }
 }
