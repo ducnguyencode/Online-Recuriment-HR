@@ -83,4 +83,10 @@ export class ApplicationService {
       {},
     );
   }
+
+  getMyCvs(applicantId: string): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(
+      `${environment.apiUrl}/cv/${applicantId}`,
+    );
+  }
 }

@@ -29,17 +29,11 @@ export class DashboardComponent implements OnInit {
   selectedCvId = signal<string | null>(null);
   loading = signal(false);
 
-  // private applicationService = inject(ApplicationService);
-  // private authService = inject(AuthService);
+  private applicationService = inject(ApplicationService);
+  private authService = inject(AuthService);
   private applicantService = inject(ApplicantService);
   private toast = inject(ToastService);
-
-  // CONSTRUCTOR GỐC (GIỮ NGUYÊN KHÔNG ĐỤNG CHẠM)
-  constructor(
-    private applicationService: ApplicationService,
-    private authService: AuthService,
-    private interviewService: InterviewService,
-  ) { }
+  private interviewService = inject(InterviewService);
 
   // NGONINIT GỐC (CHỈ THÊM 2 DÒNG GỌI HÀM MỚI BÊN DƯỚI)
   ngOnInit(): void {
@@ -104,47 +98,48 @@ export class DashboardComponent implements OnInit {
   }
 
   fetchUserCvs() {
-    if (this.authService.isLoggedIn()) {
-      this.applicantService.findAllCvByApplicantId(this.authService.currentUser()?.applicantId || '').subscribe((res) => this.myCvs.set(res.data));
-    }
+    const applicantId = this.authService.currentUser()?.applicantId;
+    if (!applicantId) return;
+    this.applicationService.getMyCvs(applicantId).subscribe({
+      next: (res: any) => {
+        this.myCvs.set(res.data?.items ?? res.data ?? []);
+      },
+    });
   }
 
   applySavedJob(job: any) {
-    this.selectedJobTitle = job.title;
-    this.selectedCvId.set(null);
-    this.applyForm = { applicantId: this.authService.currentUser()?.applicantId || '', vacancyId: job.id };
+    this.selectedJobTitle = job.title ?? job.jobTitle ?? '';
     this.isApplyModalOpen = true;
+    this.applyForm.vacancyId = job.id ?? job.vacancyId ?? '';
+    this.applyForm.applicantId = this.authService.currentUser()?.applicantId ?? '';
   }
 
   closeApplyModal() {
     this.isApplyModalOpen = false;
+    this.selectedCvId.set(null);
   }
 
   submitApplication() {
     if (!this.selectedCvId()) {
-      this.toast.error('Please select a resume to apply!');
+      this.toast.warning('Please select a CV');
       return;
     }
     this.loading.set(true);
-    const dto: CreateApplicationDto = { applicantId: this.applyForm.applicantId, vacancyId: this.applyForm.vacancyId, cvId: this.selectedCvId() as string };
-
-    this.applicationService.applicantCreate(dto).subscribe({
+    const dto: CreateApplicationDto = {
+      applicantId: this.authService.currentUser()?.applicantId ?? '',
+      vacancyId: this.applyForm.vacancyId,
+      cvId: this.selectedCvId()!,
+    };
+    this.applicationService.create(dto).subscribe({
       next: () => {
-        this.loading.set(false);
+        this.toast.success('Application submitted successfully');
         this.closeApplyModal();
-        this.toast.success('Applied successfully!');
-
-        // Refresh lại tab Đã nộp bằng cách gọi lại y chang đoạn logic trong ngOnInit của team
-        this.applicationService.getAll({ applicantId: this.authService.currentUser()?.applicantId }).subscribe({
-          next: (res) => { this.applications.set((res.data as any)?.items) ?? []; }
-        });
-
-        this.unsaveJob(this.applyForm.vacancyId); // Gỡ khỏi tab đã lưu
-        this.activeTab.set('APPLIED'); // Chuyển về tab đã nộp
-      },
-      error: (err: any) => {
         this.loading.set(false);
-        this.toast.error(err.error?.message || 'Application failed.');
+        this.fetchApplications();
+      },
+      error: () => {
+        this.toast.error('Failed to submit application');
+        this.loading.set(false);
       },
     });
   }
