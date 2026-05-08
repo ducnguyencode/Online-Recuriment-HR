@@ -446,13 +446,17 @@ export class InterviewService {
   }
 
   async findAll(query: any) {
-    const { status, search, page = 1, limit = 10, employeeId } = query;
+    const { status, search, page = 1, limit = 10, employeeId, applicantId } = query;
 
     const whereCondition: any = {};
     if (status) whereCondition.status = status;
 
     if (employeeId) {
       whereCondition.panels = { employeeId: employeeId };
+    }
+
+    if (applicantId) {
+      whereCondition.application = { applicantId: applicantId };
     }
 
     const [items, totalItems] = await this.interviewRepo.findAndCount({
