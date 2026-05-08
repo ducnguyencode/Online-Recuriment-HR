@@ -15,9 +15,11 @@ export class AiPreviewProcessor extends WorkerHost {
   }
 
   async process(job: Job<AiPreviewJobData>) {
+    this.gateway.emitUpdateApplication('new', job.data.applicationId);
     const result = await this.aiPreviewService.reviewCvApplication(
       job.data.applicationId,
     );
+
     return {
       jobId: job.id,
       result,
@@ -35,14 +37,20 @@ export class AiPreviewProcessor extends WorkerHost {
       job.data.applicationId,
       job.returnvalue.result,
     );
-    this.gateway.emitCompleted(job.returnvalue.result, job.data.applicationId);
+    this.gateway.emitUpdateApplication(
+      job.returnvalue.result,
+      job.data.applicationId,
+    );
   }
 
   @OnWorkerEvent('failed')
-  onFailed(job: Job<AiPreviewJobData> | undefined) {
+  async onFailed(job: Job<AiPreviewJobData> | undefined) {
     if (!job) {
       return;
     }
-    console.log(job.stacktrace);
+    await this.aiPreviewService.updateApplicationOnPreviewError(
+      job.data.applicationId,
+    );
+    this.gateway.emitUpdateApplication(job.stacktrace, job.data.applicationId);
   }
 }

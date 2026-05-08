@@ -99,10 +99,10 @@ export class AuthService {
     );
   }
 
-  forgotPassword(email: string) {
+  forgotPassword(email: string, scope?: string) {
     return this.http.post<ApiResponse<{ message: string }>>(
       `${environment.apiUrl}/auth/forgot-password`,
-      { email },
+      { email, scope },
     );
   }
 
@@ -143,12 +143,12 @@ export class AuthService {
     this.currentUser.set(user);
   }
 
-  logout() {
+  logout(redirectTo: string = '/login') {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.DEV_ROLE_KEY);
     this.currentUser.set(null);
-    this.router.navigate(['/login']);
+    this.router.navigateByUrl(redirectTo);
   }
 
   getToken(): string | null {

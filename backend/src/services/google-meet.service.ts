@@ -24,6 +24,7 @@ export class GoogleMeetService {
     description: string,
     startTime: string,
     endTime: string,
+    attendeeEmails: string[] = []
   ) {
     try {
       const calendar = google.calendar({
@@ -49,13 +50,14 @@ export class GoogleMeetService {
             conferenceSolutionKey: { type: 'hangoutsMeet' },
           },
         },
-        attendees: [],
+        attendees: attendeeEmails.map(email => ({ email })),
       };
 
       const response = await calendar.events.insert({
         calendarId: 'primary',
         requestBody: event,
         conferenceDataVersion: 1,
+        sendUpdates: 'all',
       });
 
       return {
@@ -64,9 +66,9 @@ export class GoogleMeetService {
         htmlLink: response.data.htmlLink,
       };
     } catch (error) {
-      console.error('Lỗi khi tạo Google Meet:', error);
+      console.error('Google Meet create error:', error);
       throw new InternalServerErrorException(
-        'Không thể tạo lịch phỏng vấn trên Google Calendar',
+        'Cannot create interview on Google Calendar',
       );
     }
   }
@@ -92,12 +94,13 @@ export class GoogleMeetService {
           start: { dateTime: startTime, timeZone: 'Asia/Ho_Chi_Minh' },
           end: { dateTime: endTime, timeZone: 'Asia/Ho_Chi_Minh' },
         },
+        sendUpdates: 'all',
       });
       return true;
     } catch (error) {
-      console.error('Lỗi khi cập nhật Google Meet:', error);
+      console.error('Google Meet update error:', error);
       throw new InternalServerErrorException(
-        'Không thể cập nhật lịch trên Google Calendar',
+        'Cannot update interview on Google Calendar',
       );
     }
   }
@@ -111,12 +114,13 @@ export class GoogleMeetService {
       await calendar.events.delete({
         calendarId: 'primary',
         eventId: eventId,
+        sendUpdates: 'all',
       });
       return true;
     } catch (error) {
-      console.error('Lỗi khi xóa Google Meet:', error);
+      console.error('Google Meet cancel error:', error);
       throw new InternalServerErrorException(
-        'Không thể hủy lịch trên Google Calendar',
+        'Cannot cancel interview on Google Calendar',
       );
     }
   }

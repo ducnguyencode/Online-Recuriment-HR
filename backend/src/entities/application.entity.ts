@@ -54,7 +54,7 @@ export class Application {
   })
   status!: ApplicationStatus;
 
-  @Column('jsonb', { nullable: true })
+  @Column('jsonb', { nullable: true, default: new AiResponseDto() })
   aiPreview!: AiResponseDto;
 
   @Column('text', { nullable: true })

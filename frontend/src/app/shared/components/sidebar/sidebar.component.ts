@@ -101,6 +101,6 @@ export class SidebarComponent {
   }
 
   logout() {
-    this.auth.logout();
+    this.auth.logout('/hr/login');
   }
 }

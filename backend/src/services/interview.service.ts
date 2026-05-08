@@ -28,6 +28,7 @@ import { EmailQueue } from '../entities/email-queue.entity';
 import { GoogleMeetService } from './google-meet.service';
 import { InterviewCreateDto } from '../dto/interview-create.dto';
 import { ApplicantStatus, ApplicationStatus, InterviewStatus } from 'src/common/enum';
+import { Employee } from 'src/entities/employee.entity';
 
 @Injectable()
 export class InterviewService {
@@ -123,11 +124,24 @@ export class InterviewService {
       );
 
       // 5. Generate Google Meet Link (External API call)
+      const applicantEmail = application.applicant.user?.email || application.applicant.email;
+
+      const interviewer = await queryRunner.manager.findOne(Employee, {
+        where: { id: Number(data.interviewerId) },
+        relations: ['user'],
+      });
+      const interviewerEmail = interviewer?.user?.email;
+
+      const emailsToInvite: string[] = [];
+      if (applicantEmail) emailsToInvite.push(applicantEmail);
+      if (interviewerEmail) emailsToInvite.push(interviewerEmail);
+
       const googleEvent = await this.googleMeetService.createMeeting(
         data.title,
         data.description || '',
         data.startTime,
         data.endTime,
+        emailsToInvite
       );
 
       // 6. Save Interview Record

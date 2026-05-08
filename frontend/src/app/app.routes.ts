@@ -32,7 +32,7 @@ export const routes: Routes = [
         path: 'login',
         component: LoginComponent,
         canActivate: [loginGuard],
-        data: { role: 'Applicant' }
+        data: { role: 'Applicant' },
       },
       { path: 'register', component: RegisterComponent },
       { path: 'forgot-password', component: ForgotPasswordComponent },
