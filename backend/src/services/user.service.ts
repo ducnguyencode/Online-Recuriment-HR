@@ -29,7 +29,7 @@ export class UserService {
     private jwtService: JwtService,
     private mailService: MailService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   async findByEmail(email: string) {
     return await this.userTable.findOne({ where: { email } });
@@ -260,7 +260,17 @@ export class UserService {
       { requireInitialPasswordSetup },
     );
   }
+  async sendVerificationToApplicant(user: User) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
+    const verifyUrl = `${frontendUrl}/verify-invite-applicant-email?token=${user.verificationToken}`;
 
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      user.fullName,
+      verifyUrl,
+    );
+  }
   async sendPasswordReset(email: string, name: string, resetUrl: string) {
     await this.mailService.sendPasswordResetEmail(email, name, resetUrl);
   }

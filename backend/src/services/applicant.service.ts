@@ -12,18 +12,22 @@ import { Brackets, Repository } from 'typeorm';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
 import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
-import { ApplicantStatus, UserRole } from 'src/common/enum';
+import { ApplicantStatus, TokenType, UserRole } from 'src/common/enum';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { User } from 'src/entities/user.entity';
 import { signToken } from 'src/helper/function.helper';
 import { JwtService } from '@nestjs/jwt';
 import { ApplicantChangePasswordDto } from 'src/dto/applicant/applicant.change-password.dto';
 import * as bcrypt from 'bcrypt';
+import { ApplicantCreateDto } from 'src/dto/applicant/applicant.create.dto';
+import { UserService } from './user.service';
 
 @Injectable()
 export class ApplicantService {
   constructor(
     @InjectRepository(Applicant) private applicantsTable: Repository<Applicant>,
+    @InjectRepository(User) private usersTable: Repository<User>,
+    private userService: UserService,
     private jwtService: JwtService,
   ) {}
 
@@ -110,7 +114,14 @@ export class ApplicantService {
     if (!applicant) {
       throw new NotFoundException('Applicant not found');
     }
-
+    if (
+      applicant.status == ApplicantStatus.HIRED &&
+      status != ApplicantStatus.HIRED
+    ) {
+      throw new BadRequestException(
+        'Applicant already hired, cannot change status',
+      );
+    }
     applicant.status = status;
 
     return this.applicantsTable.save(applicant);
@@ -181,5 +192,63 @@ export class ApplicantService {
       },
     );
     return user;
+  }
+
+  async createApplicant(
+    actor: SafeUserDto,
+    dto: ApplicantCreateDto,
+  ): Promise<User> {
+    const email = dto.email.trim().toLowerCase();
+    const fullName = dto.fullName.trim();
+    const exists = await this.usersTable.findOne({
+      where: { email },
+      relations: ['applicant'],
+    });
+    if (exists) {
+      if (exists.isVerified) {
+        throw new ConflictException('Email already exists');
+      }
+
+      const tokenInfo = this.userService.getVerificationTokenInfo(
+        exists.verificationToken,
+      );
+      if (tokenInfo && !tokenInfo.expired) {
+        throw new ConflictException(
+          'Already invited! Wait for applicant verify!',
+        );
+      }
+      await this.userService.sendVerificationToApplicant(exists);
+      return exists;
+    }
+
+    const saved = await this.usersTable.manager.transaction(async (manager) => {
+      let user = manager.create(User, {
+        email,
+        fullName,
+        phone: dto.phone?.trim() || undefined,
+        role: UserRole.APPLICANT,
+        password:
+          '$2b$10$FfLdr1b6vkbWgJmnM9yY2u7EZw8iN88Q/xnE64DZPV4f7n6i5Ql6W',
+        isVerified: false,
+        isActive: false,
+        mustChangePassword: true,
+        verificationToken: null,
+      });
+      user = await manager.save(User, user);
+      user.verificationToken = this.userService.generateEmailToken(
+        {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        },
+        null,
+        UserRole.APPLICANT,
+        '24h',
+        TokenType.EMAIL_INVITE_VERIFY,
+      );
+      return await manager.save(User, user);
+    });
+    await this.userService.sendVerificationToApplicant(saved);
+    return saved;
   }
 }

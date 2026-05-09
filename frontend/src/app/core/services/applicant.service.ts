@@ -48,7 +48,7 @@ export class ApplicantService {
   }
 
   create(dto: CreateApplicantDto): Observable<ApiResponse<Applicant>> {
-    return this.http.post<ApiResponse<Applicant>>(`${this.base}/create`, dto);
+    return this.http.post<ApiResponse<Applicant>>(`${this.base}/invite`, dto);
   }
 
   uploadCv(formData: FormData): Observable<ApiResponse<any>> {

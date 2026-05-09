@@ -24,6 +24,7 @@ import {
   ApplicationStatus,
 } from '../../../core/models';
 import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmService } from '../../../core/services/confirm-message.service';
 
 @Component({
   selector: 'app-vacancy-list',
@@ -41,7 +42,7 @@ export class VacancyListComponent implements OnInit {
   totalItems = signal(0);
   totalPages = signal(1);
   currentPage = signal(1);
-  readonly pageSize = 12;
+  readonly pageSize = 3;
   selectedApplicants = signal<Application[]>([]);
   selectedApplicantsLoading = signal(false);
 
@@ -86,6 +87,7 @@ export class VacancyListComponent implements OnInit {
     private applicationService: ApplicationService,
     private departmentService: DepartmentService,
     private toast: ToastService,
+    private confirmService: ConfirmService,
     private mockData: MockDataService, // fallback when backend not ready
   ) {}
 
@@ -349,16 +351,6 @@ export class VacancyListComponent implements OnInit {
         },
         error: (err) => {
           this.formError = err.error.message;
-
-          // // Mock fallback
-          // this.mockData.updateVacancy(this.selectedVacancy()!.id, {
-          //   title: dto.title,
-          //   description: dto.description,
-          //   numberOfOpenings: dto.numberOfOpenings,
-          //   closingDate: dto.closingDate,
-          // });
-          // this.closeDialogs();
-          // this.loadVacancies();
         },
       });
     } else {
@@ -369,31 +361,30 @@ export class VacancyListComponent implements OnInit {
         },
         error: (err) => {
           this.formError = err.error.message;
-
-          // this.mockData.addVacancy({
-          //   title: dto.title,
-          //   description: dto.description,
-          //   departmentId: dto.departmentId,
-          //   numberOfOpenings: dto.numberOfOpenings,
-          //   closingDate: dto.closingDate,
-          // });
-          // this.closeDialogs();
-          // this.loadVacancies();
         },
       });
     }
   }
 
   changeStatus(v: Vacancy, status: VacancyStatus, event: Event) {
-    event.stopPropagation();
-    if (!this.canChangeStatus(v)) return;
+    this.confirmService.show(
+      `Are you sure to change ${v.title} to ${status}`,
+      'Change vacancy status',
+      'info',
+      true,
+      true,
+      () => {
+        event.stopPropagation();
+        if (!this.canChangeStatus(v)) return;
 
-    this.vacancyService.changeStatus(v.id, status).subscribe({
-      next: () => this.loadVacancies(),
-      error: (err) => {
-        this.toast.show(err.error.message, 'error');
+        this.vacancyService.changeStatus(v.id, status).subscribe({
+          next: () => this.loadVacancies(),
+          error: (err) => {
+            this.toast.show(err.error.message, 'error');
+          },
+        });
       },
-    });
+    );
   }
 
   getStatusClass(status: string): string {

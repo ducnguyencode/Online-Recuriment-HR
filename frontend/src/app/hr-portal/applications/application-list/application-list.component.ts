@@ -28,6 +28,7 @@ import { environment } from '../../../../environments/environment';
 import { SocketService } from '../../../core/services/socket.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmService } from '../../../core/services/confirm-message.service';
 
 @Component({
   selector: 'app-LApplication-LList',
@@ -104,7 +105,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private socketService: SocketService,
     protected authService: AuthService,
     private toastService: ToastService,
-  ) { }
+    private confirmService: ConfirmService,
+  ) {}
 
   ngOnInit() {
     this.loadVacancies();
@@ -775,16 +777,25 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   }
 
   acceptedApplication(applicationId: string) {
-    this.applicationService
-      .changeStatus(applicationId, ApplicationStatus.ACCEPTED)
-      .subscribe({
-        next: (res) => {
-          this.loadApplications();
-        },
-        error: (err) => {
-          console.log(err);
-        },
-      });
+    this.confirmService.show(
+      'Are you sure to accept this applicant',
+      'Accept Applicant',
+      'info',
+      true,
+      true,
+      () => {
+        this.applicationService
+          .changeStatus(applicationId, ApplicationStatus.ACCEPTED)
+          .subscribe({
+            next: (res) => {
+              this.loadApplications();
+            },
+            error: (err) => {
+              this.toastService.show(err.error.message, 'error');
+            },
+          });
+      },
+    );
   }
 
   rejetedApplication(applicationId: string) {

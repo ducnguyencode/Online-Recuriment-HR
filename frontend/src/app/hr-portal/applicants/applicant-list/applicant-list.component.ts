@@ -14,6 +14,7 @@ import {
   CV,
   displayApplicantStatus,
 } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-applicant-list',
@@ -49,6 +50,7 @@ export class ApplicantListComponent implements OnInit {
   constructor(
     private applicantService: ApplicantService,
     private applicationService: ApplicationService,
+    private toast: ToastService,
     private mockData: MockDataService,
   ) {}
 
@@ -133,7 +135,7 @@ export class ApplicantListComponent implements OnInit {
     this.formData = {
       fullName: applicant.fullName,
       email: applicant.email,
-      phone: applicant.phone,
+      phone: applicant.user!.phone || '',
     };
     this.formError = '';
     this.showFormDialog.set(true);
@@ -164,13 +166,6 @@ export class ApplicantListComponent implements OnInit {
           },
           error: (err) => {
             this.formError = err.error.message;
-
-            // this.mockData.updateApplicant(
-            //   this.selectedApplicant()!.id,
-            //   this.formData as Partial<Applicant>,
-            // );
-            // this.closeFormDialog();
-            // this.loadApplicants();
           },
         });
       return;
@@ -195,9 +190,8 @@ export class ApplicantListComponent implements OnInit {
     event.stopPropagation();
     this.applicantService.changeStatus(applicant.id, status).subscribe({
       next: () => this.loadApplicants(),
-      error: () => {
-        this.mockData.updateApplicantStatus(applicant.id, status);
-        this.loadApplicants();
+      error: (err) => {
+        this.toast.show(err.error.message, 'error');
       },
     });
   }

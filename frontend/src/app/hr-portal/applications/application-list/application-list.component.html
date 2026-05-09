@@ -140,14 +140,17 @@
               </button>
               } @else if (app.status === ApplicationStatus.INTERVIEW_SCHEDULED) {
               <a class="btn-primary btn-sm" routerLink="/hr-portal/interviews">Open Interview</a>
-              }@else if(app.status === ApplicationStatus.SELECTED && authService.currentUser()?.role ===
+              }@else if((app.status === ApplicationStatus.SELECTED || app.status===ApplicationStatus.REJECTED) &&
+              authService.currentUser()?.role ===
               UserRole.SUPER_ADMIN){
               <button class="btn-secondary btn-sm" (click)="acceptedApplication(app.id)">
                 Accept
               </button>
+              @if(app.status !==ApplicationStatus.REJECTED){
               <button class="btn-secondary btn-sm" (click)="rejetedApplication(app.id)">
                 Reject
               </button>
+              }
               }
             </div>
           </td>
