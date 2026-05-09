@@ -115,7 +115,8 @@
             <span class="ai-badge score-low">Error</span>
             }
           </td>
-          <td class="cell-actions" (click)="$event.stopPropagation()">
+          <td (click)="$event.stopPropagation()">
+            <div class="cell-actions">
               <button [class]="
                       (app.cv ? 'btn-primary' : 'btn-secondary') +
                       ' ' +
@@ -141,6 +142,7 @@
               </button>
               }
               }
+            </div>
             </td>
         </tr>
         } @empty {

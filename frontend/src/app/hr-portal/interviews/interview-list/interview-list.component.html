@@ -10,11 +10,12 @@
   </div>
 
   <div class="filter-bar">
-    <input class="form-input filter-search" [(ngModel)]="searchTerm"
+    <input class="form-input filter-search" style="flex:1;min-width:180px" [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()"
       placeholder="Search by applicant ID, vacancy ID, name, title..." />
     <div class="header-filters">
-      <input class="form-input" type="date" [(ngModel)]="filterDate" (change)="loadData()" style="width: 170px" />
-      <select class="form-select" [(ngModel)]="filterStatus" (change)="loadData()" style="width: 180px">
+      <input class="form-input" type="date" [(ngModel)]="filterStartDate" (change)="onFilterChange()" style="width: 150px" placeholder="From" title="From date" />
+      <input class="form-input" type="date" [(ngModel)]="filterEndDate" (change)="onFilterChange()" style="width: 150px" placeholder="To" title="To date" />
+      <select class="form-select" [(ngModel)]="filterStatus" (change)="onFilterChange()" style="width: 170px">
         <option value="">All Statuses</option>
         <option value="Scheduled">Scheduled</option>
         <option value="Completed">Completed</option>
@@ -133,6 +134,42 @@
       <p>No interviews found</p>
     </div>
     }
+  </div>
+
+  <!-- Pagination -->
+  @if (totalPages() > 1) {
+  <div class="flex justify-center items-center gap-1.5 mt-10 pb-4">
+    <button (click)="onPageChange(currentPage() - 1)" [disabled]="currentPage() === 1"
+            class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    @for (page of getPageNumbers(); track page) {
+      <button (click)="onPageChange(page)"
+              class="w-9 h-9 flex items-center justify-center rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              [class.bg-slate-900]="currentPage() === page"
+              [class.text-white]="currentPage() === page"
+              [class.shadow-md]="currentPage() === page"
+              [class.bg-white]="currentPage() !== page"
+              [class.border]="currentPage() !== page"
+              [class.border-slate-200]="currentPage() !== page"
+              [class.text-slate-600]="currentPage() !== page"
+              [class.hover:bg-slate-50]="currentPage() !== page">
+        {{ page }}
+      </button>
+    }
+    <button (click)="onPageChange(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+            class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+  </div>
+  }
+
+  <div class="text-center text-xs text-slate-400 pb-4" style="margin-top: -8px">
+    {{ totalItems() }} interview(s) total
   </div>
 </div>
 

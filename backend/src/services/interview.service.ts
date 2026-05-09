@@ -160,6 +160,10 @@ export class InterviewService {
 
       const savedInterview = await queryRunner.manager.save(newInterview);
 
+      // Update application status to INTERVIEW_SCHEDULED
+      application.status = ApplicationStatus.INTERVIEW_SCHEDULED;
+      await queryRunner.manager.save(application);
+
       // 7. Save Interviewer Panel Records
       const panelRecord = queryRunner.manager.create(InterviewerPanel, {
         interviewId: savedInterview.id,
@@ -446,36 +450,57 @@ export class InterviewService {
   }
 
   async findAll(query: any) {
-    const { status, search, page = 1, limit = 10, employeeId, applicantId } = query;
+    const { status, search, page = 1, limit = 10, employeeId, applicantId, applicantUserId, startDate, endDate } = query;
 
-    const whereCondition: any = {};
-    if (status) whereCondition.status = status;
+    const qb = this.interviewRepo.createQueryBuilder('interview')
+      .leftJoinAndSelect('interview.application', 'application')
+      .leftJoinAndSelect('application.applicant', 'applicant')
+      .leftJoinAndSelect('applicant.user', 'applicantUser')
+      .leftJoinAndSelect('application.vacancy', 'vacancy')
+      .leftJoinAndSelect('vacancy.department', 'department')
+      .leftJoinAndSelect('application.cv', 'cv')
+      .leftJoinAndSelect('interview.panels', 'panels')
+      .leftJoinAndSelect('panels.employee', 'panelEmployee')
+      .leftJoinAndSelect('panelEmployee.user', 'panelUser');
+
+    if (status) {
+      qb.andWhere('interview.status = :status', { status });
+    }
+
+    if (startDate) {
+      qb.andWhere('DATE(interview.startTime) >= :startDate', { startDate });
+    }
+
+    if (endDate) {
+      qb.andWhere('DATE(interview.startTime) <= :endDate', { endDate });
+    }
+
+    if (search) {
+      qb.andWhere(
+        '(interview.title ILIKE :search OR applicantUser.fullName ILIKE :search OR applicantUser.email ILIKE :search OR vacancy.title ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
 
     if (employeeId) {
-      whereCondition.panels = { employeeId: employeeId };
+      qb.andWhere('panels.employeeId = :employeeId', { employeeId });
     }
 
     if (applicantId) {
-      whereCondition.application = { applicantId: applicantId };
+      qb.andWhere('application.applicantId = :applicantId', { applicantId: Number(applicantId) || applicantId });
     }
 
-    const [items, totalItems] = await this.interviewRepo.findAndCount({
-      where: whereCondition,
-      relations: [
-        'application',
-        'application.cv',
-        'application.applicant',
-        'application.applicant.user',
-        'application.vacancy',
-        'application.vacancy.department',
-        'panels',
-        'panels.employee',
-        'panels.employee.user',
-      ],
-      order: { startTime: 'DESC' },
-      take: limit,
-      skip: (page - 1) * limit,
-    });
+    if (applicantUserId) {
+      qb.andWhere('applicantUser.id = :applicantUserId', { applicantUserId: Number(applicantUserId) || applicantUserId });
+    }
+
+    qb.orderBy('interview.startTime', 'DESC');
+
+    const totalItems = await qb.getCount();
+    const items = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
 
     return {
       items,

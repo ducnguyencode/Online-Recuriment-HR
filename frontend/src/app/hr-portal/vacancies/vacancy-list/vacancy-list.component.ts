@@ -76,6 +76,7 @@ export class VacancyListComponent implements OnInit {
   showExpandedEditor = signal(false);
   @ViewChild('editorEl') editorEl?: ElementRef<HTMLDivElement>;
   private savedRange: Range | null = null;
+  private onSelectionChangeBound = () => this.saveSelection();
 
   // Add dept inline
   showDeptDialog = signal(false);
@@ -476,15 +477,23 @@ export class VacancyListComponent implements OnInit {
   openExpandedEditor() {
     this.savedRange = null;
     this.showExpandedEditor.set(true);
+    document.addEventListener('selectionchange', this.onSelectionChangeBound);
     setTimeout(() => {
       if (this.editorEl) {
         this.editorEl.nativeElement.innerHTML = this.formData.description || '';
         this.editorEl.nativeElement.focus();
+        // Place cursor at end of content
+        const sel = window.getSelection();
+        if (sel) {
+          sel.selectAllChildren(this.editorEl.nativeElement);
+          sel.collapseToEnd();
+        }
       }
     }, 50);
   }
 
   closeExpandedEditor() {
+    document.removeEventListener('selectionchange', this.onSelectionChangeBound);
     this.savedRange = null;
     this.showExpandedEditor.set(false);
   }
@@ -500,17 +509,68 @@ export class VacancyListComponent implements OnInit {
   }
 
   onEditorBlur() {
+    this.saveSelection();
+  }
+
+  saveSelection() {
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
-      this.savedRange = sel.getRangeAt(0).cloneRange();
+      const range = sel.getRangeAt(0);
+      // Only save ranges that are inside our editor
+      if (
+        this.editorEl &&
+        this.editorEl.nativeElement.contains(range.commonAncestorContainer)
+      ) {
+        this.savedRange = range.cloneRange();
+      }
     }
   }
 
   execCommand(command: string, value?: string) {
     const editor = this.editorEl?.nativeElement;
     if (!editor) return;
+
+    // Focus the editor so document.execCommand has a valid editing host
     editor.focus();
+
+    // Try to restore the last saved selection (from selectionchange/mouseup/keyup/blur)
+    if (this.savedRange) {
+      try {
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(this.savedRange);
+        }
+      } catch (_) {
+        // savedRange may be stale; ignore and let the command run on current cursor
+      }
+    }
+
     document.execCommand(command, false, value ?? undefined);
+
+    // After executing, re-save the updated selection
+    this.saveSelection();
+  }
+
+  insertTab() {
+    const editor = this.editorEl?.nativeElement;
+    if (!editor) return;
+    editor.focus();
+
+    // Restore saved selection if available
+    if (this.savedRange) {
+      try {
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(this.savedRange);
+        }
+      } catch (_) { }
+    }
+
+    document.execCommand('insertText', false, '\t');
+
+    this.saveSelection();
   }
 
   // ── Department quick-add ──────────────────────────────────────────────────
