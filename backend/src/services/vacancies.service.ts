@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { VacancyStatus } from 'src/common/enum';
+import { ApplicationStatus, VacancyStatus } from 'src/common/enum';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { VacancyCreateDto } from 'src/dto/vacancy/vacancy.create.dto';
 import { VacancyFindDto } from 'src/dto/vacancy/vacancy.find.dto';
@@ -12,11 +13,13 @@ import { VacancyUpdateDto } from 'src/dto/vacancy/vacancy.update.dto';
 import { Vacancy } from 'src/entities/vacancy.entity';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { Repository } from 'typeorm';
+import { AiPreviewService } from './bullmq/ai-worker/ai-preview.service';
 
 @Injectable()
 export class VacanciesService {
   constructor(
     @InjectRepository(Vacancy) private vacanciesTable: Repository<Vacancy>,
+    private aiPreviewService: AiPreviewService,
   ) {}
 
   //Find All
@@ -76,14 +79,41 @@ export class VacanciesService {
   }
 
   async update(id: number, data: VacancyUpdateDto) {
-    return this.vacanciesTable.manager.transaction(async (manager) => {
-      const vacancy = await this.vacanciesTable.findOneBy({ id });
-      if (!vacancy) {
-        throw new NotFoundException('Vacancy not found');
-      }
-      Object.assign(vacancy, data);
-      return await manager.save(vacancy);
-    });
+    const vacancy = await this.vacanciesTable.manager.transaction(
+      async (manager) => {
+        const exist = await this.vacanciesTable.findOneBy({ id });
+        if (!exist) {
+          throw new NotFoundException('Vacancy not found');
+        }
+        Object.assign(exist, data);
+        return manager.save(exist);
+      },
+    );
+
+    const applicationIds = (
+      await this.vacanciesTable
+        .createQueryBuilder('vacancy')
+        .leftJoin('vacancy.applications', 'app')
+        .select('app.id', 'applicationId')
+        .andWhere('vacancy.id = :id', { id: vacancy.id })
+        .andWhere('app.status NOT IN (:...statuses)', {
+          statuses: [
+            ApplicationStatus.ACCEPTED,
+            ApplicationStatus.REJECTED,
+            ApplicationStatus.SELECTED,
+            ApplicationStatus.NOT_REQUIRED,
+          ],
+        })
+        .getRawMany()
+    ).map((x) => x.applicationId);
+
+    await Promise.all(
+      applicationIds.map(async (a) => {
+        await this.aiPreviewService.start(a);
+      }),
+    );
+
+    return vacancy;
   }
 
   async changeStatus(id: number, status: VacancyStatus) {
