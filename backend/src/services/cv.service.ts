@@ -13,7 +13,7 @@ import fs from 'fs';
 
 @Injectable()
 export class CvService {
-  constructor(@InjectRepository(CV) private cvsTable: Repository<CV>) {}
+  constructor(@InjectRepository(CV) private cvsTable: Repository<CV>) { }
 
   findAll(): Promise<CV[]> {
     return this.cvsTable.find();
