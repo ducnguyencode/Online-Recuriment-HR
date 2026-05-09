@@ -59,7 +59,6 @@ export class LoginComponent implements OnInit {
     if (this.route.snapshot.queryParamMap.get('registered') === '1') {
       this.successMessage =
         'Registration successful. Please check your email to verify your account.';
-      this.toast.success(this.successMessage);
     }
   }
 
@@ -69,7 +68,6 @@ export class LoginComponent implements OnInit {
     const email = this.form.email.trim().toLowerCase();
     if (!email || !this.form.password.trim()) {
       this.formError = 'Please enter email and password.';
-      this.toast.warning(this.formError);
       return;
     }
     this.isLoading = true;

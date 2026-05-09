@@ -9,6 +9,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const token = auth.getToken();
 
+  const isLoginPage = (): boolean => {
+    const url = router.url;
+    return url.includes('/login') || url.includes('/forgot-password') || url.includes('/register');
+  };
+
+  const getLoginUrl = (): string => {
+    const url = router.url;
+    return url.includes('/hr') ? '/hr/login' : '/login';
+  };
+
   const handleRequest = (request: any) => {
     if (token) {
       const cloned = request.clone({
@@ -21,7 +31,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             localStorage.removeItem('hr_user');
             localStorage.removeItem('hr_dev_role');
             auth.currentUser.set(null);
-            router.navigateByUrl('/login');
+            // Don't redirect if already on a login page — let the component show the form error
+            if (!isLoginPage()) {
+              router.navigateByUrl(getLoginUrl());
+            }
           }
           return throwError(() => error);
         }),
@@ -30,7 +43,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(request).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401) {
-          router.navigateByUrl('/login');
+          // Don't redirect if already on a login page — let the component show the form error
+          if (!isLoginPage()) {
+            router.navigateByUrl(getLoginUrl());
+          }
         }
         return throwError(() => error);
       }),
