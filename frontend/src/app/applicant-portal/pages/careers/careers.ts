@@ -200,6 +200,17 @@ export class CareersComponent implements OnInit, OnDestroy {
     });
   }
 
+  onCvDrop(event: DragEvent, inputEl: HTMLInputElement) {
+    event.preventDefault();
+    event.stopPropagation();
+    const files = event.dataTransfer?.files;
+    if (!files?.length) return;
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(files[0]);
+    inputEl.files = dataTransfer.files;
+    this.onCvFileSelected({ target: inputEl } as any, inputEl);
+  }
+
   openCV(url: string) {
     window.open(`${environment.baseUrl}/uploads/${url}`);
   }

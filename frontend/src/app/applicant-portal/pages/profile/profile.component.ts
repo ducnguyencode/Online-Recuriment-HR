@@ -59,6 +59,14 @@ export class ProfileComponent implements OnInit {
   }
 
   submitUpdateForm() {
+    if (!this.updateForm.fullName?.trim()) {
+      this.toast.error('Full name is required.');
+      return;
+    }
+    if (!this.updateForm.phone?.trim()) {
+      this.toast.error('Phone number is required.');
+      return;
+    }
     if (
       this.updateForm.fullName === this.authService.currentUser()?.fullName &&
       this.updateForm.phone === this.authService.currentUser()?.phone

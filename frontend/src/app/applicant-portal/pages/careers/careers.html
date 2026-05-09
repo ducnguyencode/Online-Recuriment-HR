@@ -45,7 +45,7 @@
             <span class="inline-flex items-center h-6 px-3 rounded-full bg-blue-50 text-blue-600 text-[11px] font-semibold mb-3 border border-blue-100/50">
               {{ job.department?.name || 'Open Position' }}
             </span>
-            <h2 class="text-lg font-bold text-slate-900 mb-2">{{ job.title }}</h2>
+            <h2 class="text-lg font-semibold text-slate-900 mb-2">{{ job.title }}</h2>
             <p class="text-sm text-slate-500 mb-4 line-clamp-2">{{ job.description }}</p>
             <div class="flex items-center gap-4 text-[11px] font-medium text-slate-500">
               <span class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-[8px] border border-slate-200 bg-white flex items-center justify-center"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg></div>{{ job.code }}</span>
@@ -64,11 +64,11 @@
             </button>
 
             <!-- Corrected Function Call for View Detail -->
-            <button (click)="viewJobDetail(job)" class="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl transition-all shadow-sm whitespace-nowrap cursor-pointer">
+            <button (click)="viewJobDetail(job)" class="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl transition-all shadow-sm whitespace-nowrap cursor-pointer">
               View Detail
             </button>
 
-            <button (click)="applyJob(job)" class="px-5 py-2.5 bg-slate-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shrink-0 whitespace-nowrap cursor-pointer">
+            <button (click)="applyJob(job)" class="px-5 py-2.5 bg-slate-900 hover:bg-blue-600 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shrink-0 whitespace-nowrap cursor-pointer">
               Apply Now
             </button>
           </div>
@@ -99,7 +99,7 @@
       </button>
       @for (page of getPageNumbers(); track page) {
         <button (click)="onPageChange(page)"
-                class="w-9 h-9 flex items-center justify-center rounded-xl text-xs font-bold transition-all cursor-pointer"
+                class="w-9 h-9 flex items-center justify-center rounded-xl text-xs font-semibold transition-all cursor-pointer"
                 [class.bg-slate-900]="currentPage() === page"
                 [class.text-white]="currentPage() === page"
                 [class.shadow-md]="currentPage() === page"
@@ -128,7 +128,7 @@
       <div class="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50 shrink-0">
         <div>
           <span class="inline-flex items-center h-6 px-3 rounded-full bg-blue-50 text-blue-600 text-[11px] font-semibold mb-3 border border-blue-100/50">{{ selectedJob.department?.name }}</span>
-          <h2 class="text-2xl font-bold text-slate-900">{{ selectedJob.title }}</h2>
+          <h2 class="text-2xl font-semibold text-slate-900">{{ selectedJob.title }}</h2>
         </div>
         <button (click)="closeDetailModal()" class="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm cursor-pointer"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
       </div>
@@ -136,8 +136,8 @@
         {{ selectedJob.description }}
       </div>
       <div class="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
-        <button (click)="closeDetailModal()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl text-sm cursor-pointer">Close</button>
-        <button (click)="closeDetailModal(); applyJob(selectedJob)" class="px-8 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-blue-600 shadow-lg text-sm cursor-pointer">Apply Now</button>
+        <button (click)="closeDetailModal()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl text-sm cursor-pointer">Close</button>
+        <button (click)="applyJob(selectedJob); closeDetailModal()" class="px-8 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-blue-600 shadow-lg text-sm cursor-pointer">Apply Now</button>
       </div>
     </div>
   </div>
@@ -148,27 +148,47 @@
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
     <div class="bg-white w-full max-w-2xl rounded-[24px] shadow-2xl m-4 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200">
       <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-3">
+        <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-3">
           <div class="w-8 h-8 rounded-xl border border-blue-100 bg-blue-50 flex items-center justify-center text-blue-600"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></div>
           Apply for <span class="text-blue-600 ml-1">{{ selectedJobTitle }}</span>
         </h3>
         <button (click)="closeApplyModal()" class="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm cursor-pointer"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
       </div>
       <div class="p-6 max-h-[60vh] overflow-y-auto">
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-4 ml-1">Select your Resume</label>
+        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-widest mb-4 ml-1">Select your Resume</label>
         <div class="grid grid-cols-1 gap-3">
           @for (cv of myCvs(); track cv.id) {
             <div class="flex items-center justify-between p-4 border rounded-[16px] transition-all hover:bg-slate-50 bg-white shadow-sm"
                  [class.border-blue-500]="selectedCvId() === cv.id" [class.bg-blue-50]="selectedCvId() === cv.id" [class.border-slate-200]="selectedCvId() !== cv.id">
               <label class="flex items-center gap-4 cursor-pointer flex-1">
                 <input type="radio" name="cv" [value]="cv.id" (change)="selectedCvId.set(cv.id)" class="hidden">
-                <div class="w-10 h-10 bg-white border border-red-100 text-red-500 rounded-xl flex items-center justify-center shadow-sm shrink-0"
-                     [class.bg-blue-500]="selectedCvId() === cv.id" [class.text-white]="selectedCvId() === cv.id">
-                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0"
+                     [class.bg-blue-500]="selectedCvId() === cv.id"
+                     [class.text-white]="selectedCvId() === cv.id"
+                     [class.border-blue-500]="selectedCvId() === cv.id"
+                     [class.bg-white]="selectedCvId() !== cv.id"
+                     [class.border]="selectedCvId() !== cv.id"
+                     [class.border-red-100]="selectedCvId() !== cv.id && cv.fileName?.toLowerCase().endsWith('.pdf')"
+                     [class.text-red-500]="selectedCvId() !== cv.id && cv.fileName?.toLowerCase().endsWith('.pdf')"
+                     [class.border-blue-100]="selectedCvId() !== cv.id && !cv.fileName?.toLowerCase().endsWith('.pdf') && (cv.fileName?.toLowerCase().endsWith('.docx') || cv.fileName?.toLowerCase().endsWith('.doc'))"
+                     [class.text-blue-500]="selectedCvId() !== cv.id && !cv.fileName?.toLowerCase().endsWith('.pdf') && (cv.fileName?.toLowerCase().endsWith('.docx') || cv.fileName?.toLowerCase().endsWith('.doc'))"
+                     [class.border-slate-200]="selectedCvId() !== cv.id && !cv.fileName?.toLowerCase().endsWith('.pdf') && !cv.fileName?.toLowerCase().endsWith('.docx') && !cv.fileName?.toLowerCase().endsWith('.doc')"
+                     [class.text-slate-400]="selectedCvId() !== cv.id && !cv.fileName?.toLowerCase().endsWith('.pdf') && !cv.fileName?.toLowerCase().endsWith('.docx') && !cv.fileName?.toLowerCase().endsWith('.doc')">
+                  @if (cv.fileName?.toLowerCase().endsWith('.pdf')) {
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM8 13h2m-2 3h2m2-3h2m-2 3h2"/>
+                    </svg>
+                  } @else if (cv.fileName?.toLowerCase().endsWith('.docx') || cv.fileName?.toLowerCase().endsWith('.doc')) {
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                  } @else {
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                  }
                 </div>
-                <span class="font-bold text-sm"
+                <span class="font-semibold text-sm"
                       [class.text-blue-700]="selectedCvId() === cv.id" [class.text-slate-700]="selectedCvId() !== cv.id">{{ cv.fileName }}</span>
               </label>
               <div class="flex gap-1 shrink-0">
@@ -196,24 +216,28 @@
 
         <!-- Upload new CV -->
         <div class="mt-5 pt-4 border-t border-slate-200">
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-3 ml-1">Or Upload a New CV</label>
-          <input #cvUpload type="file" (change)="onCvFileSelected($event, cvUpload)" hidden accept=".pdf" [disabled]="uploadingCv()" />
-          <button (click)="cvUpload.click()" [disabled]="uploadingCv()"
-                  class="w-full py-3 flex items-center justify-center gap-2.5 border-2 border-dashed border-slate-300 rounded-2xl text-sm font-semibold text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all disabled:opacity-60 cursor-pointer">
-            @if (uploadingCv()) {
-              <div class="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-              Uploading...
-            } @else {
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-              </svg>
-              Upload CV
-            }
-          </button>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-widest mb-3 ml-1">Or Upload a New CV</label>
+          <div class="relative"
+               (dragover)="$event.preventDefault(); $event.stopPropagation()"
+               (drop)="onCvDrop($event, cvUpload)">
+            <input #cvUpload type="file" (change)="onCvFileSelected($event, cvUpload)" accept=".pdf" [disabled]="uploadingCv()"
+                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+            <div class="w-full py-3 flex items-center justify-center gap-2.5 border-2 border-dashed border-slate-300 rounded-2xl text-sm font-semibold text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all disabled:opacity-60 cursor-pointer">
+              @if (uploadingCv()) {
+                <div class="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                Uploading...
+              } @else {
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Upload CV
+              }
+            </div>
+          </div>
         </div>
       </div>
       <div class="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end">
-        <button (click)="submitApplication()" [disabled]="loading()" class="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg disabled:opacity-50 text-sm cursor-pointer">{{ loading() ? 'Submitting...' : 'Submit Application' }}</button>
+        <button (click)="submitApplication()" [disabled]="loading()" class="w-full py-3.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all shadow-lg disabled:opacity-50 text-sm cursor-pointer">{{ loading() ? 'Submitting...' : 'Submit Application' }}</button>
       </div>
     </div>
   </div>

@@ -1,6 +1,10 @@
 @use "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
+@theme {
+  --font-sans: 'Poppins', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
   --shell-bg: #f8fafc;
   --shell-surface: #ffffff;
@@ -40,7 +44,7 @@ body {
 }
 
 body {
-  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   background: var(--shell-bg);
   color: var(--shell-text-strong);
   -webkit-font-smoothing: antialiased;
@@ -54,8 +58,10 @@ textarea {
   font: inherit;
 }
 
-a {
-  color: inherit;
+@layer base {
+  a {
+    color: inherit;
+  }
 }
 
 code,
