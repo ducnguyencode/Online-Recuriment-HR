@@ -6,9 +6,11 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Application } from './application.entity';
 
 @Entity('vacancies')
 export class Vacancy {
@@ -27,6 +29,9 @@ export class Vacancy {
   })
   @JoinColumn({ name: 'departmentId' })
   department!: Department | null;
+
+  @OneToMany(() => Application, (a) => a.vacancy)
+  applications: Application[];
 
   @Column({ nullable: true })
   departmentId!: number;

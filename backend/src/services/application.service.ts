@@ -84,13 +84,18 @@ export class ApplicationService {
     // Filter date
     if (startDate && endDate) {
       qb.andWhere(
-        'application.createdAt >= :startDate::timestamptz AND application.createdAt < (:endDate::timestamptz + INTERVAL \'1 day\')',
+        "application.createdAt >= :startDate::timestamptz AND application.createdAt < (:endDate::timestamptz + INTERVAL '1 day')",
         { startDate, endDate },
       );
     } else if (startDate) {
-      qb.andWhere('application.createdAt >= :startDate::timestamptz', { startDate });
+      qb.andWhere('application.createdAt >= :startDate::timestamptz', {
+        startDate,
+      });
     } else if (endDate) {
-      qb.andWhere('application.createdAt < (:endDate::timestamptz + INTERVAL \'1 day\')', { endDate });
+      qb.andWhere(
+        "application.createdAt < (:endDate::timestamptz + INTERVAL '1 day')",
+        { endDate },
+      );
     }
 
     //Pagination
@@ -259,5 +264,24 @@ export class ApplicationService {
     }
 
     return application;
+  }
+
+  async changeAiPreviewStatus(id: number, status: AiPreviewStatus) {
+    const application = await this.findById(id);
+    application.aiPreview.status = status;
+    await this.applicationsTable.save(application);
+  }
+
+  async checkDuplicate(applicantId: number, vacancyId: number) {
+    const exists = await this.applicationsTable.exists({
+      where: {
+        applicantId,
+        vacancyId,
+      },
+    });
+
+    if (exists) {
+      throw new BadRequestException('Already applied');
+    }
   }
 }
