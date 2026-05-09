@@ -38,12 +38,21 @@ export class ApplicationService {
     private eventEmitter: EventEmitter2,
     private aiPreviewService: AiPreviewService,
     private sendMailService: SendMailService,
-  ) { }
+  ) {}
 
   async findAll(
     request: ApplicationFindDto,
   ): Promise<FindResponseDto<Application>> {
-    const { page, limit, search, vacancyId, applicantId, status } = request;
+    const {
+      page,
+      limit,
+      search,
+      vacancyId,
+      applicantId,
+      status,
+      startDate,
+      endDate,
+    } = request;
 
     const qb = this.applicationsTable.createQueryBuilder('application');
 
@@ -74,6 +83,22 @@ export class ApplicationService {
 
     if (applicantId) {
       qb.andWhere('application.applicantId = :aId', { aId: applicantId });
+    }
+
+    // Filter date
+    if (startDate && endDate) {
+      qb.andWhere('application.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    } else if (startDate) {
+      qb.andWhere('application.createdAt >= :startDate', {
+        startDate,
+      });
+    } else if (endDate) {
+      qb.andWhere('application.createdAt <= :endDate', {
+        endDate,
+      });
     }
 
     //Pagination
@@ -167,7 +192,7 @@ export class ApplicationService {
 
     const fullApplication = await this.applicationsTable.findOne({
       where: { id: application!.id },
-      relations: ['applicant', 'applicant.user', 'vacancy']
+      relations: ['applicant', 'applicant.user', 'vacancy'],
     });
 
     try {

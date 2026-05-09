@@ -32,4 +32,12 @@ export class ApplicationFindDto {
   @IsInt()
   @Type(() => Number)
   applicantId?: number;
+
+  @IsOptional()
+  @Type(() => Date)
+  startDate?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  endDate?: Date;
 }
