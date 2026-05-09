@@ -1,8 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
+
 
 @Component({
   selector: 'app-forgot-password',
@@ -11,10 +13,13 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './forgot-password.component.html',
   styleUrls: ['./forgot-password.component.scss']
 })
-export class ForgotPasswordComponent {
+export class ForgotPasswordComponent implements OnDestroy {
   private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toast = inject(ToastService);
+  private redirectTimer: ReturnType<typeof setTimeout> | null = null;
+
 
   email = '';
   token = this.route.snapshot.queryParamMap.get('token') ?? '';
@@ -26,6 +31,7 @@ export class ForgotPasswordComponent {
   isResetDone = false;
   errorMessage = '';
   successMessage = '';
+  private resetRedirectTimer: ReturnType<typeof setTimeout> | null = null;
   showPassword = false;
   showConfirmPassword = false;
   currentYear = new Date().getFullYear();
@@ -53,12 +59,14 @@ export class ForgotPasswordComponent {
       next: (res) => {
         this.isLoading = false;
         this.isSent = true;
-        this.successMessage = res.message;
+        this.successMessage = res.message || 'Reset link has been sent.';
+        this.toast.success(this.successMessage);
       },
       error: (err) => {
         this.isLoading = false;
         this.errorMessage =
           err?.error?.message ?? 'Unable to send reset link. Please try again.';
+        this.toast.error(this.errorMessage);
       },
     });
   }
@@ -69,26 +77,37 @@ export class ForgotPasswordComponent {
 
     if (!this.newPassword || this.newPassword.length < 6) {
       this.errorMessage = 'Password must have at least 6 characters.';
+      this.toast.warning(this.errorMessage);
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
-      this.errorMessage = 'Confirm password does not match.';
+      this.errorMessage = 'Passwords do not match.';
       return;
     }
 
     this.isLoading = true;
     this.auth.resetPassword(this.token, this.newPassword).subscribe({
-      next: (res) => {
+      next: () => {
         this.isLoading = false;
         this.isResetDone = true;
-        this.successMessage = res.message;
+        this.successMessage = 'Password reset successfully';
+        this.resetRedirectTimer = setTimeout(() => {
+          this.router.navigate(['/login']);
+          this.resetRedirectTimer = null;
+        }, 3000);
       },
       error: (err) => {
         this.isLoading = false;
         this.errorMessage =
           err?.error?.message ?? 'Unable to reset password. Please try again.';
+        this.toast.error(this.errorMessage);
       },
     });
+  }
+
+  private startAutoRedirect() {
+    if (this.redirectTimer) clearTimeout(this.redirectTimer);
+    this.redirectTimer = setTimeout(() => this.returnLogin(), 3000);
   }
 
   togglePasswordVisibility() {
@@ -100,6 +119,17 @@ export class ForgotPasswordComponent {
   }
 
   returnLogin() {
+    if (this.resetRedirectTimer) {
+      clearTimeout(this.resetRedirectTimer);
+      this.resetRedirectTimer = null;
+    }
     this.router.navigate([this.isHrScope ? '/hr/login' : '/login']);
+  }
+
+  ngOnDestroy(): void {
+    if (this.redirectTimer) {
+      clearTimeout(this.redirectTimer);
+      this.redirectTimer = null;
+    }
   }
 }

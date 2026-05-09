@@ -21,29 +21,77 @@ import { ResendVerifyDto } from 'src/dto/auth/resend-verify.dto';
 import { UserCreateDto } from 'src/dto/user/user.create.dto';
 import { TokenExpiredError } from 'jsonwebtoken';
 import { signToken } from 'src/helper/function.helper';
+import { AuditLogService } from './audit-log.service';
+import { LoginHistoryService } from './login-history.service';
+
+export interface AuthRequestContext {
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private loginHistoryService: LoginHistoryService,
+    private auditLogService: AuditLogService,
   ) {}
 
   async register(userCreateDto: UserCreateDto) {
     return await this.userService.createRegisterApplicant(userCreateDto);
   }
 
-  async login(email: string, password: string) {
-    const user = await this.userService.findUserVerifiedByEmail(email);
-    if (!user.isActive) {
-      throw new UnauthorizedException('Account is deactivated');
+  async login(email: string, password: string, context?: AuthRequestContext) {
+    const normalizedEmail = email.trim().toLowerCase();
+    try {
+      const user = await this.userService.findUserVerifiedByEmail(normalizedEmail);
+      if (!user.isActive) {
+        throw new UnauthorizedException('Account is deactivated');
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch)
+        throw new UnauthorizedException('Email or password not correct!');
+
+      try {
+        await this.loginHistoryService.record({
+          email: normalizedEmail,
+          userId: user.id,
+          status: 'SUCCESS',
+          context,
+        });
+
+        await this.auditLogService.createLog({
+          actorId: user.id,
+          actorRoleSnapshot: user.role,
+          actorFullName: user.fullName,
+          action: 'AUTH_LOGIN_SUCCESS',
+          targetId: user.id,
+          targetRoleSnapshot: user.role,
+          context,
+        });
+      } catch (logError) {
+        console.error('Failed to write auth logs', logError);
+      }
+
+      return signToken(user, this.jwtService);
+    } catch (error) {
+      const existingUser = await this.userService.findByEmail(normalizedEmail);
+      try {
+        await this.loginHistoryService.record({
+          email: normalizedEmail,
+          userId: existingUser?.id ?? null,
+          status: 'FAILED',
+          failureReason:
+            error instanceof Error ? error.message : 'Authentication failed',
+          context,
+        });
+      } catch (logError) {
+        console.error('Failed to write login history', logError);
+      }
+      throw error;
     }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      throw new UnauthorizedException('Email or password not correct!');
-
-    return signToken(user, this.jwtService);
   }
 
   async verifyEmailToken(token: string) {
@@ -65,7 +113,6 @@ export class AuthService {
       throw new NotFoundException('Account not found!');
     }
 
-    // Verification link is one-time use: token must match current token on account.
     if (!user.verificationToken || user.verificationToken !== token) {
       throw new UnauthorizedException(
         'Verification link is invalid or has already been used.',
@@ -75,11 +122,10 @@ export class AuthService {
     return this.userService.verifyAccount(payload);
   }
 
-  async forgotPassword(dto: ForgotPasswordDto) {
+  async forgotPassword(dto: ForgotPasswordDto, context?: AuthRequestContext) {
     const email = dto.email.trim().toLowerCase();
     const user = await this.userService.findByEmail(email);
 
-    // Keep response generic to avoid leaking account existence.
     if (!user) {
       return { message: 'If your account exists, a reset link has been sent.' };
     }
@@ -112,6 +158,21 @@ export class AuthService {
       resetUrl,
     );
 
+    try {
+      await this.auditLogService.createLog({
+        actorId: user.id,
+        actorRoleSnapshot: user.role,
+        actorFullName: user.fullName,
+        action: 'AUTH_FORGOT_PASSWORD_REQUESTED',
+        targetId: user.id,
+        targetRoleSnapshot: user.role,
+        payload: { scope: dto.scope ?? null },
+        context,
+      });
+    } catch (logError) {
+      console.error('Failed to write audit log', logError);
+    }
+
     return { message: 'If your account exists, a reset link has been sent.' };
   }
 
@@ -122,7 +183,7 @@ export class AuthService {
     };
   }
 
-  async resetPassword(dto: ResetPasswordDto) {
+  async resetPassword(dto: ResetPasswordDto, context?: AuthRequestContext) {
     const user = await this.userService.findByResetToken(dto.token);
     if (!user) {
       throw new BadRequestException('Invalid reset token.');
@@ -163,6 +224,20 @@ export class AuthService {
     user.resetPasswordTokenExpiresAt = null;
     await this.userService.save(user);
 
+    try {
+      await this.auditLogService.createLog({
+        actorId: user.id,
+        actorRoleSnapshot: user.role,
+        actorFullName: user.fullName,
+        action: 'AUTH_PASSWORD_RESET_SUCCESS',
+        targetId: user.id,
+        targetRoleSnapshot: user.role,
+        context,
+      });
+    } catch (logError) {
+      console.error('Failed to write audit log', logError);
+    }
+
     return { message: 'Password has been reset successfully.' };
   }
 
@@ -201,7 +276,11 @@ export class AuthService {
     return { message: 'Initial password has been set successfully.' };
   }
 
-  async changePassword(userId: number, dto: ChangePasswordDto) {
+  async changePassword(
+    userId: number,
+    dto: ChangePasswordDto,
+    context?: AuthRequestContext,
+  ) {
     const user = await this.userService.findById(userId);
     if (!user) {
       throw new NotFoundException('Account not found');
@@ -214,7 +293,44 @@ export class AuthService {
     user.mustChangePassword = false;
     await this.userService.save(user);
 
+    try {
+      await this.auditLogService.createLog({
+        actorId: user.id,
+        actorRoleSnapshot: user.role,
+        actorFullName: user.fullName,
+        action: 'AUTH_PASSWORD_CHANGED',
+        targetId: user.id,
+        targetRoleSnapshot: user.role,
+        context,
+      });
+    } catch (logError) {
+      console.error('Failed to write audit log', logError);
+    }
+
     return { message: 'Password changed successfully.' };
+  }
+
+  async logout(userId: number, context?: AuthRequestContext) {
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Account not found');
+    }
+
+    try {
+      await this.auditLogService.createLog({
+        actorId: user.id,
+        actorRoleSnapshot: user.role,
+        actorFullName: user.fullName,
+        action: 'AUTH_LOGOUT',
+        targetId: user.id,
+        targetRoleSnapshot: user.role,
+        context,
+      });
+    } catch (logError) {
+      console.error('Failed to write logout audit log', logError);
+    }
+
+    return { message: 'Logout success.' };
   }
 
   private verifyEmailJwtToken(token: string): any {

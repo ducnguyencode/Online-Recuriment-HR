@@ -90,6 +90,10 @@ export class User {
   verifiedAt!: Date | null;
 
   @Exclude()
+  @Column({ type: 'timestamptz', nullable: true })
+  lastVerificationResendAt!: Date | null;
+
+  @Exclude()
   @Column({ type: 'varchar', nullable: true })
   resetPasswordToken!: string | null;
 

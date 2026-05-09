@@ -75,6 +75,9 @@ import { SendMailService } from './services/bullmq/send-mail-worker/send-mail.se
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { APPLICATION_APPLY_QUEUE } from './services/bullmq/application-apply-worker/application-apply-worker.constants';
 import { ApplicationApplyProcessor } from './services/bullmq/application-apply-worker/application-apply-worker.procssor';
+import { LoginHistory } from './entities/login-history.entity';
+import { LoginHistoryService } from './services/login-history.service';
+import { LoginHistoryController } from './controller/login-history.controller';
 
 @Module({
   imports: [
@@ -115,6 +118,7 @@ import { ApplicationApplyProcessor } from './services/bullmq/application-apply-w
       EmailQueue,
       AuditLog,
       SavedJob,
+      LoginHistory,
     ]),
     PassportModule,
     JwtModule.registerAsync({
@@ -163,6 +167,7 @@ import { ApplicationApplyProcessor } from './services/bullmq/application-apply-w
     DashboardController,
     ReportController,
     SavedJobController,
+    LoginHistoryController,
   ],
   providers: [
     VacanciesService,
@@ -200,6 +205,7 @@ import { ApplicationApplyProcessor } from './services/bullmq/application-apply-w
     SendMailProcessor,
     SendMailService,
     ApplicationApplyProcessor,
+    LoginHistoryService,
   ],
 })
 export class AppModule {}

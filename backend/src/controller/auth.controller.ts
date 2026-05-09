@@ -5,8 +5,10 @@ import {
   HttpStatus,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { CurrentUser } from 'src/common/decorator/decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { ChangePasswordDto } from 'src/dto/auth/change-password.dto';
@@ -22,6 +24,13 @@ import { UserService } from 'src/services/user.service';
 
 @Controller('auth')
 export class AuthController {
+  private extractContext(req: Request) {
+    return {
+      ipAddress: req.ip ?? null,
+      userAgent: req.get('user-agent') ?? null,
+    };
+  }
+
   constructor(
     private authService: AuthService,
     private userService: UserService,
@@ -53,10 +62,11 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
     const data = await this.authService.login(
       loginDto.email,
       loginDto.password,
+      this.extractContext(req),
     );
     return {
       statusCode: HttpStatus.ACCEPTED,
@@ -66,8 +76,11 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    const data = await this.authService.forgotPassword(dto);
+  async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
+    const data = await this.authService.forgotPassword(
+      dto,
+      this.extractContext(req),
+    );
     return {
       statusCode: HttpStatus.OK,
       message: data.message,
@@ -86,8 +99,8 @@ export class AuthController {
   }
 
   @Post('reset-password')
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    const data = await this.authService.resetPassword(dto);
+  async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
+    const data = await this.authService.resetPassword(dto, this.extractContext(req));
     return {
       statusCode: HttpStatus.OK,
       message: data.message,
@@ -121,8 +134,24 @@ export class AuthController {
   async changePassword(
     @CurrentUser() user: SafeUserDto,
     @Body() dto: ChangePasswordDto,
+    @Req() req: Request,
   ) {
-    const data = await this.authService.changePassword(user.id, dto);
+    const data = await this.authService.changePassword(
+      user.id,
+      dto,
+      this.extractContext(req),
+    );
+    return {
+      statusCode: HttpStatus.OK,
+      message: data.message,
+      data,
+    };
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(@CurrentUser() user: SafeUserDto, @Req() req: Request) {
+    const data = await this.authService.logout(user.id, this.extractContext(req));
     return {
       statusCode: HttpStatus.OK,
       message: data.message,

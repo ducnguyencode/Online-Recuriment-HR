@@ -11,9 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from 'src/common/decorator/decorator';
+import { Roles } from 'src/common/decorator/decorator';
 import { VacancyAccess } from 'src/common/decorator/vacancy-access.decorator';
 import { UserRole, VacancyStatus } from 'src/common/enum';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { VacancyCreateDto } from 'src/dto/vacancy/vacancy.create.dto';
 import { VacancyFindDto } from 'src/dto/vacancy/vacancy.find.dto';
@@ -28,7 +30,8 @@ export class VacancyController {
   constructor(private vacanciesService: VacanciesService) {}
 
   @Post('create')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.HR)
   async create(
     @CurrentUser() user: SafeUserDto,
     @Body() vacancyCreateDto: VacancyCreateDto,

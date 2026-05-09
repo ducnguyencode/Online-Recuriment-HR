@@ -13,11 +13,12 @@ import { InterviewService } from '../services/interview.service';
 import { InterviewCreateDto } from '../dto/interview-create.dto';
 import { InterviewRescheduleDto } from '../dto/interview-reschedule.dto';
 import { InterviewUpdateStatusDto } from '../dto/interview-update-status.dto';
-
-// Auth Guards & Decorators from Dev 1
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/auth-user.interface';
+import { Roles } from 'src/common/decorator/decorator';
+import { UserRole } from 'src/common/enum';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
 import { IsString, IsIn, IsNotEmpty } from 'class-validator';
 
@@ -32,15 +33,15 @@ export class SubmitResultDto {
 }
 
 @Controller('interviews')
-@UseGuards(JwtAuthGuard) // Protect all interview endpoints
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class InterviewController {
   constructor(private readonly interviewService: InterviewService) {}
 
-  // POST /interviews
   @Post()
+  @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
   async create(
     @Body() data: InterviewCreateDto,
-    @CurrentUser() user: AuthUser, // Get HR info from JWT token
+    @CurrentUser() user: AuthUser,
   ) {
     const result = await this.interviewService.create(data, user.userId);
     return {
@@ -50,8 +51,8 @@ export class InterviewController {
     };
   }
 
-  // PATCH /interviews/:id/reschedule
   @Patch(':id/reschedule')
+  @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
   async reschedule(
     @Param('id') id: string,
     @Body() data: InterviewRescheduleDto,
@@ -70,8 +71,8 @@ export class InterviewController {
     };
   }
 
-  // PATCH /interviews/:id/status
   @Patch(':id/status')
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async updateStatus(
     @Param('id') id: string,
     @Body() data: InterviewUpdateStatusDto,
@@ -86,6 +87,7 @@ export class InterviewController {
   }
 
   @Get()
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async findAll(@Query() query: any) {
     const data = await this.interviewService.findAll(query);
     return {
@@ -96,6 +98,7 @@ export class InterviewController {
   }
 
   @Get(':id')
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async findOne(@Param('id') id: string) {
     const data = await this.interviewService.findOne(id);
     return {
