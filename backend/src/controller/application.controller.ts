@@ -55,6 +55,10 @@ export class ApplicationController {
 
   @Post('applicant-create')
   async applicantCreate(@Body() applicationCreateDto: ApplicationCreateDto) {
+    await this.applicationService.checkDuplicate(
+      applicationCreateDto.applicantId,
+      applicationCreateDto.vacancyId,
+    );
     const key = `apply-lock:${applicationCreateDto.applicantId}`;
 
     const locked = await this.redis.set(key, '1', 'EX', 300, 'NX');
@@ -75,7 +79,7 @@ export class ApplicationController {
     const { data } = await this.applicationApplyQueue.add(
       APPLICATION_APPLY_JOB,
       applicationCreateDto,
-      { removeOnComplete: true, removeOnFail: true },
+      { removeOnComplete: true, removeOnFail: false },
     );
     return {
       statusCode: HttpStatus.OK,

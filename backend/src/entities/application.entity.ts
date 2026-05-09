@@ -33,7 +33,7 @@ export class Application {
   @Column()
   applicantId!: number;
 
-  @ManyToOne(() => Vacancy, (v) => v.id)
+  @ManyToOne(() => Vacancy, (v) => v.applications)
   @JoinColumn({ name: 'vacancyId' })
   vacancy!: Vacancy;
 
