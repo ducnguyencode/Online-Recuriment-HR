@@ -23,6 +23,12 @@ export class DashboardComponent implements OnInit {
 
   interviews = signal<any[]>([]);
 
+  // Pagination for applications
+  appCurrentPage = signal(1);
+  appTotalPages = signal(1);
+  appTotalItems = signal(0);
+  readonly appPageSize = 10;
+
   isApplyModalOpen = false;
   selectedJobTitle = '';
   applyForm = { applicantId: '', vacancyId: '' };
@@ -38,24 +44,12 @@ export class DashboardComponent implements OnInit {
   private interviewService = inject(InterviewService);
   private favoriteJobService = inject(FavoriteJobService);
 
-  // NGONINIT GỐC (CHỈ THÊM 2 DÒNG GỌI HÀM MỚI BÊN DƯỚI)
   ngOnInit(): void {
-    const applicantId = this.authService.currentUser()?.applicantId;
-    // Đoạn code gốc của team:
-    this.applicationService
-      .getAll({
-        applicantId: this.authService.currentUser()?.applicantId,
-      })
-      .subscribe({
-        next: (res) => {
-          this.applications.set((res.data as any)?.items) ?? [];
-        },
-      });
-
-    // Đoạn code mới thêm vào:
+    this.fetchApplications();
     this.loadSavedJobs();
     this.fetchUserCvs();
 
+    const applicantId = this.authService.currentUser()?.applicantId;
     if (applicantId) {
       this.interviewService.getAll({ applicantId: applicantId }).subscribe({
         next: (res) => {
@@ -68,13 +62,40 @@ export class DashboardComponent implements OnInit {
   fetchApplications() {
     const userId = this.authService.currentUser()?.applicantId;
     if (userId) {
-      this.applicationService.getAll({ applicantId: userId }).subscribe({
+      this.applicationService.getAll({
+        applicantId: userId,
+        page: this.appCurrentPage(),
+        limit: this.appPageSize,
+      }).subscribe({
         next: (res: any) => {
-          const items = res.data?.items ?? res.data ?? [];
+          const data = res.data;
+          const items = data?.items ?? data ?? [];
           this.applications.set(items);
+          this.appTotalItems.set(data?.totalItems ?? data?.total ?? items.length);
+          this.appTotalPages.set(data?.totalPages ?? Math.max(1, Math.ceil(this.appTotalItems() / this.appPageSize)));
         }
       });
     }
+  }
+
+  onAppPageChange(page: number) {
+    if (page < 1 || page > this.appTotalPages()) return;
+    this.appCurrentPage.set(page);
+    this.fetchApplications();
+  }
+
+  getAppPageNumbers(): number[] {
+    const total = this.appTotalPages();
+    const current = this.appCurrentPage();
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, current - Math.floor(maxVisible / 2));
+    let end = Math.min(total, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
   }
 
   loadSavedJobs() {
@@ -101,7 +122,9 @@ export class DashboardComponent implements OnInit {
       [ApplicationStatus.PENDING]: 'bg-slate-50 text-slate-500 border-slate-200',
       [ApplicationStatus.SCREENING]: 'bg-amber-50 text-amber-600 border-amber-100',
       [ApplicationStatus.INTERVIEW_SCHEDULED]: 'bg-blue-50 text-blue-600 border-blue-100',
+      [ApplicationStatus.PENDING_REVIEW]: 'bg-amber-50 text-amber-600 border-amber-100',
       [ApplicationStatus.SELECTED]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+      [ApplicationStatus.ACCEPTED]: 'bg-green-50 text-green-700 border-green-200',
       [ApplicationStatus.REJECTED]: 'bg-red-50 text-red-600 border-red-100',
     };
     return map[status] ?? 'bg-slate-50 text-slate-500 border-slate-200';

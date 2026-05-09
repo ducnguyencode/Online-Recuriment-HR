@@ -59,7 +59,10 @@ export class ApplicationService {
     qb.leftJoinAndSelect('application.vacancy', 'vacancy')
       .leftJoinAndSelect('application.applicant', 'applicant')
       .leftJoinAndSelect('applicant.user', 'user')
-      .leftJoinAndSelect('application.cv', 'cv');
+      .leftJoinAndSelect('application.cv', 'cv')
+      .leftJoinAndSelect('application.interviews', 'interview')
+      .leftJoinAndSelect('interview.panels', 'panel')
+      .leftJoinAndSelect('panel.employee', 'panelEmployee');
 
     //Filter
     if (search) {
@@ -256,8 +259,8 @@ export class ApplicationService {
         'Congratulation',
         {
           position: application.vacancy.title,
-          company: 'HR RECURIMENT',
-          startDate: new Date().toISOString(),
+          company: 'HR RECRUITMENT',
+          startDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
           department: application.vacancy.department?.name,
         },
       );

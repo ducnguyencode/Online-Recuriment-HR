@@ -86,11 +86,11 @@ export class InterviewService {
   async create(data: InterviewCreateDto, userId: number) {
     const start = new Date(data.startTime);
     const end = new Date(data.endTime);
-    const now = new Date();
+    const bufferTime = new Date(Date.now() + 60 * 60 * 1000); // now + 1 hour
 
     // 1. Basic time validation
-    if (start <= now)
-      throw new BadRequestException('Start time must be in the future.');
+    if (start <= bufferTime)
+      throw new BadRequestException('Start time must be at least 1 hour from now.');
     if (end <= start)
       throw new BadRequestException('End time must be after start time.');
 
@@ -251,10 +251,10 @@ export class InterviewService {
   ) {
     const start = new Date(startTime);
     const end = new Date(endTime);
-    const now = new Date();
+    const bufferTime = new Date(Date.now() + 60 * 60 * 1000); // now + 1 hour
 
-    if (start <= now)
-      throw new BadRequestException('Start time must be in the future.');
+    if (start <= bufferTime)
+      throw new BadRequestException('Start time must be at least 1 hour from now.');
     if (end <= start)
       throw new BadRequestException('End time must be after start time.');
 
@@ -561,25 +561,8 @@ export class InterviewService {
       await queryRunner.manager.save(Interview, interview);
 
       if (interview.application) {
-        if (vote === 'Pass') {
-          interview.application.status = ApplicationStatus.SELECTED;
-          await queryRunner.manager.save(Application, interview.application);
-        } else {
-          interview.application.status = ApplicationStatus.REJECTED;
-          await queryRunner.manager.save(Application, interview.application);
-          const activeApplicationsCount = await queryRunner.manager.count(Application, {
-            where: {
-              applicant: { id: interview.application.applicant.id },
-              id: Not(interview.application.id),
-              status: Not(In([ApplicationStatus.REJECTED, ApplicationStatus.SELECTED]))
-            }
-          });
-
-          if (activeApplicationsCount === 0) {
-            interview.application.applicant.status = ApplicantStatus.NOT_IN_PROCESS;
-            await queryRunner.manager.save(interview.application.applicant);
-          }
-        }
+        // Both Pass and Fail → Pending Review. Super Admin makes the final decision.
+        interview.application.status = ApplicationStatus.PENDING_REVIEW;
         await queryRunner.manager.save(Application, interview.application);
       }
 

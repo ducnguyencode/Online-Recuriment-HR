@@ -34,6 +34,7 @@ export enum ApplicationStatus {
   PENDING = 'Pending',
   SCREENING = 'Screening',
   INTERVIEW_SCHEDULED = 'Interview Scheduled',
+  PENDING_REVIEW = 'Pending Review',
   SELECTED = 'Selected',
   REJECTED = 'Rejected',
   ACCEPTED = 'Accepted',
@@ -180,6 +181,7 @@ export interface Application {
   appliedAt?: string;
   createdAt?: string;
   updatedAt: string;
+  interviews?: Interview[];
 }
 
 export interface InterviewerPanel {

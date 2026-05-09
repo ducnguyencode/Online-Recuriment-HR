@@ -33,6 +33,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   showMyActions = signal(true);
   currentPage = signal(1);
   readonly pageSize = 10;
+  activeTab = signal<'auth' | 'activity'>('activity');
   actionFilter = '';
   fromDate = '';
   toDate = '';
@@ -126,6 +127,11 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     this.currentPage.set(1);
   }
 
+  switchTab(tab: 'auth' | 'activity'): void {
+    this.activeTab.set(tab);
+    this.currentPage.set(1);
+  }
+
   private visibleLogs(): AuditLogItem[] {
     if (!this.isSuperAdmin || this.showMyActions()) {
       return this.logs();
@@ -143,15 +149,27 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     );
   }
 
+  private activityLogs(): AuditLogItem[] {
+    return this.visibleLogs().filter(
+      (item) => !AuditLogComponent.AUTH_ACTION_PATTERN.test(item.action),
+    );
+  }
+
+  private currentTabLogs(): AuditLogItem[] {
+    return this.activeTab() === 'auth'
+      ? this.authTimelineLogs()
+      : this.activityLogs();
+  }
+
   pagedLogs(): AuditLogItem[] {
     const page = this.currentPage();
     const start = (page - 1) * this.pageSize;
     const end = start + this.pageSize;
-    return this.authTimelineLogs().slice(start, end);
+    return this.currentTabLogs().slice(start, end);
   }
 
   totalPages(): number {
-    const total = this.authTimelineLogs().length;
+    const total = this.currentTabLogs().length;
     return total > 0 ? Math.ceil(total / this.pageSize) : 1;
   }
 
@@ -173,7 +191,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   }
 
   visibleLogsCount(): number {
-    return this.authTimelineLogs().length;
+    return this.currentTabLogs().length;
   }
 
   onPageChange(page: number): void {
@@ -328,6 +346,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     action: string,
     payload: Record<string, unknown>,
   ): string {
+    // --- Staff actions ---
     if (action === 'STAFF_UPDATE') {
       return this.describeStaffUpdate(payload);
     }
@@ -361,7 +380,86 @@ export class AuditLogComponent implements OnInit, OnDestroy {
         .filter(Boolean)
         .join(' | ');
     }
+
+    // --- Vacancy actions ---
+    if (action === 'VACANCIES_CREATE') {
+      return this.describeVacancyAction(payload, 'Created');
+    }
+    if (action === 'VACANCIES_UPDATE' || action === 'VACANCIES_PATCH') {
+      return this.describeVacancyAction(payload, 'Updated');
+    }
+    if (action === 'VACANCIES_DELETE') {
+      return this.describeVacancyAction(payload, 'Deleted');
+    }
+
+    // --- Interview actions ---
+    if (action === 'INTERVIEWS_CREATE') {
+      return this.describeInterviewAction(payload, 'Scheduled');
+    }
+    if (action === 'INTERVIEWS_PATCH' || action === 'INTERVIEWS_UPDATE') {
+      return this.describeInterviewAction(payload, 'Updated');
+    }
+
+    // --- Application actions ---
+    if (action === 'APPLICATIONS_CREATE') {
+      return this.describeApplicationAction(payload, 'Created');
+    }
+    if (action === 'APPLICATIONS_PATCH' || action === 'APPLICATIONS_UPDATE') {
+      return this.describeApplicationAction(payload, 'Updated');
+    }
+
+    // --- Department actions ---
+    if (action === 'DEPARTMENTS_CREATE') {
+      return this.describeDepartmentAction(payload, 'Created');
+    }
+    if (action === 'DEPARTMENTS_UPDATE' || action === 'DEPARTMENTS_PATCH') {
+      return this.describeDepartmentAction(payload, 'Updated');
+    }
+    if (action === 'DEPARTMENTS_DELETE') {
+      return this.describeDepartmentAction(payload, 'Deleted');
+    }
+
     return this.describeGenericPayload(payload);
+  }
+
+  private describeVacancyAction(payload: Record<string, unknown>, verb: string): string {
+    const body = this.readObjectField(payload, 'body') ?? payload;
+    const title = this.readTextField(body, 'title');
+    const status = this.readTextField(body, 'status');
+    const parts: string[] = [verb + ' vacancy'];
+    if (title) parts.push(`"${title}"`);
+    if (status) parts.push(`Status: ${status}`);
+    return parts.join(' · ');
+  }
+
+  private describeInterviewAction(payload: Record<string, unknown>, verb: string): string {
+    const body = this.readObjectField(payload, 'body') ?? payload;
+    const title = this.readTextField(body, 'title');
+    const vote = this.readTextField(body, 'vote');
+    const feedback = this.readTextField(body, 'feedback');
+    const status = this.readTextField(body, 'status');
+    const parts: string[] = [verb + ' interview'];
+    if (title) parts.push(`"${title}"`);
+    if (vote) parts.push(`Vote: ${vote}`);
+    if (feedback) parts.push(`Feedback: ${feedback.substring(0, 60)}${feedback.length > 60 ? '…' : ''}`);
+    if (status) parts.push(`Status: ${status}`);
+    return parts.join(' · ');
+  }
+
+  private describeApplicationAction(payload: Record<string, unknown>, verb: string): string {
+    const body = this.readObjectField(payload, 'body') ?? payload;
+    const status = this.readTextField(body, 'status');
+    const parts: string[] = [verb + ' application'];
+    if (status) parts.push(`Status → ${status}`);
+    return parts.join(' · ');
+  }
+
+  private describeDepartmentAction(payload: Record<string, unknown>, verb: string): string {
+    const body = this.readObjectField(payload, 'body') ?? payload;
+    const name = this.readTextField(body, 'name');
+    const parts: string[] = [verb + ' department'];
+    if (name) parts.push(`"${name}"`);
+    return parts.join(' · ');
   }
 
   private describeStaffCreate(payload: Record<string, unknown>): string {

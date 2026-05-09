@@ -15,12 +15,18 @@
     <div class="header-filters">
       <input class="form-input" type="date" [(ngModel)]="filterStartDate" (change)="onFilterChange()" style="width: 150px" placeholder="From" title="From date" />
       <input class="form-input" type="date" [(ngModel)]="filterEndDate" (change)="onFilterChange()" style="width: 150px" placeholder="To" title="To date" />
-      <select class="form-select" [(ngModel)]="filterStatus" (change)="onFilterChange()" style="width: 170px">
+      <select class="form-select" [(ngModel)]="filterStatus" (change)="onFilterChange()" style="width: 155px">
         <option value="">All Statuses</option>
         <option value="Scheduled">Scheduled</option>
         <option value="Completed">Completed</option>
         <option value="Cancelled">Cancelled</option>
         <option value="Postponed">Postponed</option>
+      </select>
+      <select class="form-select" [(ngModel)]="filterInterviewer" (change)="onFilterChange()" style="width: 180px">
+        <option value="">All Interviewers</option>
+        @for (iv of interviewerList; track iv.id) {
+          <option [value]="iv.id">{{ iv.name }}</option>
+        }
       </select>
       <button class="btn-secondary" (click)="clearFilters()">Reset</button>
     </div>
@@ -84,7 +90,7 @@
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            {{ item.panel.length }} interviewer(s)
+            <span [title]="getInterviewerNames(item.panel)">{{ getInterviewerNames(item.panel) }}</span>
           </div>
           @if (item.googleMeetLink) {
           <div class="tc-detail-item">
@@ -99,7 +105,16 @@
         <!-- Panel vote summary -->
         @if (item.panel.length > 0) {
         <div class="tc-vote-summary">
-          {{ getPanelVoteSummary(item.panel) }}
+          @for (p of item.panel; track p.employeeId) {
+            <span class="vote-chip" [class.vote-chip-pass]="p.vote === 'Pass'" [class.vote-chip-fail]="p.vote === 'Fail'" [class.vote-chip-pending]="p.vote === 'Pending' || !p.vote">
+              @if (p.vote === 'Pass') {
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              } @else if (p.vote === 'Fail') {
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              }
+              {{ p.vote || 'Pending' }}
+            </span>
+          }
         </div>
         }
 
@@ -288,17 +303,17 @@
       @if (postponeError) {
       <div class="form-error-banner">{{ postponeError }}</div>
       }
-      <div class="form-row">
+      <div class="form-row" style="display:flex;gap:12px;align-items:flex-end">
         <div class="form-group" style="flex: 1">
-          <label class="form-label">Interview Date <span class="required">*</span></label>
+          <label class="form-label">Date <span class="required">*</span></label>
           <input type="date" class="form-input" [(ngModel)]="postponeData.interviewDate" />
         </div>
-        <div class="form-group" style="width: 130px">
-          <label class="form-label">Start Time <span class="required">*</span></label>
-          <input type="time" class="form-input" [(ngModel)]="postponeData.startTime" />
+        <div class="form-group" style="width: 120px">
+          <label class="form-label">Start <span class="required">*</span></label>
+          <input type="time" class="form-input" [(ngModel)]="postponeData.startTime" (ngModelChange)="onPostponeStartTimeChange($event)" />
         </div>
-        <div class="form-group" style="width: 130px">
-          <label class="form-label">End Time <span class="required">*</span></label>
+        <div class="form-group" style="width: 120px">
+          <label class="form-label">End <span class="required">*</span></label>
           <input type="time" class="form-input" [(ngModel)]="postponeData.endTime" />
         </div>
       </div>
@@ -343,11 +358,13 @@
         <div class="vote-choice-row">
           <label class="vote-choice" [class.selected-pass]="resultData.vote === 'Pass'">
             <input type="radio" name="vote" value="Pass" [(ngModel)]="resultData.vote" />
-            ✅ Pass — Recommend
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Pass — Recommend
           </label>
           <label class="vote-choice" [class.selected-fail]="resultData.vote === 'Fail'">
             <input type="radio" name="vote" value="Fail" [(ngModel)]="resultData.vote" />
-            ❌ Fail — Not Recommend
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            Fail — Not Recommend
           </label>
         </div>
       </div>

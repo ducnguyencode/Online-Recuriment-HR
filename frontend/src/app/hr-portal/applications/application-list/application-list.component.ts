@@ -623,8 +623,11 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       this.interviewError = 'Date, start time and end time are required.';
       return;
     }
-    if (new Date(date) <= new Date()) {
-      this.interviewError = 'Interview date must be in the future.';
+
+    const startDateTime = new Date(`${date}T${startTime}:00`);
+    const bufferTime = new Date(Date.now() + 60 * 60 * 1000); // now + 1 hour
+    if (startDateTime <= bufferTime) {
+      this.interviewError = 'Start time must be at least 1 hour from now.';
       return;
     }
     if (startTime >= endTime) {
@@ -679,7 +682,9 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       [ApplicationStatus.PENDING]: 'badge-neutral',
       [ApplicationStatus.SCREENING]: 'badge-warning',
       [ApplicationStatus.INTERVIEW_SCHEDULED]: 'badge-info',
+      [ApplicationStatus.PENDING_REVIEW]: 'badge-warning',
       [ApplicationStatus.SELECTED]: 'badge-success',
+      [ApplicationStatus.ACCEPTED]: 'badge-success',
       [ApplicationStatus.REJECTED]: 'badge-danger',
       [ApplicationStatus.NOT_REQUIRED]: 'badge-neutral',
     };

@@ -55,6 +55,7 @@
           <th>Vacancy</th>
           <th>Attached Date</th>
           <th>Status</th>
+          <th>Interview Vote</th>
           <th>AI Score</th>
           <th>Actions</th>
         </tr>
@@ -98,6 +99,32 @@
               }}</span>
           </td>
           <td>
+            @if (app.interviews?.length) {
+              @for (interview of app.interviews; track interview.id) {
+                @for (panel of interview.panel || []; track panel.employeeId) {
+                  <div class="vote-info">
+                    <span class="vote-interviewer">{{ panel.employee?.fullName || 'Interviewer' }}</span>
+                    @if (panel.vote === 'Pass') {
+                      <span class="vote-badge vote-pass">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        Pass
+                      </span>
+                    } @else if (panel.vote === 'Fail') {
+                      <span class="vote-badge vote-fail">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        Fail
+                      </span>
+                    } @else {
+                      <span class="vote-badge vote-pending">Pending</span>
+                    }
+                  </div>
+                }
+              }
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+          <td>
             @if (app.aiPreview?.status === AiPreviewStatus.COMPLETE) {
             <span class="ai-badge" [ngClass]="getScoreClass(app.aiPreview!.matchScore)">{{ app.aiPreview!.matchScore
               }}%</span>
@@ -130,7 +157,7 @@
               </button>
               } @else if (app.status === ApplicationStatus.INTERVIEW_SCHEDULED) {
               <a class="btn-primary btn-sm" routerLink="/hr-portal/interviews">Open Interview</a>
-              }@else if((app.status === ApplicationStatus.SELECTED || app.status===ApplicationStatus.REJECTED) &&
+              }@else if((app.status === ApplicationStatus.PENDING_REVIEW || app.status === ApplicationStatus.SELECTED || app.status===ApplicationStatus.REJECTED) &&
               authService.currentUser()?.role ===
               UserRole.SUPER_ADMIN){
               <button class="btn-secondary btn-sm" (click)="acceptedApplication(app.id)">
@@ -147,7 +174,7 @@
         </tr>
         } @empty {
         <tr>
-          <td colspan="7" class="empty-state">
+          <td colspan="8" class="empty-state">
             <div class="empty-icon">📄</div>
             <p>No application records found</p>
           </td>

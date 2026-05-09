@@ -14,6 +14,7 @@ export enum UserRole {
 export enum ApplicationStatus {
   PENDING = 'Pending',
   INTERVIEW_SCHEDULED = 'Interview Scheduled',
+  PENDING_REVIEW = 'Pending Review',
   SELECTED = 'Selected',
   REJECTED = 'Rejected',
   ACCEPTED = 'Accepted',

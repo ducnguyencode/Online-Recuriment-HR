@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { InterviewService } from '../../../core/services/interview.service';
+import { EmployeeService } from '../../../core/services/employee.service';
 import { MockDataService } from '../../../core/services/mock-data.service';
 import {
   Interview,
@@ -35,7 +36,11 @@ export class InterviewListComponent implements OnInit {
   filterStatus = '';
   filterStartDate = '';
   filterEndDate = '';
+  filterInterviewer = '';
   searchTerm = '';
+
+  // Interviewer list for dropdown
+  interviewerList: { id: string; name: string }[] = [];
 
   // Detail dialog
   showDetail = signal(false);
@@ -65,12 +70,27 @@ export class InterviewListComponent implements OnInit {
   constructor(
     private auth: AuthService,
     private interviewService: InterviewService,
+    private employeeService: EmployeeService,
     private mockData: MockDataService,
     private toastService: ToastService,
   ) { }
 
   ngOnInit() {
+    this.loadInterviewers();
     this.loadData();
+  }
+
+  loadInterviewers() {
+    this.employeeService.getAll({ role: 'Interviewer', limit: 200 }).subscribe({
+      next: (res) => {
+        const items: any[] = (res.data as any)?.items ?? [];
+        this.interviewerList = items.map((e: any) => ({
+          id: String(e.id),
+          name: e.user?.fullName || e.fullName || 'Unknown',
+        }));
+      },
+      error: () => { /* silent */ },
+    });
   }
 
   loadData() {
@@ -80,6 +100,7 @@ export class InterviewListComponent implements OnInit {
       ...(this.filterStatus ? { status: this.filterStatus } : {}),
       ...(this.filterStartDate ? { startDate: this.filterStartDate } : {}),
       ...(this.filterEndDate ? { endDate: this.filterEndDate } : {}),
+      ...(this.filterInterviewer ? { employeeId: this.filterInterviewer } : {}),
       ...(this.searchTerm.trim() ? { search: this.searchTerm.trim() } : {}),
       page: this.currentPage(),
       limit: this.pageSize,
@@ -288,6 +309,13 @@ export class InterviewListComponent implements OnInit {
     this.showPostponeDialog.set(true);
   }
 
+  onPostponeStartTimeChange(startTime: string) {
+    if (!startTime) return;
+    const [h, m] = startTime.split(':').map(Number);
+    const endH = (h + 1) % 24;
+    this.postponeData.endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
   closePostponeDialog() {
     this.showPostponeDialog.set(false);
     this.postponeError = '';
@@ -302,45 +330,17 @@ export class InterviewListComponent implements OnInit {
       this.postponeError = 'Date, start time and end time are required.';
       return;
     }
-    if (new Date(interviewDate) <= new Date()) {
-      this.postponeError = 'Interview date must be in the future.';
+
+    const startDateTime = new Date(`${interviewDate}T${startTime}:00`);
+    const bufferTime = new Date(Date.now() + 60 * 60 * 1000); // now + 1 hour
+    if (startDateTime <= bufferTime) {
+      this.postponeError = 'Start time must be at least 1 hour from now.';
       return;
     }
     if (startTime >= endTime) {
       this.postponeError = 'End time must be after start time.';
       return;
     }
-    // if (interview) {
-    //   const panelIds = interview.panel.map((item) => item.employeeId);
-    //   const interviewerConflicts = this.mockData.getInterviewerConflicts(
-    //     panelIds,
-    //     interviewDate,
-    //     startTime,
-    //     endTime,
-    //     this.postponeInterviewId,
-    //   );
-    //   if (interviewerConflicts.length > 0) {
-    //     this.postponeError = `Conflict: ${interviewerConflicts.join(', ')} already has another interview at this time.`;
-    //     return;
-    //   }
-
-    //   const applicantId =
-    //     interview.application?.applicantId ?? interview.applicant?.id;
-    //   if (applicantId) {
-    //     const applicantConflicts = this.mockData.getApplicantInterviewConflicts(
-    //       applicantId,
-    //       interviewDate,
-    //       startTime,
-    //       endTime,
-    //       this.postponeInterviewId,
-    //     );
-    //     if (applicantConflicts.length > 0) {
-    //       this.postponeError =
-    //         'This applicant already has another interview at the selected time.';
-    //       return;
-    //     }
-    //   }
-    // }
 
     const startISO = `${interviewDate}T${startTime}:00`;
     const endISO = `${interviewDate}T${endTime}:00`;
@@ -531,6 +531,7 @@ export class InterviewListComponent implements OnInit {
     this.filterStatus = '';
     this.filterStartDate = '';
     this.filterEndDate = '';
+    this.filterInterviewer = '';
     this.searchTerm = '';
     this.currentPage.set(1);
     this.loadData();
@@ -571,6 +572,12 @@ export class InterviewListComponent implements OnInit {
     if (fail > 0) parts.push(`${fail} Fail`);
     if (pending > 0) parts.push(`${pending} Pending`);
     return parts.join(' · ') || 'No votes';
+  }
+
+  getInterviewerNames(panel: InterviewerPanel[]): string {
+    if (!panel || panel.length === 0) return 'No interviewer';
+    const names = panel.map(p => p.fullName || 'Unknown').join(', ');
+    return names;
   }
 
   getStatusClass(status: string): string {

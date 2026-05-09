@@ -11,7 +11,7 @@
     <button (click)="activeTab.set('APPLIED')" class="pb-3 text-sm font-semibold transition-all border-b-2"
       [class.border-slate-900]="activeTab() === 'APPLIED'" [class.text-slate-900]="activeTab() === 'APPLIED'"
       [class.border-transparent]="activeTab() !== 'APPLIED'" [class.text-slate-500]="activeTab() !== 'APPLIED'">
-      Submitted Applications ({{ applications().length }})
+      Submitted Applications ({{ appTotalItems() }})
     </button>
     <button (click)="activeTab.set('SAVED')" class="pb-3 text-sm font-semibold transition-all border-b-2"
       [class.border-slate-900]="activeTab() === 'SAVED'" [class.text-slate-900]="activeTab() === 'SAVED'"
@@ -100,6 +100,23 @@
         </div>
       </div>
       }
+    </div>
+    }
+
+    <!-- Pagination -->
+    @if (appTotalPages() > 1) {
+    <div class="flex items-center justify-center gap-2 py-4">
+      <button class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        [disabled]="appCurrentPage() === 1" (click)="onAppPageChange(appCurrentPage() - 1)">← Prev</button>
+      @for (p of getAppPageNumbers(); track p) {
+      <button class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+        [class.bg-slate-900]="p === appCurrentPage()" [class.text-white]="p === appCurrentPage()"
+        [class.border-slate-900]="p === appCurrentPage()" [class.border-slate-200]="p !== appCurrentPage()"
+        [class.text-slate-600]="p !== appCurrentPage()" [class.hover:bg-slate-50]="p !== appCurrentPage()"
+        (click)="onAppPageChange(p)">{{ p }}</button>
+      }
+      <button class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        [disabled]="appCurrentPage() === appTotalPages()" (click)="onAppPageChange(appCurrentPage() + 1)">Next →</button>
     </div>
     }
     }
