@@ -44,7 +44,7 @@
         </div>
         <div>
           <p class="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{{ app.vacancy?.title }}</p>
-          <p class="text-xs text-slate-400 font-normal mt-0.5">Applied on: {{ app.createdAt | date: 'MM/dd/yyyy' }}</p>
+          <p class="text-xs text-slate-400 font-normal mt-0.5">Applied on: {{ app.createdAt | date: 'dd/MM/yyyy' }}</p>
         </div>
       </div>
       <!-- GỌI HÀM getStatusClass GỐC CHUẨN XÁC -->
@@ -76,7 +76,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
-              {{ interview.startTime | date: 'MM/dd/yyyy HH:mm' }} - {{ interview.endTime | date: 'HH:mm' }}
+              {{ interview.startTime | date: 'dd/MM/yyyy HH:mm' }} - {{ interview.endTime | date: 'HH:mm' }}
             </span>
 
             <span class="px-2.5 py-1.5 text-xs font-semibold rounded-md"

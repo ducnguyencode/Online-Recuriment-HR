@@ -9,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Application } from 'src/entities/application.entity';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
-import { Brackets, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Applicant } from 'src/entities/applicant.entity';
 import { Vacancy } from 'src/entities/vacancy.entity';
@@ -64,12 +64,8 @@ export class ApplicationService {
     //Filter
     if (search) {
       qb.andWhere(
-        new Brackets((qb) => {
-          qb.where('application.vacancy.title ILIKE :search').orWhere(
-            'user.fullName ILIKE :search',
-          );
-        }),
-        { search: search },
+        '(application.vacancy.title ILIKE :search OR user.fullName ILIKE :search)',
+        { search: `%${search}%` },
       );
     }
 
@@ -87,18 +83,14 @@ export class ApplicationService {
 
     // Filter date
     if (startDate && endDate) {
-      qb.andWhere('application.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      qb.andWhere(
+        'application.createdAt >= :startDate::timestamptz AND application.createdAt < (:endDate::timestamptz + INTERVAL \'1 day\')',
+        { startDate, endDate },
+      );
     } else if (startDate) {
-      qb.andWhere('application.createdAt >= :startDate', {
-        startDate,
-      });
+      qb.andWhere('application.createdAt >= :startDate::timestamptz', { startDate });
     } else if (endDate) {
-      qb.andWhere('application.createdAt <= :endDate', {
-        endDate,
-      });
+      qb.andWhere('application.createdAt < (:endDate::timestamptz + INTERVAL \'1 day\')', { endDate });
     }
 
     //Pagination

@@ -79,6 +79,15 @@
   flex-shrink: 0;
 }
 
+.bottom-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--shell-border);
+}
+
 .page-info {
   font-size: 12px;
   color: var(--shell-text-soft);
