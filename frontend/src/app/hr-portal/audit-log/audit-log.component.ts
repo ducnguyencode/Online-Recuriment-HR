@@ -155,25 +155,31 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     return total > 0 ? Math.ceil(total / this.pageSize) : 1;
   }
 
-  pageNumbers(): number[] {
-    return Array.from({ length: this.totalPages() }, (_, idx) => idx + 1);
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const maxVisible = 7;
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, current - 3);
+      let end = Math.min(total, current + 3);
+      if (start <= 2) end = Math.min(start + 6, total);
+      if (end >= total - 1) start = Math.max(1, end - 6);
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
   }
 
   visibleLogsCount(): number {
     return this.authTimelineLogs().length;
   }
 
-  goToPage(page: number): void {
+  onPageChange(page: number): void {
     if (page < 1 || page > this.totalPages()) return;
     this.currentPage.set(page);
-  }
-
-  nextPage(): void {
-    this.goToPage(this.currentPage() + 1);
-  }
-
-  prevPage(): void {
-    this.goToPage(this.currentPage() - 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   formatActionLabel(action: string): string {

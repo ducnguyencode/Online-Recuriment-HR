@@ -43,16 +43,56 @@ export class AuthService {
   }
 
   async login(email: string, password: string, context?: AuthRequestContext) {
+    const MAX_FAILED_ATTEMPTS = 5;
+    const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
     const normalizedEmail = email.trim().toLowerCase();
+
     try {
-      const user = await this.userService.findUserVerifiedByEmail(normalizedEmail);
+      // Step 1: Find user (without verification check first — we need to check lock status)
+      const user = await this.userService.findByEmail(normalizedEmail);
+      if (!user) {
+        throw new UnauthorizedException('Email or password not correct!');
+      }
+
+      // Step 2: Brute force — check if account is temporarily locked
+      if (user.lockedUntil && new Date(user.lockedUntil).getTime() > Date.now()) {
+        const remainingMinutes = Math.ceil(
+          (new Date(user.lockedUntil).getTime() - Date.now()) / 60000,
+        );
+        throw new UnauthorizedException(
+          `Account temporarily locked. Try again in ${remainingMinutes} minute(s).`,
+        );
+      }
+
+      // Step 3: Email verification check
+      if (!user.isVerified) {
+        throw new UnauthorizedException('Please verify your email first');
+      }
+
+      // Step 4: Active check (deactivated / banned)
       if (!user.isActive) {
         throw new UnauthorizedException('Account is deactivated');
       }
 
+      // Step 5: Password check
       const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch)
+      if (!isMatch) {
+        // Increment failed attempts
+        user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+        if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+          user.lockedUntil = new Date(Date.now() + LOCK_DURATION_MS);
+        }
+        await this.userService.save(user);
+
         throw new UnauthorizedException('Email or password not correct!');
+      }
+
+      // Step 6: Success — reset brute force counters
+      if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+        user.failedLoginAttempts = 0;
+        user.lockedUntil = null;
+        await this.userService.save(user);
+      }
 
       try {
         await this.loginHistoryService.record({

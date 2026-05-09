@@ -109,7 +109,10 @@ export class ApplicantService {
   }
 
   async changeStatus(id: number, status: ApplicantStatus) {
-    const applicant = await this.applicantsTable.findOneBy({ id });
+    const applicant = await this.applicantsTable.findOne({
+      where: { id },
+      relations: ['user'],
+    });
 
     if (!applicant) {
       throw new NotFoundException('Applicant not found');
@@ -122,7 +125,22 @@ export class ApplicantService {
         'Applicant already hired, cannot change status',
       );
     }
+
+    const wasBanned = applicant.status === ApplicantStatus.BANNED;
+    const willBeBanned = status === ApplicantStatus.BANNED;
+
     applicant.status = status;
+
+    // Sync user.isActive with ban status so banned applicants cannot login
+    if (applicant.user) {
+      if (willBeBanned && !wasBanned) {
+        applicant.user.isActive = false;
+        await this.usersTable.save(applicant.user);
+      } else if (!willBeBanned && wasBanned) {
+        applicant.user.isActive = true;
+        await this.usersTable.save(applicant.user);
+      }
+    }
 
     return this.applicantsTable.save(applicant);
   }

@@ -60,13 +60,11 @@ export class ForgotPasswordComponent implements OnDestroy {
         this.isLoading = false;
         this.isSent = true;
         this.successMessage = res.message || 'Reset link has been sent.';
-        this.toast.success(this.successMessage);
       },
       error: (err) => {
         this.isLoading = false;
         this.errorMessage =
           err?.error?.message ?? 'Unable to send reset link. Please try again.';
-        this.toast.error(this.errorMessage);
       },
     });
   }
@@ -77,7 +75,6 @@ export class ForgotPasswordComponent implements OnDestroy {
 
     if (!this.newPassword || this.newPassword.length < 6) {
       this.errorMessage = 'Password must have at least 6 characters.';
-      this.toast.warning(this.errorMessage);
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
@@ -100,7 +97,6 @@ export class ForgotPasswordComponent implements OnDestroy {
         this.isLoading = false;
         this.errorMessage =
           err?.error?.message ?? 'Unable to reset password. Please try again.';
-        this.toast.error(this.errorMessage);
       },
     });
   }

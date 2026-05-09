@@ -233,24 +233,32 @@
       </table>
     </div>
     @if (totalPages() > 1) {
-      <div
-        class="pagination"
-        style="margin-top: 16px; justify-content: flex-end"
-      >
-        <button
-          class="btn-ghost btn-sm"
-          [disabled]="currentPage() === 1"
-          (click)="goToPage(currentPage() - 1)"
-        >
-          ←
+      <div class="flex justify-center items-center gap-1.5 mt-10 pb-4">
+        <button (click)="onPageChange(currentPage() - 1)" [disabled]="currentPage() === 1"
+                class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
         </button>
-        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
-        <button
-          class="btn-ghost btn-sm"
-          [disabled]="currentPage() === totalPages()"
-          (click)="goToPage(currentPage() + 1)"
-        >
-          →
+        @for (page of getPageNumbers(); track page) {
+          <button (click)="onPageChange(page)"
+                  class="w-9 h-9 flex items-center justify-center rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                  [class.bg-slate-900]="currentPage() === page"
+                  [class.text-white]="currentPage() === page"
+                  [class.shadow-md]="currentPage() === page"
+                  [class.bg-white]="currentPage() !== page"
+                  [class.border]="currentPage() !== page"
+                  [class.border-slate-200]="currentPage() !== page"
+                  [class.text-slate-600]="currentPage() !== page"
+                  [class.hover:bg-slate-50]="currentPage() !== page">
+            {{ page }}
+          </button>
+        }
+        <button (click)="onPageChange(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+                class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         </button>
       </div>
     }
@@ -341,24 +349,32 @@
       }
     </div>
     @if (totalPages() > 1) {
-      <div
-        class="pagination"
-        style="margin-top: 16px; justify-content: flex-end"
-      >
-        <button
-          class="btn-ghost btn-sm"
-          [disabled]="currentPage() === 1"
-          (click)="goToPage(currentPage() - 1)"
-        >
-          ←
+      <div class="flex justify-center items-center gap-1.5 mt-10 pb-4">
+        <button (click)="onPageChange(currentPage() - 1)" [disabled]="currentPage() === 1"
+                class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
         </button>
-        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
-        <button
-          class="btn-ghost btn-sm"
-          [disabled]="currentPage() === totalPages()"
-          (click)="goToPage(currentPage() + 1)"
-        >
-          →
+        @for (page of getPageNumbers(); track page) {
+          <button (click)="onPageChange(page)"
+                  class="w-9 h-9 flex items-center justify-center rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                  [class.bg-slate-900]="currentPage() === page"
+                  [class.text-white]="currentPage() === page"
+                  [class.shadow-md]="currentPage() === page"
+                  [class.bg-white]="currentPage() !== page"
+                  [class.border]="currentPage() !== page"
+                  [class.border-slate-200]="currentPage() !== page"
+                  [class.text-slate-600]="currentPage() !== page"
+                  [class.hover:bg-slate-50]="currentPage() !== page">
+            {{ page }}
+          </button>
+        }
+        <button (click)="onPageChange(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+                class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         </button>
       </div>
     }
@@ -667,7 +683,7 @@
           type="button"
           class="toolbar-btn"
           title="Bold (Ctrl+B)"
-          (click)="execCommand('bold')"
+          (mousedown)="$event.preventDefault(); execCommand('bold')"
         >
           <b>B</b>
         </button>
@@ -675,7 +691,7 @@
           type="button"
           class="toolbar-btn toolbar-italic"
           title="Italic (Ctrl+I)"
-          (click)="execCommand('italic')"
+          (mousedown)="$event.preventDefault(); execCommand('italic')"
         >
           <i>I</i>
         </button>
@@ -683,7 +699,7 @@
           type="button"
           class="toolbar-btn toolbar-underline"
           title="Underline (Ctrl+U)"
-          (click)="execCommand('underline')"
+          (mousedown)="$event.preventDefault(); execCommand('underline')"
         >
           <u>U</u>
         </button>
@@ -692,7 +708,7 @@
           type="button"
           class="toolbar-btn"
           title="Heading"
-          (click)="execCommand('formatBlock', 'h3')"
+          (mousedown)="$event.preventDefault(); execCommand('formatBlock', 'h3')"
         >
           H
         </button>
@@ -700,7 +716,7 @@
           type="button"
           class="toolbar-btn"
           title="Paragraph"
-          (click)="execCommand('formatBlock', 'p')"
+          (mousedown)="$event.preventDefault(); execCommand('formatBlock', 'p')"
         >
           P
         </button>
@@ -709,7 +725,7 @@
           type="button"
           class="toolbar-btn"
           title="Bullet List"
-          (click)="execCommand('insertUnorderedList')"
+          (mousedown)="$event.preventDefault(); execCommand('insertUnorderedList')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -732,7 +748,7 @@
           type="button"
           class="toolbar-btn"
           title="Numbered List"
-          (click)="execCommand('insertOrderedList')"
+          (mousedown)="$event.preventDefault(); execCommand('insertOrderedList')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -756,7 +772,7 @@
           type="button"
           class="toolbar-btn"
           title="Indent"
-          (click)="execCommand('indent')"
+          (mousedown)="$event.preventDefault(); execCommand('indent')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -777,7 +793,7 @@
           type="button"
           class="toolbar-btn"
           title="Outdent"
-          (click)="execCommand('outdent')"
+          (mousedown)="$event.preventDefault(); execCommand('outdent')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -799,7 +815,7 @@
           type="button"
           class="toolbar-btn toolbar-danger"
           title="Remove Formatting"
-          (click)="execCommand('removeFormat')"
+          (mousedown)="$event.preventDefault(); execCommand('removeFormat')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

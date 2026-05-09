@@ -72,13 +72,6 @@ export class RegisterComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
     this.successMessage = '';
-    if (this.form.password !== this.form.confirmPassword) {
-      this.errorMessage = 'Passwords do not match';
-      this.toast.warning(this.errorMessage);
-      return;
-    }
-
-    this.isLoading = true;
 
     // Strip confirmPassword before sending — backend DTO forbids unknown properties
     this.auth
@@ -94,7 +87,6 @@ export class RegisterComponent implements OnInit {
         this.submittedEmail = this.form.email.trim().toLowerCase();
         this.successMessage =
           'Registration successful. Please check your email to verify your account.';
-        this.toast.success(this.successMessage);
       },
       error: (err) => {
         this.isLoading = false;
@@ -113,7 +105,6 @@ export class RegisterComponent implements OnInit {
         } else {
           this.errorMessage = backendMessage || 'Registration failed. Please try again.';
         }
-        this.toast.error(this.errorMessage);
       },
       });
   }
