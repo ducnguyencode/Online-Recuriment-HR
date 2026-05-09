@@ -111,10 +111,7 @@ export class LoginComponent implements OnInit {
           rawMessage === 'Account already registered. Check your email to verify.'
             ? 'Please verify your email first'
             : rawMessage;
-        // Skip toast for "Please verify your email first" since the form already shows the message with Resend button
-        if (this.formError !== 'Please verify your email first') {
-          this.toast.error(this.formError);
-        }
+        // Form already displays the error — no need for duplicate toast
         this.isLoading = false;
       },
     });
