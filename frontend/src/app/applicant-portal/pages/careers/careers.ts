@@ -288,6 +288,7 @@ export class CareersComponent implements OnInit, OnDestroy {
   }
 
   loadSavedJobs() {
+    if (!this.auth.isLoggedIn()) return;
     this.favoriteJobService.getSavedIds().subscribe({
       next: (ids) => this.savedJobIds.set(ids),
     });

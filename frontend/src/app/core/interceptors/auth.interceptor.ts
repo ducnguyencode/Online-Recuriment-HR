@@ -40,17 +40,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         }),
       );
     }
-    return next(request).pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
-          // Don't redirect if already on a login page — let the component show the form error
-          if (!isLoginPage()) {
-            router.navigateByUrl(getLoginUrl());
-          }
-        }
-        return throwError(() => error);
-      }),
-    );
+    // No token → user is not logged in → don't redirect on 401 (public pages like /careers handle their own errors)
+    return next(request);
   };
 
   return handleRequest(req);
