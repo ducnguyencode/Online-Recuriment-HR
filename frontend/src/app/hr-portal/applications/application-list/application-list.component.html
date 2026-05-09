@@ -23,7 +23,7 @@
       </svg>
       <input type="text" class="form-input search-input"
         placeholder="Search by application ID, applicant ID, vacancy ID, name, title..." [(ngModel)]="searchQuery"
-        (input)="onSearchChange()" />
+        (ngModelChange)="onSearchChange()" />
     </div>
     <select class="form-select filter-select" [(ngModel)]="selectedVacancyId" (change)="onSearchChange()">
       <option value="">All Vacancies</option>
@@ -37,20 +37,10 @@
       <option [value]="status">{{ status }}</option>
       }
     </select>
+    <input type="date" class="form-input filter-select" [(ngModel)]="filterStartDate" (change)="onSearchChange()" />
+    <input type="date" class="form-input filter-select" [(ngModel)]="filterEndDate" (change)="onSearchChange()" />
     <button class="btn-secondary" (click)="clearFilters()">Reset</button>
     <span class="result-count">{{ displayedResultsCount() }} records</span>
-    @if (totalPages() > 1) {
-    <div class="pagination">
-      <button class="btn-ghost btn-sm" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
-        ←
-      </button>
-      <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
-      <button class="btn-ghost btn-sm" [disabled]="currentPage() === totalPages()"
-        (click)="goToPage(currentPage() + 1)">
-        →
-      </button>
-    </div>
-    }
   </div>
 
   @if (loading()) {
@@ -101,7 +91,7 @@
               <span class="sub-id">Vacancy: {{ app.vacancy?.code }}</span>
             </div>
           </td>
-          <td>{{ app.createdAt | date: "MM/dd/yyyy HH:mm" }}</td>
+          <td>{{ app.createdAt | date: "dd/MM/yyyy HH:mm" }}</td>
           <td>
             <span class="badge" [ngClass]="getStatusClass(app.status)">{{
               app.status
@@ -166,6 +156,16 @@
       </tbody>
     </table>
   </div>
+  @if (totalPages() > 1) {
+  <div class="bottom-pagination">
+    <span class="result-count">{{ displayedResultsCount() }} records</span>
+    <div class="pagination">
+      <button class="btn-ghost btn-sm" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">←</button>
+      <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
+      <button class="btn-ghost btn-sm" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)">→</button>
+    </div>
+  </div>
+  }
   }
 </div>
 
@@ -322,7 +322,7 @@
             <div class="availability-name" style="color: #991b1b;">⚠️ Booked Slots:</div>
             @for (slot of busySlots(); track slot.id) {
             <span class="availability-slot" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">
-              {{ slot.availableDate | date: 'MM/dd' }} · {{ slot.startTime }} - {{ slot.endTime }}
+              {{ slot.availableDate | date: 'dd/MM' }} · {{ slot.startTime }} - {{ slot.endTime }}
             </span>
             }
           </div>

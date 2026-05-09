@@ -80,6 +80,7 @@ export class RegisterComponent implements OnInit {
 
     this.isLoading = true;
 
+    // Strip confirmPassword before sending — backend DTO forbids unknown properties
     this.auth
       .register({
         fullName: this.form.fullName.trim(),

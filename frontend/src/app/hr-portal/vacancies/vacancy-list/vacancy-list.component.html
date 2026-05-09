@@ -169,7 +169,7 @@
               </td>
               <td class="cell-date">
                 @if (v.closingDate) {
-                  {{ v.closingDate | date: "MM/dd/yyyy" }}
+                  {{ v.closingDate | date: "dd/MM/yyyy" }}
                 } @else {
                   {{ "TBD" }}
                 }
@@ -629,7 +629,7 @@
                       <td class="mono-id">
                         {{ item.applicant?.code }}
                       </td>
-                      <td>{{ item.updatedAt | date: "MM/dd/yyyy HH:mm" }}</td>
+                      <td>{{ item.updatedAt | date: "dd/MM/yyyy HH:mm" }}</td>
                     </tr>
                   }
                 </tbody>

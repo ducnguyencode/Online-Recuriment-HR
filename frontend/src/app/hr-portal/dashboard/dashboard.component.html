@@ -127,7 +127,7 @@
                   <path d="M8 2v4" />
                   <path d="M3 10h18" />
                 </svg>
-                {{ item.startTime | date: 'MM/dd/yyyy' }}
+                {{ item.startTime | date: 'dd/MM/yyyy' }}
               </span>
               <span class="meta-item">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -177,7 +177,7 @@
               app.status
               }}</span>
             <span class="application-time">{{
-              app.createdAt | date: "MM/dd/YYYY"
+              app.createdAt | date: "dd/MM/yyyy"
               }}</span>
           </div>
         </div>
@@ -285,7 +285,7 @@
           <p class="interview-applicant">{{ item.application?.applicant?.user?.fullName }}</p>
           <p class="interview-vacancy">{{ item.application?.vacancy?.title }}</p>
           <div class="interview-meta">
-            <span class="meta-item">📅 {{ item.startTime | date: 'MM/dd/yyyy' }}</span>
+            <span class="meta-item">📅 {{ item.startTime | date: 'dd/MM/yyyy' }}</span>
             <span class="meta-item">🕐 {{ item.startTime | date: 'hh:mm' }} - {{ item.endTime | date: 'hh:mm' }}</span>
             <span class="meta-item">📹 {{ item.meetPlatform }}</span>
           </div>

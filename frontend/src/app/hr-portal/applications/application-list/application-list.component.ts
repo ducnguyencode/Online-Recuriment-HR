@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { catchError, of, Subject } from 'rxjs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, of, Subject, skip } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { ApplicantService } from '../../../core/services/applicant.service';
 import { ApplicationService } from '../../../core/services/application.service';
@@ -54,6 +54,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   searchQuery = '';
   filterStatus = '';
   selectedVacancyId = '';
+  filterStartDate = '';
+  filterEndDate = '';
 
   // Pagination
   currentPage = signal(1);
@@ -106,11 +108,30 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     protected authService: AuthService,
     private toastService: ToastService,
     private confirmService: ConfirmService,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit() {
+    // Read search query param from header search
+    const searchParam = this.route.snapshot.queryParamMap.get('search');
+    if (searchParam) {
+      this.searchQuery = searchParam;
+    }
+
     this.loadVacancies();
     this.loadApplications();
+
+    // Handle subsequent header searches (same-route navigation)
+    this.route.queryParams
+      .pipe(skip(1), takeUntil(this.destroy$))
+      .subscribe((params) => {
+        const searchParam = params['search'];
+        if (searchParam) {
+          this.searchQuery = searchParam;
+          this.currentPage.set(1);
+          this.loadApplications();
+        }
+      });
 
     this.attachSearchSubject
       .pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$))
@@ -166,6 +187,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       .getAll({
         status: this.filterStatus || undefined,
         vacancyId: this.selectedVacancyId || undefined,
+        startDate: this.filterStartDate || undefined,
+        endDate: this.filterEndDate || undefined,
         search: this.useBackendSearch() ? this.searchQuery : undefined,
         page: this.currentPage(),
         limit: this.pageSize,
@@ -252,6 +275,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.searchQuery = '';
     this.filterStatus = '';
     this.selectedVacancyId = '';
+    this.filterStartDate = '';
+    this.filterEndDate = '';
     this.currentPage.set(1);
     this.loadApplications();
   }

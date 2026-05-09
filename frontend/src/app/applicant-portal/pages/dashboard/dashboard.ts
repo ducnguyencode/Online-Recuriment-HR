@@ -117,7 +117,7 @@ export class DashboardComponent implements OnInit {
   applySavedJob(job: any) {
     this.selectedJobTitle = job.title ?? job.jobTitle ?? '';
     this.isApplyModalOpen = true;
-    this.applyForm.vacancyId = job.id ?? job.vacancyId ?? '';
+    this.applyForm.vacancyId = job.vacancyId ?? job.vacancy?.id ?? job.id ?? '';
     this.applyForm.applicantId = this.authService.currentUser()?.applicantId ?? '';
   }
 
