@@ -101,6 +101,14 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   resetPasswordTokenExpiresAt!: Date | null;
 
+  @Exclude()
+  @Column({ type: 'int', default: 0 })
+  failedLoginAttempts!: number;
+
+  @Exclude()
+  @Column({ type: 'timestamptz', nullable: true })
+  lockedUntil!: Date | null;
+
   @Expose()
   @CreateDateColumn()
   createdAt!: Date;

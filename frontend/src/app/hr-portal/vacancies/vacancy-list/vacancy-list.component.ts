@@ -268,9 +268,28 @@ export class VacancyListComponent implements OnInit {
     this.loadVacancies();
   }
 
-  goToPage(page: number) {
-    this.currentPage.set(Math.max(1, Math.min(page, this.totalPages())));
+  onPageChange(page: number) {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
     this.loadVacancies();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const maxVisible = 7;
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, current - 3);
+      let end = Math.min(total, current + 3);
+      if (start <= 2) end = Math.min(start + 6, total);
+      if (end >= total - 1) start = Math.max(1, end - 6);
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
   }
 
   // ── CRUD ─────────────────────────────────────────────────────────────────
@@ -490,24 +509,8 @@ export class VacancyListComponent implements OnInit {
   execCommand(command: string, value?: string) {
     const editor = this.editorEl?.nativeElement;
     if (!editor) return;
-
     editor.focus();
-
-    if (this.savedRange) {
-      const sel = window.getSelection();
-      if (sel) {
-        sel.removeAllRanges();
-        sel.addRange(this.savedRange);
-      }
-    }
-
     document.execCommand(command, false, value ?? undefined);
-
-    // Save updated selection after command
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      this.savedRange = sel.getRangeAt(0).cloneRange();
-    }
   }
 
   // ── Department quick-add ──────────────────────────────────────────────────
