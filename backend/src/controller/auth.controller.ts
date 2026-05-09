@@ -98,6 +98,16 @@ export class AuthController {
     };
   }
 
+  @Get('verify-reset-token')
+  async verifyResetToken(@Query('token') token: string) {
+    const data = await this.authService.verifyResetToken(token);
+    return {
+      statusCode: HttpStatus.OK,
+      message: data.message,
+      data,
+    };
+  }
+
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
     const data = await this.authService.resetPassword(dto, this.extractContext(req));

@@ -29,6 +29,7 @@ export class DashboardComponent implements OnInit {
   myCvs = signal<any[]>([]);
   selectedCvId = signal<string | null>(null);
   loading = signal(false);
+  expandedAppId = signal<number | null>(null);
 
   private applicationService = inject(ApplicationService);
   private authService = inject(AuthService);
@@ -97,11 +98,17 @@ export class DashboardComponent implements OnInit {
 
   getStatusClass(status: ApplicationStatus): string {
     const map: any = {
-      [ApplicationStatus.PENDING]: 'bg-blue-50 text-blue-600 border-blue-100',
+      [ApplicationStatus.PENDING]: 'bg-slate-50 text-slate-500 border-slate-200',
       [ApplicationStatus.SCREENING]: 'bg-amber-50 text-amber-600 border-amber-100',
+      [ApplicationStatus.INTERVIEW_SCHEDULED]: 'bg-blue-50 text-blue-600 border-blue-100',
       [ApplicationStatus.SELECTED]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+      [ApplicationStatus.REJECTED]: 'bg-red-50 text-red-600 border-red-100',
     };
     return map[status] ?? 'bg-slate-50 text-slate-500 border-slate-200';
+  }
+
+  toggleAppDetail(appId: number) {
+    this.expandedAppId.set(this.expandedAppId() === appId ? null : appId);
   }
 
   fetchUserCvs() {
@@ -132,10 +139,10 @@ export class DashboardComponent implements OnInit {
       return;
     }
     this.loading.set(true);
-    const dto: CreateApplicationDto = {
-      applicantId: this.authService.currentUser()?.applicantId ?? '',
-      vacancyId: this.applyForm.vacancyId,
-      cvId: this.selectedCvId()!,
+    const dto: any = {
+      applicantId: Number(this.authService.currentUser()?.applicantId),
+      vacancyId: Number(this.applyForm.vacancyId),
+      cvId: Number(this.selectedCvId()),
     };
     this.applicationService.create(dto).subscribe({
       next: () => {
@@ -143,9 +150,10 @@ export class DashboardComponent implements OnInit {
         this.closeApplyModal();
         this.loading.set(false);
         this.fetchApplications();
+        this.loadSavedJobs();
       },
-      error: () => {
-        this.toast.error('Failed to submit application');
+      error: (err) => {
+        this.toast.error(err?.error?.message || 'Failed to submit application');
         this.loading.set(false);
       },
     });

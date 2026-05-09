@@ -237,6 +237,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   visibleApplications(): Application[] {
     const query = this.searchQuery.trim().toLowerCase();
     if (!query) return this.applications();
+    // If backend search was used, don't double-filter locally
+    if (this.useBackendSearch()) return this.applications();
     return this.applications().filter((app) => {
       const values = [
         app.code,
@@ -248,7 +250,9 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
         app.applicant?.code,
         app.vacancy?.code,
         app.applicant?.fullName,
+        (app.applicant as any)?.user?.fullName,
         app.applicant?.email,
+        (app.applicant as any)?.user?.email,
         app.vacancy?.title,
       ];
       return values.some((value) =>

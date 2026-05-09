@@ -64,7 +64,7 @@ export class ApplicationService {
     //Filter
     if (search) {
       qb.andWhere(
-        '(application.vacancy.title ILIKE :search OR user.fullName ILIKE :search)',
+        '(vacancy.title ILIKE :search OR user.fullName ILIKE :search OR user.email ILIKE :search OR application.code ILIKE :search OR applicant.code ILIKE :search OR vacancy.code ILIKE :search)',
         { search: `%${search}%` },
       );
     }

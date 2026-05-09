@@ -8,6 +8,7 @@ import {
   Get,
   Query,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InterviewService } from '../services/interview.service';
 import { InterviewCreateDto } from '../dto/interview-create.dto';
@@ -87,8 +88,12 @@ export class InterviewController {
   }
 
   @Get()
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
-  async findAll(@Query() query: any) {
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN, UserRole.APPLICANT)
+  async findAll(@Query() query: any, @CurrentUser() user: AuthUser) {
+    // If applicant, force filter to only their own interviews
+    if (user.roles?.includes(UserRole.APPLICANT)) {
+      query = { ...query, applicantUserId: user.userId };
+    }
     const data = await this.interviewService.findAll(query);
     return {
       statusCode: HttpStatus.OK,
@@ -98,9 +103,16 @@ export class InterviewController {
   }
 
   @Get(':id')
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
-  async findOne(@Param('id') id: string) {
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN, UserRole.APPLICANT)
+  async findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     const data = await this.interviewService.findOne(id);
+    // If applicant, ensure they can only access their own interview
+    if (user.roles?.includes(UserRole.APPLICANT)) {
+      const applicantUserId = data.application?.applicant?.user?.id;
+      if (String(applicantUserId) !== String(user.userId)) {
+        throw new ForbiddenException('You do not have permission to access this interview');
+      }
+    }
     return {
       statusCode: HttpStatus.OK,
       data,

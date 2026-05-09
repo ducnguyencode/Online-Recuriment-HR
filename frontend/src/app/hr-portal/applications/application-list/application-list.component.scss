@@ -260,12 +260,17 @@
   font-weight: 500;
 }
 
+.data-table td {
+  vertical-align: middle;
+}
+
 .cell-actions {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: nowrap;
   white-space: nowrap;
+  height: 100%;
 }
 
 .cell-actions a {

@@ -840,10 +840,9 @@
           class="editor-content"
           contenteditable="true"
           (blur)="onEditorBlur()"
-          (keydown.tab)="
-            $event.preventDefault();
-            execCommand('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;')
-          "
+          (mouseup)="saveSelection()"
+          (keyup)="saveSelection()"
+          (keydown.tab)="$event.preventDefault(); insertTab()"
         ></div>
       </div>
       <div class="modal-footer">

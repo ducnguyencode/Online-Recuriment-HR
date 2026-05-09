@@ -114,6 +114,12 @@ export class AuthService {
     );
   }
 
+  verifyResetToken(token: string) {
+    return this.http.get<ApiResponse<{ valid: boolean; message: string }>>(
+      `${environment.apiUrl}/auth/verify-reset-token?token=${encodeURIComponent(token)}`,
+    );
+  }
+
   resetPassword(token: string, newPassword: string) {
     return this.http.post<ApiResponse<{ message: string }>>(
       `${environment.apiUrl}/auth/reset-password`,

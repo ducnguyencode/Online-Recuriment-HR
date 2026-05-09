@@ -223,6 +223,40 @@ export class AuthService {
     };
   }
 
+  async verifyResetToken(token: string) {
+    if (!token?.trim()) {
+      throw new BadRequestException('Invalid reset token.');
+    }
+
+    const user = await this.userService.findByResetToken(token);
+    if (!user) {
+      throw new BadRequestException('Invalid reset token.');
+    }
+    if (
+      !user.resetPasswordTokenExpiresAt ||
+      user.resetPasswordTokenExpiresAt.getTime() < Date.now()
+    ) {
+      throw new BadRequestException('Reset token has expired.');
+    }
+
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.getOrThrow<string>('JWT_EMAIL_SECRET'),
+      });
+      if (payload.type !== TokenType.EMAIL_FORGOT_VERIFY) {
+        throw new BadRequestException('Invalid token type.');
+      }
+    } catch (err) {
+      if (err instanceof TokenExpiredError) {
+        throw new RequestTimeoutException('Reset token has expired.');
+      }
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException('Invalid reset token.');
+    }
+
+    return { valid: true, message: 'Token is valid.' };
+  }
+
   async resetPassword(dto: ResetPasswordDto, context?: AuthRequestContext) {
     const user = await this.userService.findByResetToken(dto.token);
     if (!user) {
