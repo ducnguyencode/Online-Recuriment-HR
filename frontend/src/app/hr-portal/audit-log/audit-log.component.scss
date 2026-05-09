@@ -45,6 +45,21 @@
   color: var(--shell-accent, #3b82f6);
   border-bottom-color: var(--shell-accent, #3b82f6);
 }
+
+.resource-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--shell-text, #334155);
+  white-space: nowrap;
+}
+
+.details-cell {
+  max-width: 400px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  word-break: break-word;
+  color: var(--shell-text-soft, #64748b);
+}
 .filters-bar {
   display: flex;
   align-items: center;

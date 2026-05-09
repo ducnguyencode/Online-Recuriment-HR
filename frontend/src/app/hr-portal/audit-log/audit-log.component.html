@@ -85,7 +85,7 @@
           <th>Account</th>
           <th>Actor Role</th>
           <th>Action</th>
-          <th>Target</th>
+          <th>Resource</th>
           <th>Details</th>
           <th>Session</th>
         </tr>
@@ -98,12 +98,9 @@
             <td><span class="badge" [ngClass]="getActorRoleClass(item.actorRoleSnapshot)">{{ item.actorRoleSnapshot }}</span></td>
             <td><span class="badge" [ngClass]="getActionClass(item.action)">{{ formatActionLabel(item.action) }}</span></td>
             <td>
-              <div class="entity-stack">
-                <span>{{ item.targetRoleSnapshot || '—' }}</span>
-                <span class="mono-id">{{ item.targetId || '—' }}</span>
-              </div>
+              <span class="resource-label">{{ formatResource(item) }}</span>
             </td>
-            <td>{{ formatDetails(item) }}</td>
+            <td class="details-cell">{{ formatDetails(item) }}</td>
             <td>
               <button
                 type="button"

@@ -213,17 +213,46 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   formatDetails(item: AuditLogItem): string {
     const payload = item.payload ?? {};
     const base = this.buildActionDetail(item.action, payload);
-    const ip = this.readTextField(payload, 'ipAddress');
-    const userAgent = this.readTextField(payload, 'userAgent');
-    const device = this.summarizeUserAgent(userAgent);
-    const context =
-      [
-        ip ? `IP: ${ip} (${this.classifyIp(ip)})` : '',
-        device ? `Device: ${device}` : '',
-      ]
-        .filter(Boolean)
-        .join(' | ') || '';
-    return [base, context].filter(Boolean).join(' | ') || '—';
+
+    // Only show IP/Device in Auth Timeline tab
+    if (this.activeTab() === 'auth') {
+      const ip = this.readTextField(payload, 'ipAddress');
+      const userAgent = this.readTextField(payload, 'userAgent');
+      const device = this.summarizeUserAgent(userAgent);
+      const context =
+        [
+          ip ? `IP: ${ip} (${this.classifyIp(ip)})` : '',
+          device ? `Device: ${device}` : '',
+        ]
+          .filter(Boolean)
+          .join(' | ') || '';
+      return [base, context].filter(Boolean).join(' | ') || '—';
+    }
+
+    return base || '—';
+  }
+
+  formatResource(item: AuditLogItem): string {
+    const action = item.action;
+    // Extract resource type from action (e.g., VACANCIES_CREATE → Vacancy)
+    const match = action.match(/^([A-Z_]+?)_(CREATE|UPDATE|PATCH|DELETE)$/i);
+    if (match) {
+      const resource = match[1]
+        .replace(/_/g, ' ')
+        .replace(/S$/i, '')
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+      const targetId = item.targetId;
+      return targetId ? `${resource} #${targetId}` : resource;
+    }
+
+    // For staff/role actions
+    if (action.startsWith('STAFF_') || action === 'ROLE_CHANGED') {
+      const targetId = item.targetId;
+      return targetId ? `User #${targetId}` : 'Staff';
+    }
+
+    return item.targetId ? `#${item.targetId}` : '—';
   }
 
   viewSession(item: AuditLogItem) {
@@ -500,15 +529,19 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   }
 
   private describeGenericPayload(payload: Record<string, unknown>): string {
-    const text = Object.entries(payload)
-      .filter(
-        ([key]) =>
-          key !== 'ipAddress' &&
-          key !== 'userAgent' &&
-          key !== 'actorFullName',
-      )
+    // Hide technical fields from interceptor — only show business data
+    const hiddenKeys = new Set([
+      'ipAddress', 'userAgent', 'actorFullName',
+      'method', 'path', 'params', 'query', 'body',
+    ]);
+
+    // Try to extract meaningful data from nested body
+    const body = this.readObjectField(payload, 'body');
+    const source = body ?? payload;
+    const text = Object.entries(source)
+      .filter(([key]) => !hiddenKeys.has(key))
       .map(([key, value]) => `${this.humanizeFieldName(key)}: ${this.formatUnknown(value)}`);
-    return text.join(' | ');
+    return text.length ? text.join(' · ') : '';
   }
 
   private readObjectField(

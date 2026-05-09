@@ -62,7 +62,8 @@ export class ApplicationService {
       .leftJoinAndSelect('application.cv', 'cv')
       .leftJoinAndSelect('application.interviews', 'interview')
       .leftJoinAndSelect('interview.panels', 'panel')
-      .leftJoinAndSelect('panel.employee', 'panelEmployee');
+      .leftJoinAndSelect('panel.employee', 'panelEmployee')
+      .leftJoinAndSelect('panelEmployee.user', 'panelUser');
 
     //Filter
     if (search) {
