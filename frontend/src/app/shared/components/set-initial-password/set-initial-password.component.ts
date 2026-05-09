@@ -45,6 +45,7 @@ export class SetInitialPasswordComponent {
 
   inviteToken = signal(this.route.snapshot.queryParamMap.get('token') ?? '');
   inviteEmail = signal(this.route.snapshot.queryParamMap.get('email') ?? '');
+  inviteRole = signal(this.route.snapshot.queryParamMap.get('role') ?? '');
 
   submitting = signal(false);
   serverError = signal<string | null>(null);

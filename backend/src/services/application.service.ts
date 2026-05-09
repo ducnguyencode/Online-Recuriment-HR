@@ -9,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Application } from 'src/entities/application.entity';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
-import { Brackets, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Applicant } from 'src/entities/applicant.entity';
 import { Vacancy } from 'src/entities/vacancy.entity';
@@ -43,7 +43,16 @@ export class ApplicationService {
   async findAll(
     request: ApplicationFindDto,
   ): Promise<FindResponseDto<Application>> {
-    const { page, limit, search, vacancyId, applicantId, status } = request;
+    const {
+      page,
+      limit,
+      search,
+      vacancyId,
+      applicantId,
+      status,
+      startDate,
+      endDate,
+    } = request;
 
     const qb = this.applicationsTable.createQueryBuilder('application');
 
@@ -55,12 +64,8 @@ export class ApplicationService {
     //Filter
     if (search) {
       qb.andWhere(
-        new Brackets((qb) => {
-          qb.where('application.vacancy.title ILIKE :search').orWhere(
-            'user.fullName ILIKE :search',
-          );
-        }),
-        { search: search },
+        '(vacancy.title ILIKE :search OR user.fullName ILIKE :search OR user.email ILIKE :search OR application.code ILIKE :search OR applicant.code ILIKE :search OR vacancy.code ILIKE :search)',
+        { search: `%${search}%` },
       );
     }
 
@@ -74,6 +79,23 @@ export class ApplicationService {
 
     if (applicantId) {
       qb.andWhere('application.applicantId = :aId', { aId: applicantId });
+    }
+
+    // Filter date
+    if (startDate && endDate) {
+      qb.andWhere(
+        "application.createdAt >= :startDate::timestamptz AND application.createdAt < (:endDate::timestamptz + INTERVAL '1 day')",
+        { startDate, endDate },
+      );
+    } else if (startDate) {
+      qb.andWhere('application.createdAt >= :startDate::timestamptz', {
+        startDate,
+      });
+    } else if (endDate) {
+      qb.andWhere(
+        "application.createdAt < (:endDate::timestamptz + INTERVAL '1 day')",
+        { endDate },
+      );
     }
 
     //Pagination
@@ -164,28 +186,26 @@ export class ApplicationService {
         await this.aiPreviewService.start(application.id);
       }
     });
-    try {
-      // 1. Phát sự kiện Real-time cho NotificationGateway
-      this.eventEmitter.emit('notification.send', {
-        notificationId: `notif-${application!.id}`,
-        type: 'SUCCESS',
-        message: `Ứng viên ${application!.applicant.user.fullName} vừa nộp CV vào vị trí ${application!.vacancy.title}`,
-        linkUrl: `/hr-portal/applications/${application!.id}`,
-        createdAt: new Date().toISOString(),
-      });
 
-      // 2. Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
+    const fullApplication = await this.applicationsTable.findOne({
+      where: { id: application!.id },
+      relations: ['applicant', 'applicant.user', 'vacancy'],
+    });
+
+    try {
+      // Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
       this.eventEmitter.emit('application.submitted', {
-        applicationId: application!.id,
-        candidateEmail: application!.applicant.user.email,
-        candidateName: application!.applicant.user.fullName,
-        vacancyTitle: application!.vacancy.title,
+        applicationId: fullApplication!.id,
+        candidateEmail: fullApplication!.applicant.user.email,
+        candidateName: fullApplication!.applicant.user.fullName,
+        vacancyTitle: fullApplication!.vacancy.title,
+        targetHrId: fullApplication!.vacancy.createdById,
       });
     } catch (err) {
       console.log(err);
     }
 
-    return application!;
+    return fullApplication || application!;
   }
 
   async changeStatus(id: number, status: ApplicationStatus) {
@@ -244,5 +264,24 @@ export class ApplicationService {
     }
 
     return application;
+  }
+
+  async changeAiPreviewStatus(id: number, status: AiPreviewStatus) {
+    const application = await this.findById(id);
+    application.aiPreview.status = status;
+    await this.applicationsTable.save(application);
+  }
+
+  async checkDuplicate(applicantId: number, vacancyId: number) {
+    const exists = await this.applicationsTable.exists({
+      where: {
+        applicantId,
+        vacancyId,
+      },
+    });
+
+    if (exists) {
+      throw new BadRequestException('Already applied');
+    }
   }
 }

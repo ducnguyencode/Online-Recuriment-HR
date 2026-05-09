@@ -3,6 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { AuditLog } from 'src/entities/audit-log.entity';
 import { EntityManager, Repository } from 'typeorm';
 
+export interface AuditContext {
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
+
 @Injectable()
 export class AuditLogService {
   constructor(
@@ -42,10 +47,43 @@ export class AuditLogService {
     await this.auditLogs.save(row);
   }
 
+  async createLog(input: {
+    actorId?: number | null;
+    actorRoleSnapshot: string;
+    actorFullName?: string | null;
+    action: string;
+    targetId?: number | null;
+    targetRoleSnapshot?: string | null;
+    payload?: Record<string, unknown> | null;
+    context?: AuditContext;
+    manager?: EntityManager;
+  }): Promise<void> {
+    const row = this.auditLogs.create({
+      actorId: input.actorId ?? null,
+      actorRoleSnapshot: input.actorRoleSnapshot,
+      action: input.action,
+      targetId: input.targetId ?? null,
+      targetRoleSnapshot: input.targetRoleSnapshot ?? null,
+      payload: {
+        ...(input.payload ?? {}),
+        actorFullName: input.actorFullName ?? null,
+        ipAddress: input.context?.ipAddress ?? null,
+        userAgent: input.context?.userAgent ?? null,
+      },
+    });
+
+    if (input.manager) {
+      await input.manager.save(AuditLog, row);
+      return;
+    }
+    await this.auditLogs.save(row);
+  }
+
   async list(input: {
     limit?: number;
     actorId?: number;
     targetId?: number;
+    actorRoles?: string[];
     action?: string;
     from?: Date;
     to?: Date;
@@ -58,8 +96,15 @@ export class AuditLogService {
     if (typeof input.targetId === 'number') {
       qb.andWhere('log.targetId = :targetId', { targetId: input.targetId });
     }
+    if (input.actorRoles?.length) {
+      qb.andWhere('log.actorRoleSnapshot IN (:...actorRoles)', {
+        actorRoles: input.actorRoles,
+      });
+    }
     if (input.action?.trim()) {
-      qb.andWhere('log.action = :action', { action: input.action.trim() });
+      qb.andWhere('log.action ILIKE :action', {
+        action: `%${input.action.trim()}%`,
+      });
     }
     if (input.from) {
       qb.andWhere('log.createdAt >= :from', { from: input.from });

@@ -269,8 +269,9 @@ export class ProfileComponent {
       this.passwordError.set('All password fields are required.');
       return;
     }
-    if (this.passwordForm.newPassword.length < 6) {
-      this.passwordError.set('New password must be at least 6 characters.');
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!passwordRegex.test(this.passwordForm.newPassword)) {
+      this.passwordError.set('New password must be at least 8 characters and include uppercase, lowercase, number, and special symbol.');
       return;
     }
     if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {

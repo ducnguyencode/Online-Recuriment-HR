@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -8,7 +9,7 @@ import { NotificationService } from '../../core/services/notification.service';
 @Component({
   selector: 'app-hr-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, SidebarComponent],
+  imports: [CommonModule, RouterModule, SidebarComponent, FormsModule],
   template: `
     <div class="hr-layout">
       <app-sidebar />
@@ -31,6 +32,8 @@ import { NotificationService } from '../../core/services/notification.service';
               <input
                 type="text"
                 placeholder="Search applicants, vacancies, interviews..."
+                [(ngModel)]="headerSearchQuery"
+                (keyup.enter)="performHeaderSearch()"
               />
               <span class="search-kbd">/</span>
             </div>
@@ -458,6 +461,8 @@ import { NotificationService } from '../../core/services/notification.service';
 })
 export class HrLayoutComponent implements OnInit {
   showNotifDropdown = signal(false);
+  headerSearchQuery = '';
+
   constructor(
     public authService: AuthService,
     public notifService: NotificationService,
@@ -467,6 +472,13 @@ export class HrLayoutComponent implements OnInit {
   ngOnInit(): void {
     this.notifService.getAll().subscribe();
     this.notifService.connectSocket();
+  }
+
+  performHeaderSearch() {
+    const query = this.headerSearchQuery.trim();
+    if (query) {
+      this.router.navigate(['/hr-portal/applications'], { queryParams: { search: query } });
+    }
   }
 
   toggleNotifications() {

@@ -79,6 +79,15 @@
   flex-shrink: 0;
 }
 
+.bottom-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--shell-border);
+}
+
 .page-info {
   font-size: 12px;
   color: var(--shell-text-soft);
@@ -186,6 +195,10 @@
   overflow: hidden;
 }
 
+.applicant-row {
+  cursor: pointer;
+}
+
 .id-stack,
 .panel-info {
   display: flex;
@@ -247,12 +260,17 @@
   font-weight: 500;
 }
 
+.data-table td {
+  vertical-align: middle;
+}
+
 .cell-actions {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: nowrap;
   white-space: nowrap;
+  height: 100%;
 }
 
 .cell-actions a {

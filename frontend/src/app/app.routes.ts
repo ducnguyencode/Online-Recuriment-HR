@@ -1,3 +1,4 @@
+import { VerifyInviteApplicantPageComponent } from './applicant-portal/pages/verify-invite-applicant-page/verify-invite-applicant-page.component';
 import { Routes } from '@angular/router';
 
 // Import các thành phần của Khang (Dev 5)
@@ -77,6 +78,10 @@ export const routes: Routes = [
       { path: 'register', component: RegisterComponent },
       { path: 'forgot-password', component: ForgotPasswordComponent },
       { path: 'verify-email', component: VerifyPageComponent },
+      {
+        path: 'verify-invite-applicant-email',
+        component: VerifyInviteApplicantPageComponent,
+      },
 
       { path: '', redirectTo: 'careers', pathMatch: 'full' },
     ],

@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { ApplicationStatus } from 'src/common/enum';
 
 export class ApplicationFindDto {
@@ -32,4 +32,12 @@ export class ApplicationFindDto {
   @IsInt()
   @Type(() => Number)
   applicantId?: number;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
 }

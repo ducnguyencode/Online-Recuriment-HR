@@ -10,6 +10,7 @@ import {
   InterviewerPanel,
   InterviewStatus,
   formatDisplayId,
+  UserRole,
 } from '../../../core/models';
 import { ToastService } from '../../../core/services/toast.service';
 
@@ -25,8 +26,15 @@ export class InterviewListComponent implements OnInit {
   interviews = signal<Interview[]>([]);
   loading = signal(false);
 
+  // Pagination
+  currentPage = signal(1);
+  totalPages = signal(1);
+  totalItems = signal(0);
+  readonly pageSize = 10;
+
   filterStatus = '';
-  filterDate = '';
+  filterStartDate = '';
+  filterEndDate = '';
   searchTerm = '';
 
   // Detail dialog
@@ -70,8 +78,11 @@ export class InterviewListComponent implements OnInit {
 
     const params: Record<string, any> = {
       ...(this.filterStatus ? { status: this.filterStatus } : {}),
-      ...(this.filterDate ? { date: this.filterDate } : {}),
+      ...(this.filterStartDate ? { startDate: this.filterStartDate } : {}),
+      ...(this.filterEndDate ? { endDate: this.filterEndDate } : {}),
       ...(this.searchTerm.trim() ? { search: this.searchTerm.trim() } : {}),
+      page: this.currentPage(),
+      limit: this.pageSize,
     };
 
     if (this.auth.isInterviewer()) {
@@ -83,8 +94,12 @@ export class InterviewListComponent implements OnInit {
     this.interviewService.getAll(params).subscribe({
       next: (res) => {
         const items: any[] = (res.data as any)?.items ?? [];
+        const total = (res.data as any)?.totalItems ?? items.length;
+        const pages = (res.data as any)?.totalPages ?? Math.max(1, Math.ceil(total / this.pageSize));
         const mapped: Interview[] = items.map(item => this.mapInterviewData(item));
         this.interviews.set(mapped);
+        this.totalItems.set(total);
+        this.totalPages.set(pages);
         this.loading.set(false);
       },
       error: () => {
@@ -92,8 +107,8 @@ export class InterviewListComponent implements OnInit {
         const mapped: Interview[] = raw.map((r) => this.mapMockInterview(r));
         const filtered = mapped.filter((i) => {
           if (this.filterStatus && i.status !== this.filterStatus) return false;
-          if (this.filterDate && i.interviewDate !== this.filterDate)
-            return false;
+          if (this.filterStartDate && i.interviewDate < this.filterStartDate) return false;
+          if (this.filterEndDate && i.interviewDate > this.filterEndDate) return false;
           return true;
         });
         this.interviews.set(filtered);
@@ -125,14 +140,29 @@ export class InterviewListComponent implements OnInit {
     };
     const datePart = r.startTime ? new Date(r.startTime).toISOString().split('T')[0] : '';
     const app = r.application || {};
-    // const applicant = app.applicant || {};
-    // const vacancy = app.vacancy || {};
+    const applicant = app.applicant || {};
+    const vacancy = app.vacancy || {};
+    const user = applicant.user || {};
 
+    console.log('Test Vacancy Data:', vacancy);
     return {
       id: String(r.id),
       applicationId: String(r.applicationId),
-      application: application as any,
-      title: r.title ?? 'Interview with ${r.applicantName}',
+      application: {
+        ...app,
+        applicant: {
+          fullName: user.fullName || 'N/A',
+          email: user.email || 'N/A',
+          cvUrl: app.cv?.fileUrl || ''
+        },
+        vacancy: {
+          title: vacancy.title || 'N/A',
+          departmentName: vacancy.department?.name || 'N/A',
+          description: vacancy.description || '',
+          requirements: vacancy.requirements || ''
+        }
+      } as any,
+      title: r.title ?? `Interview with ${user.fullName || 'Candidate'}`,
       description: r.description ?? '',
       googleMeetLink: r.googleMeetLink ?? r.meetLink,
       interviewDate: datePart,
@@ -201,29 +231,9 @@ export class InterviewListComponent implements OnInit {
   }
 
   filteredInterviews(): Interview[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    return this.interviews().filter((i) => {
-      if (this.filterStatus && i.status !== this.filterStatus) return false;
-      if (this.filterDate && i.interviewDate !== this.filterDate) return false;
-      if (!term) return true;
-
-      const values = [
-        i.id,
-        i.applicationId,
-        i.applicant?.id,
-        i.vacancy?.id,
-        i.application?.applicantId,
-        i.application?.vacancyId,
-        i.applicant?.code,
-        i.vacancy?.code,
-        i.application?.applicant?.fullName,
-        i.application?.vacancy?.title,
-        i.applicant?.fullName,
-        i.vacancy?.title,
-      ];
-
-      return values.some((value) => (value ?? '').toLowerCase().includes(term));
-    });
+    // Backend already filters by status, date, and search.
+    // Just return the loaded interviews directly.
+    return this.interviews();
   }
 
   openDetail(item: Interview) {
@@ -232,6 +242,12 @@ export class InterviewListComponent implements OnInit {
   }
 
   onSearchChange() {
+    this.currentPage.set(1);
+    this.loadData();
+  }
+
+  onFilterChange() {
+    this.currentPage.set(1);
     this.loadData();
   }
 
@@ -486,11 +502,13 @@ export class InterviewListComponent implements OnInit {
   }
 
   canReschedule(): boolean {
-    return this.auth.isHR();
+    const role = this.auth.currentUser()?.role;
+    return this.auth.isHR() || role === UserRole.SUPER_ADMIN || role === UserRole.HR;
   }
 
   canCancel(): boolean {
-    return this.auth.isHR();
+    const role = this.auth.currentUser()?.role;
+    return this.auth.isHR() || role === UserRole.SUPER_ADMIN || role === UserRole.HR;
   }
 
   getVacancyTitle(item: Interview): string {
@@ -511,9 +529,37 @@ export class InterviewListComponent implements OnInit {
 
   clearFilters() {
     this.filterStatus = '';
-    this.filterDate = '';
+    this.filterStartDate = '';
+    this.filterEndDate = '';
     this.searchTerm = '';
+    this.currentPage.set(1);
     this.loadData();
+  }
+
+  // ── Pagination ──────────────────────────────────────────────────────────
+
+  onPageChange(page: number) {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
+    this.loadData();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const maxVisible = 7;
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, current - 3);
+      let end = Math.min(total, current + 3);
+      if (start <= 2) end = Math.min(start + 6, total);
+      if (end >= total - 1) start = Math.max(1, end - 6);
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
   }
 
   getPanelVoteSummary(panel: InterviewerPanel[]): string {

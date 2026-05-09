@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserRole, UserRoleLogin } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -16,15 +17,21 @@ export class LoginComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private toast = inject(ToastService);
 
   // Expose enum to HTML template
   UserRoleLogin = UserRoleLogin;
+  currentYear = new Date().getFullYear();
 
   selectedRole: UserRoleLogin = UserRoleLogin.APPLICANT;
   form = { email: '', password: '' };
   formError = '';
   successMessage = '';
+  resendVerifyMessage = '';
   isLoading = false;
+  isResendingVerify = false;
+  showPassword = false;
+  resendLoading = false;
 
   // --- BIẾN CHO LUỒNG 2FA ---
   currentStep: 'LOGIN' | 'SETUP_2FA' | 'VERIFY_2FA' = 'LOGIN';
@@ -57,9 +64,15 @@ export class LoginComponent implements OnInit {
 
   submit() {
     this.formError = '';
+    this.successMessage = '';
+    const email = this.form.email.trim().toLowerCase();
+    if (!email || !this.form.password.trim()) {
+      this.formError = 'Please enter email and password.';
+      return;
+    }
     this.isLoading = true;
 
-    this.auth.login(this.form).subscribe({
+    this.auth.login({ email, password: this.form.password }).subscribe({
       next: (res) => {
         const userRole = res.data.user.role;
 
@@ -89,13 +102,54 @@ export class LoginComponent implements OnInit {
         // }
 
         // Nếu là Ứng viên thì vô thẳng như cũ
+        this.toast.success('Login successful.');
         this.auth.handleLoginSuccess(res, this.selectedRole);
       },
       error: (err) => {
-        this.formError = err.error?.message || 'Email or password not correct!';
+        const rawMessage = err?.error?.message || 'Email or password not correct!';
+        this.formError =
+          rawMessage === 'Account already registered. Check your email to verify.'
+            ? 'Please verify your email first'
+            : rawMessage;
+        // Form already displays the error — no need for duplicate toast
         this.isLoading = false;
       },
     });
+  }
+
+  canShowResendVerify(): boolean {
+    const email = this.form.email.trim();
+    if (!email || this.selectedRole !== UserRoleLogin.APPLICANT) return false;
+    const message = this.formError.toLowerCase();
+    return (
+      message.includes('please verify your email first') ||
+      message.includes('account not verified')
+    );
+  }
+
+  resendVerification() {
+    const email = this.form.email.trim();
+    if (!email || this.isResendingVerify) return;
+    this.resendVerifyMessage = '';
+    this.isResendingVerify = true;
+    this.auth.resendVerify(email).subscribe({
+      next: (res) => {
+        this.isResendingVerify = false;
+        this.resendVerifyMessage =
+          res?.message ??
+          'If your account exists, a verification link has been sent.';
+      },
+      error: (err) => {
+        this.isResendingVerify = false;
+        this.resendVerifyMessage =
+          err?.error?.message ??
+          'Unable to resend verification email. Please try again.';
+      },
+    });
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
 
   // --- HÀM XÁC THỰC MÃ 6 SỐ CỦA HR ---

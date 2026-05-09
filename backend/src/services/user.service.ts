@@ -3,6 +3,8 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -23,13 +25,14 @@ import { Department } from 'src/entities/department.entity';
 @Injectable()
 export class UserService {
   private static readonly APPLICANT_VERIFY_EXPIRES = '15m';
+  private static readonly RESEND_VERIFY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
   constructor(
     @InjectRepository(User) private userTable: Repository<User>,
     private jwtService: JwtService,
     private mailService: MailService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   async findByEmail(email: string) {
     return await this.userTable.findOne({ where: { email } });
@@ -46,7 +49,7 @@ export class UserService {
     if (!user) throw new UnauthorizedException('Account not found!');
 
     if (user.isVerified == false)
-      throw new UnauthorizedException('Account not verified');
+      throw new UnauthorizedException('Please verify your email first');
 
     return user;
   }
@@ -82,7 +85,7 @@ export class UserService {
           );
         }
         if (existing.isVerified) {
-          throw new ConflictException('Account already exist');
+          throw new ConflictException('Email already exist');
         }
 
         const tokenInfo = this.getVerificationTokenInfo(
@@ -142,6 +145,19 @@ export class UserService {
     if (user.isVerified || user.role !== UserRole.APPLICANT) {
       return;
     }
+    const now = Date.now();
+    const lastResendAt = user.lastVerificationResendAt
+      ? new Date(user.lastVerificationResendAt).getTime()
+      : null;
+    if (
+      lastResendAt &&
+      now - lastResendAt < UserService.RESEND_VERIFY_COOLDOWN_MS
+    ) {
+      throw new HttpException(
+        'Verification email can only be resent once every 24 hours.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
 
     user.verificationToken = this.generateEmailToken(
       { id: user.id, email: user.email, role: user.role },
@@ -150,6 +166,7 @@ export class UserService {
       UserService.APPLICANT_VERIFY_EXPIRES,
       TokenType.EMAIL_REGISTER_VERIFY,
     );
+    user.lastVerificationResendAt = new Date(now);
     await this.save(user);
     await this.sendVerification(user);
   }
@@ -260,7 +277,17 @@ export class UserService {
       { requireInitialPasswordSetup },
     );
   }
+  async sendVerificationToApplicant(user: User) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
+    const verifyUrl = `${frontendUrl}/verify-invite-applicant-email?token=${user.verificationToken}`;
 
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      user.fullName,
+      verifyUrl,
+    );
+  }
   async sendPasswordReset(email: string, name: string, resetUrl: string) {
     await this.mailService.sendPasswordResetEmail(email, name, resetUrl);
   }

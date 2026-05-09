@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { catchError, of, Subject } from 'rxjs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, of, Subject, skip } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { ApplicantService } from '../../../core/services/applicant.service';
 import { ApplicationService } from '../../../core/services/application.service';
@@ -28,6 +28,7 @@ import { environment } from '../../../../environments/environment';
 import { SocketService } from '../../../core/services/socket.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmService } from '../../../core/services/confirm-message.service';
 
 @Component({
   selector: 'app-LApplication-LList',
@@ -53,6 +54,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   searchQuery = '';
   filterStatus = '';
   selectedVacancyId = '';
+  filterStartDate = '';
+  filterEndDate = '';
 
   // Pagination
   currentPage = signal(1);
@@ -104,11 +107,31 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     private socketService: SocketService,
     protected authService: AuthService,
     private toastService: ToastService,
-  ) { }
+    private confirmService: ConfirmService,
+    private route: ActivatedRoute,
+  ) {}
 
   ngOnInit() {
+    // Read search query param from header search
+    const searchParam = this.route.snapshot.queryParamMap.get('search');
+    if (searchParam) {
+      this.searchQuery = searchParam;
+    }
+
     this.loadVacancies();
     this.loadApplications();
+
+    // Handle subsequent header searches (same-route navigation)
+    this.route.queryParams
+      .pipe(skip(1), takeUntil(this.destroy$))
+      .subscribe((params) => {
+        const searchParam = params['search'];
+        if (searchParam) {
+          this.searchQuery = searchParam;
+          this.currentPage.set(1);
+          this.loadApplications();
+        }
+      });
 
     this.attachSearchSubject
       .pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$))
@@ -164,6 +187,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       .getAll({
         status: this.filterStatus || undefined,
         vacancyId: this.selectedVacancyId || undefined,
+        startDate: this.filterStartDate || undefined,
+        endDate: this.filterEndDate || undefined,
         search: this.useBackendSearch() ? this.searchQuery : undefined,
         page: this.currentPage(),
         limit: this.pageSize,
@@ -212,6 +237,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   visibleApplications(): Application[] {
     const query = this.searchQuery.trim().toLowerCase();
     if (!query) return this.applications();
+    // If backend search was used, don't double-filter locally
+    if (this.useBackendSearch()) return this.applications();
     return this.applications().filter((app) => {
       const values = [
         app.code,
@@ -223,7 +250,9 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
         app.applicant?.code,
         app.vacancy?.code,
         app.applicant?.fullName,
+        (app.applicant as any)?.user?.fullName,
         app.applicant?.email,
+        (app.applicant as any)?.user?.email,
         app.vacancy?.title,
       ];
       return values.some((value) =>
@@ -236,9 +265,28 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     return this.visibleApplications();
   }
 
-  goToPage(page: number) {
-    this.currentPage.set(Math.max(1, Math.min(page, this.totalPages())));
+  onPageChange(page: number) {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
     this.loadApplications();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const maxVisible = 7;
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, current - 3);
+      let end = Math.min(total, current + 3);
+      if (start <= 2) end = Math.min(start + 6, total);
+      if (end >= total - 1) start = Math.max(1, end - 6);
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
   }
 
   onSearchChange() {
@@ -250,6 +298,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.searchQuery = '';
     this.filterStatus = '';
     this.selectedVacancyId = '';
+    this.filterStartDate = '';
+    this.filterEndDate = '';
     this.currentPage.set(1);
     this.loadApplications();
   }
@@ -775,29 +825,47 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   }
 
   acceptedApplication(applicationId: string) {
-    this.applicationService
-      .changeStatus(applicationId, ApplicationStatus.ACCEPTED)
-      .subscribe({
-        next: (res) => {
-          this.loadApplications();
-        },
-        error: (err) => {
-          console.log(err);
-        },
-      });
+    this.confirmService.show(
+      'Are you sure to accept this applicant',
+      'Accept Applicant',
+      'info',
+      true,
+      true,
+      () => {
+        this.applicationService
+          .changeStatus(applicationId, ApplicationStatus.ACCEPTED)
+          .subscribe({
+            next: (res) => {
+              this.loadApplications();
+            },
+            error: (err) => {
+              this.toastService.show(err.error.message, 'error');
+            },
+          });
+      },
+    );
   }
 
   rejetedApplication(applicationId: string) {
-    this.applicationService
-      .changeStatus(applicationId, ApplicationStatus.REJECTED)
-      .subscribe({
-        next: (res) => {
-          this.loadApplications();
-        },
-        error: (err) => {
-          console.log(err);
-        },
-      });
+    this.confirmService.show(
+      'Are you sure to reject this applicant',
+      'Reject Applicant',
+      'info',
+      true,
+      true,
+      () => {
+        this.applicationService
+          .changeStatus(applicationId, ApplicationStatus.REJECTED)
+          .subscribe({
+            next: (res) => {
+              this.loadApplications();
+            },
+            error: (err) => {
+              this.toastService.show(err.error.message, 'error');
+            },
+          });
+      },
+    );
   }
 
   getMinDate(): string {

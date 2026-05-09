@@ -14,6 +14,7 @@ import {
   CV,
   displayApplicantStatus,
 } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-applicant-list',
@@ -49,6 +50,7 @@ export class ApplicantListComponent implements OnInit {
   constructor(
     private applicantService: ApplicantService,
     private applicationService: ApplicationService,
+    private toast: ToastService,
     private mockData: MockDataService,
   ) {}
 
@@ -102,9 +104,28 @@ export class ApplicantListComponent implements OnInit {
     return this.applicants();
   }
 
-  goToPage(page: number) {
-    this.currentPage.set(Math.max(1, Math.min(page, this.totalPages())));
+  onPageChange(page: number) {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
     this.loadApplicants();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const maxVisible = 7;
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, current - 3);
+      let end = Math.min(total, current + 3);
+      if (start <= 2) end = Math.min(start + 6, total);
+      if (end >= total - 1) start = Math.max(1, end - 6);
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
   }
 
   clearFilters() {
@@ -133,7 +154,7 @@ export class ApplicantListComponent implements OnInit {
     this.formData = {
       fullName: applicant.fullName,
       email: applicant.email,
-      phone: applicant.phone,
+      phone: applicant.user!.phone || '',
     };
     this.formError = '';
     this.showFormDialog.set(true);
@@ -164,13 +185,6 @@ export class ApplicantListComponent implements OnInit {
           },
           error: (err) => {
             this.formError = err.error.message;
-
-            // this.mockData.updateApplicant(
-            //   this.selectedApplicant()!.id,
-            //   this.formData as Partial<Applicant>,
-            // );
-            // this.closeFormDialog();
-            // this.loadApplicants();
           },
         });
       return;
@@ -195,9 +209,8 @@ export class ApplicantListComponent implements OnInit {
     event.stopPropagation();
     this.applicantService.changeStatus(applicant.id, status).subscribe({
       next: () => this.loadApplicants(),
-      error: () => {
-        this.mockData.updateApplicantStatus(applicant.id, status);
-        this.loadApplicants();
+      error: (err) => {
+        this.toast.show(err.error.message, 'error');
       },
     });
   }

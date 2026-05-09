@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Param,
   Patch,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -12,6 +13,8 @@ import {
 import { ApplicantStatusUpdateDto } from 'src/dto/applicant/applicant-status.update.dto';
 import { ApplicantFindDto } from 'src/dto/applicant/applicant.find.dto';
 import { ApplicantUpdateDto } from 'src/dto/applicant/applicant.update.dto';
+import { Roles } from 'src/common/decorator/decorator';
+import { UserRole } from 'src/common/enum';
 import { Applicant } from 'src/entities/applicant.entity';
 import { ApiResponse } from 'src/helper/api-response';
 import { FindResponseDto } from 'src/helper/find.response.dto';
@@ -21,6 +24,8 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { CurrentUser } from 'src/auth/current-user.decorator';
 import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 import { ApplicantChangePasswordDto } from 'src/dto/applicant/applicant.change-password.dto';
+import { ApplicantCreateDto } from 'src/dto/applicant/applicant.create.dto';
+import { User } from 'src/entities/user.entity';
 
 @Controller('applicant')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -28,6 +33,7 @@ export class ApplicantController {
   constructor(private applicantServie: ApplicantService) {}
 
   @Put('update-account')
+  @Roles(UserRole.APPLICANT)
   async update(
     @Body() applicantUpdateDto: ApplicantUpdateDto,
     @CurrentUser() user: SafeUserDto,
@@ -44,6 +50,7 @@ export class ApplicantController {
   }
 
   @Get()
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async findAll(
     @Query() query: ApplicantFindDto,
   ): Promise<ApiResponse<FindResponseDto<Applicant>>> {
@@ -55,7 +62,22 @@ export class ApplicantController {
     };
   }
 
+  @Post('invite')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.HR)
+  async inviteApplicant(
+    @CurrentUser() actor: SafeUserDto,
+    @Body() dto: ApplicantCreateDto,
+  ): Promise<ApiResponse<User>> {
+    const data = await this.applicantServie.createApplicant(actor, dto);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Staff account created',
+      data,
+    };
+  }
+
   @Patch(':id/status')
+  @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
   async changeStatus(
     @Param('id') id: string,
     @Body() applicantStatusUpdateDto: ApplicantStatusUpdateDto,

@@ -90,12 +90,24 @@ export class User {
   verifiedAt!: Date | null;
 
   @Exclude()
+  @Column({ type: 'timestamptz', nullable: true })
+  lastVerificationResendAt!: Date | null;
+
+  @Exclude()
   @Column({ type: 'varchar', nullable: true })
   resetPasswordToken!: string | null;
 
   @Exclude()
   @Column({ type: 'timestamptz', nullable: true })
   resetPasswordTokenExpiresAt!: Date | null;
+
+  @Exclude()
+  @Column({ type: 'int', default: 0 })
+  failedLoginAttempts!: number;
+
+  @Exclude()
+  @Column({ type: 'timestamptz', nullable: true })
+  lockedUntil!: Date | null;
 
   @Expose()
   @CreateDateColumn()

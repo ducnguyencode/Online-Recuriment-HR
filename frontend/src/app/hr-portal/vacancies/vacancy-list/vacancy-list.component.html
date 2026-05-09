@@ -169,7 +169,7 @@
               </td>
               <td class="cell-date">
                 @if (v.closingDate) {
-                  {{ v.closingDate | date: "MM/dd/yyyy" }}
+                  {{ v.closingDate | date: "dd/MM/yyyy" }}
                 } @else {
                   {{ "TBD" }}
                 }
@@ -181,70 +181,30 @@
               </td>
               <td class="cell-actions" (click)="$event.stopPropagation()">
                 <!-- Edit: only if owner & not Closed -->
-                <button
-                  class="btn-ghost btn-icon"
-                  [title]="editTitle(v)"
-                  [disabled]="!canEdit(v)"
-                  (click)="openEditDialog(v, $event)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
-                    />
+            @if(canEdit(v)){
+            <button class="btn-ghost btn-icon" [title]="editTitle(v)" (click)="openEditDialog(v, $event)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                   </svg>
                 </button>
-
-                <!-- Status changes: only if owner & not Closed -->
                 @if (canChangeStatus(v)) {
                   @for (s of allowedStatuses(v); track s) {
-                    <button
-                      class="btn-ghost btn-icon"
-                      [title]="'Set ' + s"
-                      (click)="changeStatus(v, s, $event)"
-                    >
+            <button class="btn-ghost btn-icon" [title]="'Set ' + s" (click)="changeStatus(v, s, $event)">
                       @if (s === "Suspended") {
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="#EAB308"
-                          stroke-width="2"
-                        >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="#EAB308" stroke-width="2">
                           <rect x="14" y="4" width="4" height="16" rx="1" />
                           <rect x="6" y="4" width="4" height="16" rx="1" />
                         </svg>
                       } @else if (s === "Opened") {
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="#22C55E"
-                          stroke-width="2"
-                        >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="#22C55E" stroke-width="2">
                           <polygon points="6 3 20 12 6 21 6 3" />
                         </svg>
                       } @else if (s === "Closed") {
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="#EF4444"
-                          stroke-width="2"
-                        >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="#EF4444" stroke-width="2">
                           <circle cx="12" cy="12" r="10" />
                           <path d="m15 9-6 6" />
                           <path d="m9 9 6 6" />
@@ -253,12 +213,12 @@
                     </button>
                   }
                 } @else if (v.status == VacancyStatus.CLOSED) {
-                  <span
-                    class="locked-badge"
-                    title="Closed vacancies cannot be reopened"
-                    >🔒</span
-                  >
+            <span class="locked-badge" title="Closed vacancies cannot be reopened">🔒</span>
                 }
+            }@else {
+            Unauthorized
+            }
+            <!-- Status changes: only if owner & not Closed -->
               </td>
             </tr>
           } @empty {
@@ -273,24 +233,32 @@
       </table>
     </div>
     @if (totalPages() > 1) {
-      <div
-        class="pagination"
-        style="margin-top: 16px; justify-content: flex-end"
-      >
-        <button
-          class="btn-ghost btn-sm"
-          [disabled]="currentPage() === 1"
-          (click)="goToPage(currentPage() - 1)"
-        >
-          ←
+      <div class="flex justify-center items-center gap-1.5 mt-10 pb-4">
+        <button (click)="onPageChange(currentPage() - 1)" [disabled]="currentPage() === 1"
+                class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
         </button>
-        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
-        <button
-          class="btn-ghost btn-sm"
-          [disabled]="currentPage() === totalPages()"
-          (click)="goToPage(currentPage() + 1)"
-        >
-          →
+        @for (page of getPageNumbers(); track page) {
+          <button (click)="onPageChange(page)"
+                  class="w-9 h-9 flex items-center justify-center rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                  [class.bg-slate-900]="currentPage() === page"
+                  [class.text-white]="currentPage() === page"
+                  [class.shadow-md]="currentPage() === page"
+                  [class.bg-white]="currentPage() !== page"
+                  [class.border]="currentPage() !== page"
+                  [class.border-slate-200]="currentPage() !== page"
+                  [class.text-slate-600]="currentPage() !== page"
+                  [class.hover:bg-slate-50]="currentPage() !== page">
+            {{ page }}
+          </button>
+        }
+        <button (click)="onPageChange(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+                class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         </button>
       </div>
     }
@@ -381,24 +349,32 @@
       }
     </div>
     @if (totalPages() > 1) {
-      <div
-        class="pagination"
-        style="margin-top: 16px; justify-content: flex-end"
-      >
-        <button
-          class="btn-ghost btn-sm"
-          [disabled]="currentPage() === 1"
-          (click)="goToPage(currentPage() - 1)"
-        >
-          ←
+      <div class="flex justify-center items-center gap-1.5 mt-10 pb-4">
+        <button (click)="onPageChange(currentPage() - 1)" [disabled]="currentPage() === 1"
+                class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
         </button>
-        <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
-        <button
-          class="btn-ghost btn-sm"
-          [disabled]="currentPage() === totalPages()"
-          (click)="goToPage(currentPage() + 1)"
-        >
-          →
+        @for (page of getPageNumbers(); track page) {
+          <button (click)="onPageChange(page)"
+                  class="w-9 h-9 flex items-center justify-center rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                  [class.bg-slate-900]="currentPage() === page"
+                  [class.text-white]="currentPage() === page"
+                  [class.shadow-md]="currentPage() === page"
+                  [class.bg-white]="currentPage() !== page"
+                  [class.border]="currentPage() !== page"
+                  [class.border-slate-200]="currentPage() !== page"
+                  [class.text-slate-600]="currentPage() !== page"
+                  [class.hover:bg-slate-50]="currentPage() !== page">
+            {{ page }}
+          </button>
+        }
+        <button (click)="onPageChange(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+                class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         </button>
       </div>
     }
@@ -629,7 +605,7 @@
                       <td class="mono-id">
                         {{ item.applicant?.code }}
                       </td>
-                      <td>{{ item.updatedAt | date: "MM/dd/yyyy HH:mm" }}</td>
+                      <td>{{ item.updatedAt | date: "dd/MM/yyyy HH:mm" }}</td>
                     </tr>
                   }
                 </tbody>
@@ -707,7 +683,7 @@
           type="button"
           class="toolbar-btn"
           title="Bold (Ctrl+B)"
-          (click)="execCommand('bold')"
+          (mousedown)="$event.preventDefault(); execCommand('bold')"
         >
           <b>B</b>
         </button>
@@ -715,7 +691,7 @@
           type="button"
           class="toolbar-btn toolbar-italic"
           title="Italic (Ctrl+I)"
-          (click)="execCommand('italic')"
+          (mousedown)="$event.preventDefault(); execCommand('italic')"
         >
           <i>I</i>
         </button>
@@ -723,7 +699,7 @@
           type="button"
           class="toolbar-btn toolbar-underline"
           title="Underline (Ctrl+U)"
-          (click)="execCommand('underline')"
+          (mousedown)="$event.preventDefault(); execCommand('underline')"
         >
           <u>U</u>
         </button>
@@ -732,7 +708,7 @@
           type="button"
           class="toolbar-btn"
           title="Heading"
-          (click)="execCommand('formatBlock', 'h3')"
+          (mousedown)="$event.preventDefault(); execCommand('formatBlock', 'h3')"
         >
           H
         </button>
@@ -740,7 +716,7 @@
           type="button"
           class="toolbar-btn"
           title="Paragraph"
-          (click)="execCommand('formatBlock', 'p')"
+          (mousedown)="$event.preventDefault(); execCommand('formatBlock', 'p')"
         >
           P
         </button>
@@ -749,7 +725,7 @@
           type="button"
           class="toolbar-btn"
           title="Bullet List"
-          (click)="execCommand('insertUnorderedList')"
+          (mousedown)="$event.preventDefault(); execCommand('insertUnorderedList')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -772,7 +748,7 @@
           type="button"
           class="toolbar-btn"
           title="Numbered List"
-          (click)="execCommand('insertOrderedList')"
+          (mousedown)="$event.preventDefault(); execCommand('insertOrderedList')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -796,7 +772,7 @@
           type="button"
           class="toolbar-btn"
           title="Indent"
-          (click)="execCommand('indent')"
+          (mousedown)="$event.preventDefault(); execCommand('indent')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -817,7 +793,7 @@
           type="button"
           class="toolbar-btn"
           title="Outdent"
-          (click)="execCommand('outdent')"
+          (mousedown)="$event.preventDefault(); execCommand('outdent')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -839,7 +815,7 @@
           type="button"
           class="toolbar-btn toolbar-danger"
           title="Remove Formatting"
-          (click)="execCommand('removeFormat')"
+          (mousedown)="$event.preventDefault(); execCommand('removeFormat')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -864,10 +840,9 @@
           class="editor-content"
           contenteditable="true"
           (blur)="onEditorBlur()"
-          (keydown.tab)="
-            $event.preventDefault();
-            execCommand('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;')
-          "
+          (mouseup)="saveSelection()"
+          (keyup)="saveSelection()"
+          (keydown.tab)="$event.preventDefault(); insertTab()"
         ></div>
       </div>
       <div class="modal-footer">

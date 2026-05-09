@@ -13,7 +13,7 @@ import fs from 'fs';
 
 @Injectable()
 export class CvService {
-  constructor(@InjectRepository(CV) private cvsTable: Repository<CV>) {}
+  constructor(@InjectRepository(CV) private cvsTable: Repository<CV>) { }
 
   findAll(): Promise<CV[]> {
     return this.cvsTable.find();
@@ -27,6 +27,13 @@ export class CvService {
     if (!file) {
       throw new BadRequestException('Invalid file');
     }
+    if (file.mimetype != 'application/pdf') {
+      throw new BadRequestException('Only accept pdf');
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('File size too large');
+    }
+
     return this.cvsTable.manager.transaction(async (manager) => {
       if (
         (await manager.count(CV, {
@@ -45,7 +52,7 @@ export class CvService {
 
       // get file name
       // const fileName = `${cv.code}.pdf`;
-      const fileName = file.originalname;
+      const fileName = Buffer.from(file.originalname, 'latin1').toString('utf8');
       const filePath = `cv/applicant-${cv.applicantId}`;
       const uploadDir = path.join(process.cwd(), `uploads/${filePath}`);
       if (!fs.existsSync(uploadDir)) {

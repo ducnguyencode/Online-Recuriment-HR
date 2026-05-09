@@ -23,6 +23,8 @@ import {
   VacancyStatus,
   ApplicationStatus,
 } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmService } from '../../../core/services/confirm-message.service';
 
 @Component({
   selector: 'app-vacancy-list',
@@ -74,6 +76,7 @@ export class VacancyListComponent implements OnInit {
   showExpandedEditor = signal(false);
   @ViewChild('editorEl') editorEl?: ElementRef<HTMLDivElement>;
   private savedRange: Range | null = null;
+  private onSelectionChangeBound = () => this.saveSelection();
 
   // Add dept inline
   showDeptDialog = signal(false);
@@ -84,6 +87,8 @@ export class VacancyListComponent implements OnInit {
     private vacancyService: VacancyService,
     private applicationService: ApplicationService,
     private departmentService: DepartmentService,
+    private toast: ToastService,
+    private confirmService: ConfirmService,
     private mockData: MockDataService, // fallback when backend not ready
   ) {}
 
@@ -109,8 +114,9 @@ export class VacancyListComponent implements OnInit {
     return this.auth.isSuperadmin();
   }
 
+  /** Per spec: only CLOSED is permanently locked. SUSPENDED → can be reopened. */
   isClosedOrSuspended(v: Vacancy): boolean {
-    return [VacancyStatus.CLOSED, VacancyStatus.SUSPENDED].includes(v.status);
+    return v.status === VacancyStatus.CLOSED;
   }
 
   canEdit(v: Vacancy): boolean {
@@ -128,8 +134,7 @@ export class VacancyListComponent implements OnInit {
   }
 
   editTitle(v: Vacancy): string {
-    if (this.isClosedOrSuspended(v))
-      return 'Cannot edit a closed or suspended vacancy';
+    if (this.isClosedOrSuspended(v)) return 'Cannot edit a closed vacancy';
     if (!this.isOwner(v)) return 'Only the vacancy owner can edit';
     return 'Edit vacancy';
   }
@@ -264,9 +269,28 @@ export class VacancyListComponent implements OnInit {
     this.loadVacancies();
   }
 
-  goToPage(page: number) {
-    this.currentPage.set(Math.max(1, Math.min(page, this.totalPages())));
+  onPageChange(page: number) {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
     this.loadVacancies();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const maxVisible = 7;
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, current - 3);
+      let end = Math.min(total, current + 3);
+      if (start <= 2) end = Math.min(start + 6, total);
+      if (end >= total - 1) start = Math.max(1, end - 6);
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
   }
 
   // ── CRUD ─────────────────────────────────────────────────────────────────
@@ -286,7 +310,10 @@ export class VacancyListComponent implements OnInit {
 
   openEditDialog(v: Vacancy, event: Event) {
     event.stopPropagation();
-    if (!this.canEdit(v)) return;
+    if (!this.canEdit(v)) {
+      this.toast.show(this.editTitle(v), 'error');
+      return;
+    }
     this.isEditing.set(true);
     this.selectedVacancy.set(v);
     this.formData = {
@@ -344,16 +371,6 @@ export class VacancyListComponent implements OnInit {
         },
         error: (err) => {
           this.formError = err.error.message;
-
-          // // Mock fallback
-          // this.mockData.updateVacancy(this.selectedVacancy()!.id, {
-          //   title: dto.title,
-          //   description: dto.description,
-          //   numberOfOpenings: dto.numberOfOpenings,
-          //   closingDate: dto.closingDate,
-          // });
-          // this.closeDialogs();
-          // this.loadVacancies();
         },
       });
     } else {
@@ -364,32 +381,30 @@ export class VacancyListComponent implements OnInit {
         },
         error: (err) => {
           this.formError = err.error.message;
-
-          // this.mockData.addVacancy({
-          //   title: dto.title,
-          //   description: dto.description,
-          //   departmentId: dto.departmentId,
-          //   numberOfOpenings: dto.numberOfOpenings,
-          //   closingDate: dto.closingDate,
-          // });
-          // this.closeDialogs();
-          // this.loadVacancies();
         },
       });
     }
   }
 
   changeStatus(v: Vacancy, status: VacancyStatus, event: Event) {
-    event.stopPropagation();
-    if (!this.canChangeStatus(v)) return;
+    this.confirmService.show(
+      `Are you sure to change ${v.title} to ${status}`,
+      'Change vacancy status',
+      'info',
+      true,
+      true,
+      () => {
+        event.stopPropagation();
+        if (!this.canChangeStatus(v)) return;
 
-    this.vacancyService.changeStatus(v.id, status).subscribe({
-      next: () => this.loadVacancies(),
-      error: () => {
-        this.mockData.updateVacancyStatus(v.id, status);
-        this.loadVacancies();
+        this.vacancyService.changeStatus(v.id, status).subscribe({
+          next: () => this.loadVacancies(),
+          error: (err) => {
+            this.toast.show(err.error.message, 'error');
+          },
+        });
       },
-    });
+    );
   }
 
   getStatusClass(status: string): string {
@@ -462,15 +477,23 @@ export class VacancyListComponent implements OnInit {
   openExpandedEditor() {
     this.savedRange = null;
     this.showExpandedEditor.set(true);
+    document.addEventListener('selectionchange', this.onSelectionChangeBound);
     setTimeout(() => {
       if (this.editorEl) {
         this.editorEl.nativeElement.innerHTML = this.formData.description || '';
         this.editorEl.nativeElement.focus();
+        // Place cursor at end of content
+        const sel = window.getSelection();
+        if (sel) {
+          sel.selectAllChildren(this.editorEl.nativeElement);
+          sel.collapseToEnd();
+        }
       }
     }, 50);
   }
 
   closeExpandedEditor() {
+    document.removeEventListener('selectionchange', this.onSelectionChangeBound);
     this.savedRange = null;
     this.showExpandedEditor.set(false);
   }
@@ -486,9 +509,20 @@ export class VacancyListComponent implements OnInit {
   }
 
   onEditorBlur() {
+    this.saveSelection();
+  }
+
+  saveSelection() {
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
-      this.savedRange = sel.getRangeAt(0).cloneRange();
+      const range = sel.getRangeAt(0);
+      // Only save ranges that are inside our editor
+      if (
+        this.editorEl &&
+        this.editorEl.nativeElement.contains(range.commonAncestorContainer)
+      ) {
+        this.savedRange = range.cloneRange();
+      }
     }
   }
 
@@ -496,23 +530,47 @@ export class VacancyListComponent implements OnInit {
     const editor = this.editorEl?.nativeElement;
     if (!editor) return;
 
+    // Focus the editor so document.execCommand has a valid editing host
     editor.focus();
 
+    // Try to restore the last saved selection (from selectionchange/mouseup/keyup/blur)
     if (this.savedRange) {
-      const sel = window.getSelection();
-      if (sel) {
-        sel.removeAllRanges();
-        sel.addRange(this.savedRange);
+      try {
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(this.savedRange);
+        }
+      } catch (_) {
+        // savedRange may be stale; ignore and let the command run on current cursor
       }
     }
 
     document.execCommand(command, false, value ?? undefined);
 
-    // Save updated selection after command
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      this.savedRange = sel.getRangeAt(0).cloneRange();
+    // After executing, re-save the updated selection
+    this.saveSelection();
+  }
+
+  insertTab() {
+    const editor = this.editorEl?.nativeElement;
+    if (!editor) return;
+    editor.focus();
+
+    // Restore saved selection if available
+    if (this.savedRange) {
+      try {
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(this.savedRange);
+        }
+      } catch (_) { }
     }
+
+    document.execCommand('insertText', false, '\t');
+
+    this.saveSelection();
   }
 
   // ── Department quick-add ──────────────────────────────────────────────────

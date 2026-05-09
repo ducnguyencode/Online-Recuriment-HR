@@ -14,6 +14,8 @@ export interface ApplicationFilters {
   applicantId?: string;
   search?: string;
   status?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   limit?: number;
 }
@@ -38,6 +40,8 @@ export class ApplicationService {
     if (filters.applicantId)
       params = params.set('applicantId', filters.applicantId);
     if (filters.status) params = params.set('status', filters.status);
+    if (filters.startDate) params = params.set('startDate', filters.startDate);
+    if (filters.endDate) params = params.set('endDate', filters.endDate);
     if (filters.search) params = params.set('search', filters.search);
     if (filters.page) params = params.set('page', filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
@@ -81,6 +85,12 @@ export class ApplicationService {
     return this.http.post<ApiResponse<any>>(
       `${environment.apiUrl}/application/${id}/ai-score`,
       {},
+    );
+  }
+
+  getMyCvs(applicantId: string): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(
+      `${environment.apiUrl}/cv/${applicantId}`,
     );
   }
 }

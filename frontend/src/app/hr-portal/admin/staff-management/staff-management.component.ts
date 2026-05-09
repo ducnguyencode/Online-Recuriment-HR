@@ -14,6 +14,7 @@ import {
   UserAccount,
   UserRole,
 } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
 
 type StaffRole = Extract<UserRole, 'HR' | 'Interviewer'>;
 
@@ -73,6 +74,7 @@ export class StaffManagementComponent implements OnInit {
     private authService: AuthService,
     private adminService: AdminUserService,
     private departmentService: DepartmentService,
+    private toast: ToastService,
   ) {}
 
   get isSuperadminView(): boolean {
@@ -99,7 +101,10 @@ export class StaffManagementComponent implements OnInit {
         this.syncDepartmentByRole('create');
         this.syncDepartmentByRole('edit');
       },
-      error: () => this.departments.set([]),
+      error: () => {
+        this.departments.set([]);
+        this.toast.error('Unable to load departments.');
+      },
     });
   }
 
@@ -138,6 +143,7 @@ export class StaffManagementComponent implements OnInit {
           this.totalItems.set(0);
           this.totalPages.set(1);
           this.errorMsg.set('Unable to load staff accounts. Please try again.');
+          this.toast.error(this.errorMsg());
           this.loading.set(false);
         },
       });
@@ -156,9 +162,28 @@ export class StaffManagementComponent implements OnInit {
     this.loadUsers();
   }
 
-  goToPage(page: number) {
-    this.currentPage.set(Math.max(1, Math.min(page, this.totalPages())));
+  onPageChange(page: number) {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
     this.loadUsers();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const maxVisible = 7;
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, current - 3);
+      let end = Math.min(total, current + 3);
+      if (start <= 2) end = Math.min(start + 6, total);
+      if (end >= total - 1) start = Math.max(1, end - 6);
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
   }
 
   openCreateDialog() {
@@ -188,14 +213,17 @@ export class StaffManagementComponent implements OnInit {
 
     if (!email) {
       this.formError.set('Email is required.');
+      this.toast.warning(this.formError());
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       this.formError.set('Invalid email format.');
+      this.toast.warning(this.formError());
       return;
     }
     if (!fullName) {
       this.formError.set('Full name is required.');
+      this.toast.warning(this.formError());
       return;
     }
     this.syncDepartmentByRole('create');
@@ -205,6 +233,7 @@ export class StaffManagementComponent implements OnInit {
       (!this.formData.departmentId || Number(this.formData.departmentId) <= 0)
     ) {
       this.formError.set('Department is required.');
+      this.toast.warning(this.formError());
       return;
     }
 
@@ -228,6 +257,7 @@ export class StaffManagementComponent implements OnInit {
           `Invitation sent to ${email}. ` +
             `After verifying the email, the user will set an initial password before signing in.`,
         );
+        this.toast.success(this.formSuccess());
         this.loadUsers();
       },
       error: (err) => {
@@ -236,31 +266,30 @@ export class StaffManagementComponent implements OnInit {
           err?.error?.message ??
             'Unable to create the staff account. Please try again.',
         );
+        this.toast.error(this.formError());
       },
     });
   }
 
   resendCredentials(user: UserAccount | undefined) {
     if (!user) return;
-    if (
-      !confirm(
-        `Send an activation/reset password email to ${user.email}?`,
-      )
-    )
-      return;
     this.errorMsg.set('');
     this.formSuccess.set('');
     this.adminService.resendTemporaryPassword(user.id).subscribe({
-      next: () =>
+      next: () => {
         this.formSuccess.set(
           `Activation email sent to ${user.email}. ` +
             `The employee can use the email link to set or reset their password.`,
-        ),
-      error: (err) =>
+        );
+        this.toast.success(this.formSuccess());
+      },
+      error: (err) => {
         this.errorMsg.set(
           err?.error?.message ??
             'Unable to resend credentials. Please try again.',
-        ),
+        );
+        this.toast.error(this.errorMsg());
+      },
     });
   }
 
@@ -299,6 +328,7 @@ export class StaffManagementComponent implements OnInit {
     const fullName = this.editFormData.fullName.trim();
     if (!fullName) {
       this.formError.set('Full name is required.');
+      this.toast.warning(this.formError());
       return;
     }
     this.syncDepartmentByRole('edit');
@@ -308,6 +338,7 @@ export class StaffManagementComponent implements OnInit {
       (!this.editFormData.departmentId || Number(this.editFormData.departmentId) <= 0)
     ) {
       this.formError.set('Department is required.');
+      this.toast.warning(this.formError());
       return;
     }
 
@@ -326,6 +357,7 @@ export class StaffManagementComponent implements OnInit {
           this.updating.set(false);
           this.closeEditDialog();
           this.formSuccess.set('Staff account updated successfully.');
+          this.toast.success(this.formSuccess());
           const updated = this.toStaffRow(res.data as any);
           this.employees.update((rows) =>
             rows.map((row) =>
@@ -339,6 +371,7 @@ export class StaffManagementComponent implements OnInit {
           this.formError.set(
             err?.error?.message ?? 'Unable to update staff account.',
           );
+          this.toast.error(this.formError());
         },
       });
   }
@@ -367,12 +400,21 @@ export class StaffManagementComponent implements OnInit {
       ? this.adminService.deactivate(user.id)
       : this.adminService.activate(user.id);
     fn.subscribe({
-      next: () => this.loadUsers(),
-      error: (err) =>
+      next: () => {
+        this.toast.success(
+          user.isActive
+            ? 'Account deactivated successfully.'
+            : 'Account activated successfully.',
+        );
+        this.loadUsers();
+      },
+      error: (err) => {
         this.errorMsg.set(
           err?.error?.message ??
             'Unable to update the account status. Please try again.',
-        ),
+        );
+        this.toast.error(this.errorMsg());
+      },
     });
   }
 
