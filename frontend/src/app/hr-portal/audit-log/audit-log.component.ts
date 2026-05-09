@@ -410,42 +410,28 @@ export class AuditLogComponent implements OnInit, OnDestroy {
         .join(' | ');
     }
 
-    // --- Vacancy actions ---
-    if (action === 'VACANCIES_CREATE') {
-      return this.describeVacancyAction(payload, 'Created');
-    }
-    if (action === 'VACANCIES_UPDATE' || action === 'VACANCIES_PATCH') {
-      return this.describeVacancyAction(payload, 'Updated');
-    }
-    if (action === 'VACANCIES_DELETE') {
-      return this.describeVacancyAction(payload, 'Deleted');
+    // --- Vacancy actions (route: 'vacancy') ---
+    if (action.startsWith('VACANCY_')) {
+      const verb = action.includes('CREATE') ? 'Created' : action.includes('DELETE') ? 'Deleted' : 'Updated';
+      return this.describeVacancyAction(payload, verb);
     }
 
-    // --- Interview actions ---
-    if (action === 'INTERVIEWS_CREATE') {
-      return this.describeInterviewAction(payload, 'Scheduled');
-    }
-    if (action === 'INTERVIEWS_PATCH' || action === 'INTERVIEWS_UPDATE') {
-      return this.describeInterviewAction(payload, 'Updated');
+    // --- Interview actions (route: 'interviews') ---
+    if (action.startsWith('INTERVIEWS_')) {
+      const verb = action.includes('CREATE') ? 'Scheduled' : 'Updated';
+      return this.describeInterviewAction(payload, verb);
     }
 
-    // --- Application actions ---
-    if (action === 'APPLICATIONS_CREATE') {
-      return this.describeApplicationAction(payload, 'Created');
-    }
-    if (action === 'APPLICATIONS_PATCH' || action === 'APPLICATIONS_UPDATE') {
-      return this.describeApplicationAction(payload, 'Updated');
+    // --- Application actions (route: 'application') ---
+    if (action.startsWith('APPLICATION_')) {
+      const verb = action.includes('CREATE') ? 'Created' : 'Updated';
+      return this.describeApplicationAction(payload, verb);
     }
 
-    // --- Department actions ---
-    if (action === 'DEPARTMENTS_CREATE') {
-      return this.describeDepartmentAction(payload, 'Created');
-    }
-    if (action === 'DEPARTMENTS_UPDATE' || action === 'DEPARTMENTS_PATCH') {
-      return this.describeDepartmentAction(payload, 'Updated');
-    }
-    if (action === 'DEPARTMENTS_DELETE') {
-      return this.describeDepartmentAction(payload, 'Deleted');
+    // --- Department actions (route: 'department') ---
+    if (action.startsWith('DEPARTMENT_')) {
+      const verb = action.includes('CREATE') ? 'Created' : action.includes('DELETE') ? 'Deleted' : 'Updated';
+      return this.describeDepartmentAction(payload, verb);
     }
 
     return this.describeGenericPayload(payload);

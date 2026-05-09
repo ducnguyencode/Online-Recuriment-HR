@@ -210,6 +210,7 @@ export interface Interview {
   meetLink?: string;
   status: InterviewStatus;
   panel: InterviewerPanel[];
+  panels?: InterviewerPanel[];
   createdAt: string;
   updatedAt: string;
   meetPlatform?: string;

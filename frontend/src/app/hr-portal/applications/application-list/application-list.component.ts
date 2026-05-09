@@ -691,6 +691,14 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     return map[status] ?? 'badge-neutral';
   }
 
+  shortenStatus(status: string): string {
+    const shortMap: Record<string, string> = {
+      'Interview Scheduled': 'Scheduled',
+      'Pending Review': 'In Review',
+    };
+    return shortMap[status] ?? status;
+  }
+
   getScoreClass(score: number | undefined): string {
     if (score === undefined || score === null) return 'score-none';
     if (score >= 80) return 'score-high';
