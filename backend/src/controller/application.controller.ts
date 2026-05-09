@@ -89,7 +89,12 @@ export class ApplicationController {
   }
 
   @Get()
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
+  @Roles(
+    UserRole.HR,
+    UserRole.INTERVIEWER,
+    UserRole.SUPER_ADMIN,
+    UserRole.APPLICANT,
+  )
   async findAll(
     @Query() query: ApplicationFindDto,
   ): Promise<ApiResponse<FindResponseDto<Application>>> {
