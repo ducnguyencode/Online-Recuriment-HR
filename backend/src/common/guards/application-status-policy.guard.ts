@@ -73,7 +73,7 @@ export class ApplicationStatusPolicyGuard implements CanActivate {
       throw new NotFoundException('Application not found');
     }
 
-    const currentStatus = entity.status as ApplicationStatus;
+    const currentStatus = entity.status;
 
     if (!allowSameStatus && currentStatus === nextStatus) {
       throw new BadRequestException(

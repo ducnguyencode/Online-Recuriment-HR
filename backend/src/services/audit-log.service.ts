@@ -93,26 +93,25 @@ export class AuditLogService {
     if (typeof input.actorId === 'number') {
       qb.andWhere('log.actorId = :actorId', { actorId: input.actorId });
     }
-
     if (typeof input.targetId === 'number') {
       qb.andWhere('log.targetId = :targetId', { targetId: input.targetId });
     }
-    if (input.actorRoles?.length && input.actorRoles) {
+    if (input.actorRoles?.length) {
       qb.andWhere('log.actorRoleSnapshot IN (:...actorRoles)', {
         actorRoles: input.actorRoles,
       });
     }
-    // if (input.action?.trim()) {
-    //   qb.andWhere('log.action ILIKE :action', {
-    //     action: `%${input.action.trim()}%`,
-    //   });
-    // }
-    // if (input.from) {
-    //   qb.andWhere('log.createdAt >= :from', { from: input.from });
-    // }
-    // if (input.to) {
-    //   qb.andWhere('log.createdAt <= :to', { to: input.to });
-    // }
+    if (input.action?.trim()) {
+      qb.andWhere('log.action ILIKE :action', {
+        action: `%${input.action.trim()}%`,
+      });
+    }
+    if (input.from) {
+      qb.andWhere('log.createdAt >= :from', { from: input.from });
+    }
+    if (input.to) {
+      qb.andWhere('log.createdAt <= :to', { to: input.to });
+    }
 
     qb.orderBy('log.createdAt', 'DESC').take(input.limit ?? 200);
     return qb.getMany();

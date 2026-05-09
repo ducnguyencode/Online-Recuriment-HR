@@ -42,7 +42,7 @@ export class VacancyListComponent implements OnInit {
   totalItems = signal(0);
   totalPages = signal(1);
   currentPage = signal(1);
-  readonly pageSize = 3;
+  readonly pageSize = 12;
   selectedApplicants = signal<Application[]>([]);
   selectedApplicantsLoading = signal(false);
 
@@ -133,8 +133,7 @@ export class VacancyListComponent implements OnInit {
   }
 
   editTitle(v: Vacancy): string {
-    if (this.isClosedOrSuspended(v))
-      return 'Cannot edit a closed vacancy';
+    if (this.isClosedOrSuspended(v)) return 'Cannot edit a closed vacancy';
     if (!this.isOwner(v)) return 'Only the vacancy owner can edit';
     return 'Edit vacancy';
   }

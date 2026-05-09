@@ -78,7 +78,7 @@ export class VacancyController {
   }
 
   @VacancyAccess({
-    blockedStatuses: [VacancyStatus.CLOSED, VacancyStatus.SUSPENDED],
+    blockedStatuses: [VacancyStatus.CLOSED],
     ownershipField: 'createdById',
     roles: [UserRole.SUPER_ADMIN, UserRole.HR],
   })

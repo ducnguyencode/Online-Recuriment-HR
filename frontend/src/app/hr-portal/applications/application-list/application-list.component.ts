@@ -799,16 +799,25 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   }
 
   rejetedApplication(applicationId: string) {
-    this.applicationService
-      .changeStatus(applicationId, ApplicationStatus.REJECTED)
-      .subscribe({
-        next: (res) => {
-          this.loadApplications();
-        },
-        error: (err) => {
-          console.log(err);
-        },
-      });
+    this.confirmService.show(
+      'Are you sure to reject this applicant',
+      'Reject Applicant',
+      'info',
+      true,
+      true,
+      () => {
+        this.applicationService
+          .changeStatus(applicationId, ApplicationStatus.REJECTED)
+          .subscribe({
+            next: (res) => {
+              this.loadApplications();
+            },
+            error: (err) => {
+              this.toastService.show(err.error.message, 'error');
+            },
+          });
+      },
+    );
   }
 
   getMinDate(): string {
