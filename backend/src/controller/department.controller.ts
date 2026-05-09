@@ -23,6 +23,7 @@ export class DepartmentController {
   constructor(private departmentService: DepartmentService) {}
 
   @Post('create')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.HR)
   async create(
     @Body() deparmentCreateDto: DepartmentCreateDto,
   ): Promise<ApiResponse<Department>> {
@@ -35,6 +36,7 @@ export class DepartmentController {
   }
 
   @Get()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.HR, UserRole.INTERVIEWER)
   async findAll(): Promise<ApiResponse<Department[]>> {
     const data = await this.departmentService.findAll();
     return {

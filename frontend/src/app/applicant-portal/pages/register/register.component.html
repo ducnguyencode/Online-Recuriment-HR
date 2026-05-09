@@ -115,9 +115,19 @@
           }
         </p>
       </div>
-      <button (click)="returnLogin()" class="btn-submit" style="background: #f1f5f9; color: #0f172a; box-shadow: none;">
+      <div class="flex gap-4 flex-col">
+        <button
+        type="button"
+        (click)="resendVerification()"
+        [disabled]="resendLoading"
+        class="w-full py-4 bg-blue-50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition-all"
+        >
+        {{ resendLoading ? 'Sending...' : 'Resend verification email' }}
+      </button>
+      <button (click)="returnLogin()" class="w-full py-4 bg-slate-100 text-slate-900 font-bold rounded-2xl hover:bg-slate-200 transition-all">
         Return to Login
       </button>
+    </div>
     }
   </div>
 </div>

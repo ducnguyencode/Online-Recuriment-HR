@@ -195,19 +195,6 @@
     }
   }
 
-  @if (formSuccess()) {
-    <div class="toast toast-success">
-      {{ formSuccess() }}
-      <button class="toast-close" (click)="formSuccess.set('')">×</button>
-    </div>
-  }
-
-  @if (errorMsg()) {
-    <div class="toast toast-error">
-      {{ errorMsg() }}
-      <button class="toast-close" (click)="errorMsg.set('')">×</button>
-    </div>
-  }
 </div>
 
 @if (showCreateDialog()) {
@@ -304,9 +291,6 @@
         [(ngModel)]="formData.phone"
       />
 
-      @if (formError()) {
-        <div class="alert alert-danger">{{ formError() }}</div>
-      }
     </div>
     <div class="modal-footer">
       <button
@@ -374,9 +358,6 @@
       <label class="form-label">Phone</label>
       <input class="form-input" [(ngModel)]="editFormData.phone" />
 
-      @if (formError()) {
-        <div class="alert alert-danger">{{ formError() }}</div>
-      }
     </div>
     <div class="modal-footer">
       <button
