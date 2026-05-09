@@ -26,6 +26,9 @@ export class ForgotPasswordComponent {
   isResetDone = false;
   errorMessage = '';
   successMessage = '';
+  showPassword = false;
+  showConfirmPassword = false;
+  currentYear = new Date().getFullYear();
 
   get isResetMode() {
     return !!this.token;
@@ -36,7 +39,10 @@ export class ForgotPasswordComponent {
   }
 
   sendResetLink() {
-    if (!this.email.trim()) return;
+    if (!this.email.trim()) {
+      this.errorMessage = 'Please enter your email address.';
+      return;
+    }
 
     this.errorMessage = '';
     this.successMessage = '';
@@ -83,6 +89,14 @@ export class ForgotPasswordComponent {
           err?.error?.message ?? 'Unable to reset password. Please try again.';
       },
     });
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPasswordVisibility() {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
   returnLogin() {

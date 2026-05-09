@@ -52,7 +52,7 @@ export class CvService {
 
       // get file name
       // const fileName = `${cv.code}.pdf`;
-      const fileName = file.originalname;
+      const fileName = Buffer.from(file.originalname, 'latin1').toString('utf8');
       const filePath = `cv/applicant-${cv.applicantId}`;
       const uploadDir = path.join(process.cwd(), `uploads/${filePath}`);
       if (!fs.existsSync(uploadDir)) {

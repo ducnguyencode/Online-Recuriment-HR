@@ -113,8 +113,9 @@ export class VacancyListComponent implements OnInit {
     return this.auth.isSuperadmin();
   }
 
+  /** Per spec: only CLOSED is permanently locked. SUSPENDED → can be reopened. */
   isClosedOrSuspended(v: Vacancy): boolean {
-    return [VacancyStatus.CLOSED, VacancyStatus.SUSPENDED].includes(v.status);
+    return v.status === VacancyStatus.CLOSED;
   }
 
   canEdit(v: Vacancy): boolean {
@@ -133,7 +134,7 @@ export class VacancyListComponent implements OnInit {
 
   editTitle(v: Vacancy): string {
     if (this.isClosedOrSuspended(v))
-      return 'Cannot edit a closed or suspended vacancy';
+      return 'Cannot edit a closed vacancy';
     if (!this.isOwner(v)) return 'Only the vacancy owner can edit';
     return 'Edit vacancy';
   }

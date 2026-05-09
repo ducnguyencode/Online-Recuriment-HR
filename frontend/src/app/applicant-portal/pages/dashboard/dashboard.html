@@ -108,7 +108,8 @@
       <div class="w-full sm:w-auto mt-2 sm:mt-0">
         @if (interview.meetLink && interview.status === 'Scheduled') {
         <a [href]="interview.meetLink" target="_blank"
-          class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all shadow-md w-full sm:w-auto">
+          class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-sm font-bold rounded-xl transition-all shadow-md w-full sm:w-auto"
+          style="color: #ffffff;">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
           </svg>

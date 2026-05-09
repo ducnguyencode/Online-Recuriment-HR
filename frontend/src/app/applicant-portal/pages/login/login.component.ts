@@ -19,12 +19,14 @@ export class LoginComponent implements OnInit {
 
   // Expose enum to HTML template
   UserRoleLogin = UserRoleLogin;
+  currentYear = new Date().getFullYear();
 
   selectedRole: UserRoleLogin = UserRoleLogin.APPLICANT;
   form = { email: '', password: '' };
   formError = '';
   successMessage = '';
   isLoading = false;
+  showPassword = false;
 
   // --- BIẾN CHO LUỒNG 2FA ---
   currentStep: 'LOGIN' | 'SETUP_2FA' | 'VERIFY_2FA' = 'LOGIN';
@@ -96,6 +98,10 @@ export class LoginComponent implements OnInit {
         this.isLoading = false;
       },
     });
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
 
   // --- HÀM XÁC THỰC MÃ 6 SỐ CỦA HR ---

@@ -1,6 +1,6 @@
 import { Component, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -13,6 +13,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class ApplicantLayoutComponent {
   protected auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   isLoggedIn = this.auth.isLoggedIn;
   userName = () => this.auth.currentUser()?.fullName || 'Applicant';
@@ -31,6 +32,20 @@ export class ApplicantLayoutComponent {
     if (!target.closest('.user-dropdown-wrapper')) {
       this.isDropdownOpen.set(false);
     }
+  }
+
+  // Ẩn navbar cho forgot-password HR để full màn hình như /hr/login
+  get isHrForgotPassword(): boolean {
+    const child = this.route.firstChild;
+    if (!child) return false;
+    const scope = child.snapshot.queryParamMap.get('scope');
+    return scope === 'hr';
+  }
+
+  // Đang ở trang auth (login / register / forgot-password) → hiện nút Back to Careers thay vì Sign In
+  get isAuthPage(): boolean {
+    const url = this.router.url;
+    return url.startsWith('/login') || url.startsWith('/register') || url.startsWith('/forgot-password');
   }
 
   logout() {
