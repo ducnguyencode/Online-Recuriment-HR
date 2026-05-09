@@ -155,6 +155,7 @@ export class ApplicantService {
 
         currentUser.email = data.email;
         currentUser.fullName = data.fullName;
+        currentUser.phone = data.phone;
 
         try {
           return await manager.save(currentUser);

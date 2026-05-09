@@ -7,7 +7,7 @@ export class ApplicantUpdateDto {
   @IsEmail({}, { message: 'Email must be a valid email address' })
   email!: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'Phone number should not be empty' })
   @Length(10, 10)
   phone!: string;
 }
