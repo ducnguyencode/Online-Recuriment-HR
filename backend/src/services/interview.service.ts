@@ -463,9 +463,11 @@ export class InterviewService {
       where: whereCondition,
       relations: [
         'application',
+        'application.cv',
         'application.applicant',
         'application.applicant.user',
         'application.vacancy',
+        'application.vacancy.department',
         'panels',
         'panels.employee',
         'panels.employee.user',
@@ -488,9 +490,11 @@ export class InterviewService {
       where: { id },
       relations: [
         'application',
+        'application.cv',
         'application.applicant',
         'application.applicant.user',
         'application.vacancy',
+        'application.vacancy.department',
         'panels',
         'panels.employee',
         'panels.employee.user',

@@ -126,14 +126,29 @@ export class InterviewListComponent implements OnInit {
     };
     const datePart = r.startTime ? new Date(r.startTime).toISOString().split('T')[0] : '';
     const app = r.application || {};
-    // const applicant = app.applicant || {};
-    // const vacancy = app.vacancy || {};
+    const applicant = app.applicant || {};
+    const vacancy = app.vacancy || {};
+    const user = applicant.user || {};
 
+    console.log('Test Vacancy Data:', vacancy);
     return {
       id: String(r.id),
       applicationId: String(r.applicationId),
-      application: application as any,
-      title: r.title ?? 'Interview with ${r.applicantName}',
+      application: {
+        ...app,
+        applicant: {
+          fullName: user.fullName || 'N/A',
+          email: user.email || 'N/A',
+          cvUrl: app.cv?.fileUrl || ''
+        },
+        vacancy: {
+          title: vacancy.title || 'N/A',
+          departmentName: vacancy.department?.name || 'N/A',
+          description: vacancy.description || '',
+          requirements: vacancy.requirements || ''
+        }
+      } as any,
+      title: r.title ?? `Interview with ${user.fullName || 'Candidate'}`,
       description: r.description ?? '',
       googleMeetLink: r.googleMeetLink ?? r.meetLink,
       interviewDate: datePart,
