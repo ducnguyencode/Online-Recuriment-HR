@@ -41,7 +41,7 @@ export class Application {
   @Column()
   vacancyId!: number;
 
-  @ManyToOne(() => CV, (c) => c.id, { onDelete: 'SET NULL' })
+  @ManyToOne(() => CV, (c) => c.applications, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'cvId' })
   cv!: CV | null;
 

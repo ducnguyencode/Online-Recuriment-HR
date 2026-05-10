@@ -10,10 +10,11 @@ import { CvCreateDto } from 'src/dto/cv.create.dto';
 import { CV } from 'src/entities/cv.entity';
 import { Repository } from 'typeorm';
 import fs from 'fs';
+import { AiResponseDto } from 'src/dto/ai.response.dto';
 
 @Injectable()
 export class CvService {
-  constructor(@InjectRepository(CV) private cvsTable: Repository<CV>) { }
+  constructor(@InjectRepository(CV) private cvsTable: Repository<CV>) {}
 
   findAll(): Promise<CV[]> {
     return this.cvsTable.find();
@@ -52,7 +53,9 @@ export class CvService {
 
       // get file name
       // const fileName = `${cv.code}.pdf`;
-      const fileName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      const fileName = Buffer.from(file.originalname, 'latin1').toString(
+        'utf8',
+      );
       const filePath = `cv/applicant-${cv.applicantId}`;
       const uploadDir = path.join(process.cwd(), `uploads/${filePath}`);
       if (!fs.existsSync(uploadDir)) {
@@ -77,25 +80,40 @@ export class CvService {
   }
 
   async delete(id: number) {
-    return this.cvsTable.manager.transaction(async (manager) => {
-      const existing = await manager.findOne(CV, { where: { id } });
+    await this.cvsTable.manager.transaction(async (manager) => {
+      const existing = await manager.findOne(CV, {
+        where: { id },
+        relations: ['applications'],
+      });
+
       if (!existing) {
         throw new NotFoundException('CV not found');
       }
 
       const filePath = path.join(process.cwd(), 'uploads', existing.fileUrl);
 
-      await manager.delete(CV, { id });
+      // reset aiPreview before deleting CV
+      if (existing.applications?.length) {
+        existing.applications.forEach((application) => {
+          application.aiPreview = new AiResponseDto();
+        });
 
-      try {
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      } catch (err) {
-        console.error('Fail to delete file: ', err);
+        await manager.save(existing.applications);
       }
 
-      return 'Delete success';
+      // delete CV
+      await manager.delete(CV, { id });
+
+      // delete file
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (err: any) {
+        if (err.code !== 'ENOENT') {
+          console.error('Fail to delete file:', err);
+        }
+      }
     });
+
+    return 'Delete success';
   }
 }

@@ -4,10 +4,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Applicant } from './applicant.entity';
 import { Exclude } from 'class-transformer';
+import { Application } from './application.entity';
 
 @Entity('cvs')
 export class CV {
@@ -24,6 +26,9 @@ export class CV {
   @ManyToOne(() => Applicant, (a) => a.id)
   @JoinColumn({ name: 'applicantId' })
   applicant!: Applicant;
+
+  @OneToMany(() => Application, (a) => a.cv)
+  applications!: Application[];
 
   @Column()
   applicantId!: number;
