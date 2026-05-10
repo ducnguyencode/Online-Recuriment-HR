@@ -239,6 +239,28 @@
   font-weight: 500;
 }
 
+.card-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--shell-border);
+
+  .pagination-info {
+    font-size: 12px;
+    color: var(--shell-text-soft);
+    font-weight: 500;
+    min-width: 40px;
+    text-align: center;
+  }
+
+  button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
 .mt-6 {
   margin-top: 20px;
 }

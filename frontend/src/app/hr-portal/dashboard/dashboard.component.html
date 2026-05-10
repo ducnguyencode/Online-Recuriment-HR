@@ -112,7 +112,7 @@
         <a class="view-all-link" routerLink="/hr-portal/interviews">View All →</a>
       </div>
       <div class="interview-list">
-        @for (item of upcomingInterviews(); track item.application) {
+        @for (item of pagedInterviews(); track item.id) {
         <div class="interview-item">
           <div class="interview-left-bar"></div>
           <div class="interview-info">
@@ -145,6 +145,18 @@
         </div>
         }
       </div>
+      <!-- Pagination -->
+      @if (interviewTotalPages() > 1) {
+      <div class="card-pagination">
+        <button class="btn-ghost btn-sm" [disabled]="interviewPage() === 1" (click)="prevInterviewPage()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="pagination-info">{{ interviewPage() }} / {{ interviewTotalPages() }}</span>
+        <button class="btn-ghost btn-sm" [disabled]="interviewPage() === interviewTotalPages()" (click)="nextInterviewPage()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      }
     </div>
 
     <!-- Right: Recent Applications -->
@@ -161,7 +173,7 @@
         <a class="view-all-link" routerLink="/hr-portal/applications">View All →</a>
       </div>
       <div class="application-list">
-        @for (app of recentApplications(); track app.applicant) {
+        @for (app of pagedApplications(); track app.id) {
         <div class="application-item">
           <div class="application-avatar">
             {{ app.applicant!.user!.fullName.charAt(0) }}
@@ -183,6 +195,18 @@
         </div>
         }
       </div>
+      <!-- Pagination -->
+      @if (applicationTotalPages() > 1) {
+      <div class="card-pagination">
+        <button class="btn-ghost btn-sm" [disabled]="applicationPage() === 1" (click)="prevApplicationPage()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="pagination-info">{{ applicationPage() }} / {{ applicationTotalPages() }}</span>
+        <button class="btn-ghost btn-sm" [disabled]="applicationPage() === applicationTotalPages()" (click)="nextApplicationPage()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      }
     </div>
   </div>
 
@@ -242,7 +266,7 @@
           </svg>
         </div>
       </div>
-      <div class="stat-value">3</div>
+      <div class="stat-value">{{ interviewerStats().upcomingInterviews }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-header">
@@ -255,7 +279,7 @@
           </svg>
         </div>
       </div>
-      <div class="stat-value">8</div>
+      <div class="stat-value">{{ interviewerStats().passedVotes }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-header">
@@ -269,7 +293,7 @@
           </svg>
         </div>
       </div>
-      <div class="stat-value">2</div>
+      <div class="stat-value">{{ interviewerStats().failedVotes }}</div>
     </div>
   </div>
 
@@ -278,22 +302,50 @@
       <h3 class="card-title">My Interview Schedule</h3>
     </div>
     <div class="interview-list">
-      @for (item of upcomingInterviews(); track item.application) {
+      @for (item of pagedInterviews(); track item.id) {
       <div class="interview-item">
         <div class="interview-left-bar"></div>
         <div class="interview-info">
           <p class="interview-applicant">{{ item.application?.applicant?.user?.fullName }}</p>
           <p class="interview-vacancy">{{ item.application?.vacancy?.title }}</p>
           <div class="interview-meta">
-            <span class="meta-item">📅 {{ item.startTime | date: 'dd/MM/yyyy' }}</span>
-            <span class="meta-item">🕐 {{ item.startTime | date: 'hh:mm' }} - {{ item.endTime | date: 'hh:mm' }}</span>
-            <span class="meta-item">📹 {{ item.meetPlatform }}</span>
+            <span class="meta-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <rect width="18" height="18" x="3" y="4" rx="2" />
+                <path d="M16 2v4" />
+                <path d="M8 2v4" />
+                <path d="M3 10h18" />
+              </svg>
+              {{ item.startTime | date: 'dd/MM/yyyy' }}
+            </span>
+            <span class="meta-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              {{ item.startTime | date: 'hh:mm' }} - {{ item.endTime | date: 'hh:mm' }}
+            </span>
+            <span class="meta-item">{{ item.meetPlatform }}</span>
           </div>
         </div>
         <button class="btn-primary btn-sm">Join</button>
       </div>
       }
     </div>
+    <!-- Pagination -->
+    @if (interviewTotalPages() > 1) {
+    <div class="card-pagination">
+      <button class="btn-ghost btn-sm" [disabled]="interviewPage() === 1" (click)="prevInterviewPage()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="pagination-info">{{ interviewPage() }} / {{ interviewTotalPages() }}</span>
+      <button class="btn-ghost btn-sm" [disabled]="interviewPage() === interviewTotalPages()" (click)="nextInterviewPage()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+    }
   </div>
   }
 </div>

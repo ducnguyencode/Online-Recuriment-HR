@@ -13,6 +13,7 @@ import {
 import { ApplicationService } from '../../core/services/application.service';
 import {
   DashboardService,
+  InterviewerOverviewDto,
   OverviewDto,
 } from '../../core/services/dasboard.service';
 import { InterviewService } from '../../core/services/interview.service';
@@ -39,9 +40,40 @@ export class DashboardComponent implements OnInit {
     interviewToday: 0,
   });
 
+  // Interviewer stats (loaded from backend)
+  interviewerStats = signal<InterviewerOverviewDto>({
+    upcomingInterviews: 0,
+    passedVotes: 0,
+    failedVotes: 0,
+  });
+
   recentVacancies = signal<Vacancy[]>([]);
   upcomingInterviews = signal<Interview[]>([]);
   recentApplications = signal<Application[]>([]);
+
+  // Pagination for Upcoming Interviews
+  interviewPage = signal(1);
+  readonly interviewPageSize = 5;
+  readonly pagedInterviews = computed(() => {
+    const all = this.upcomingInterviews();
+    const start = (this.interviewPage() - 1) * this.interviewPageSize;
+    return all.slice(start, start + this.interviewPageSize);
+  });
+  readonly interviewTotalPages = computed(() =>
+    Math.ceil(this.upcomingInterviews().length / this.interviewPageSize) || 1,
+  );
+
+  // Pagination for Recent Applications
+  applicationPage = signal(1);
+  readonly applicationPageSize = 5;
+  readonly pagedApplications = computed(() => {
+    const all = this.recentApplications();
+    const start = (this.applicationPage() - 1) * this.applicationPageSize;
+    return all.slice(start, start + this.applicationPageSize);
+  });
+  readonly applicationTotalPages = computed(() =>
+    Math.ceil(this.recentApplications().length / this.applicationPageSize) || 1,
+  );
 
   constructor(
     private auth: AuthService,
@@ -53,7 +85,14 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // Load data from MockDataService
+    if (this.isHR() || this.isSuperadmin()) {
+      this.loadHRDashboard();
+    } else {
+      this.loadInterviewerDashboard();
+    }
+  }
+
+  private loadHRDashboard() {
     this.dashboardService.activityOverview().subscribe({
       next: (res) => {
         this.stats.set(res.data);
@@ -73,37 +112,56 @@ export class DashboardComponent implements OnInit {
       next: (res) => {
         this.recentVacancies.set(res.data.items as Vacancy[]);
       },
-      error: (err) => {
-        // const vacs = this.mockData.getVacancies();
-        // this.recentVacancies.set(
-        //   vacs.slice(0, 5).map((v) => ({
-        //     id: v.id,
-        //     title: v.title,
-        //     department: v.department?.name || '',
-        //     filledCount: v.filledCount,
-        //     openings: v.numberOfOpenings,
-        //     status: v.status,
-        //   })),
-        // );
-      },
+      error: (err) => {},
     });
 
-    this.applicationService.getAll({ limit: 4 }).subscribe({
+    this.applicationService.getAll({ limit: 20 }).subscribe({
       next: (res) => {
         this.recentApplications.set(res.data.items as Application[]);
       },
-      error: (error) => {
-        // const apps = this.mockData.getApplications();
-        // this.recentApplications.set(
-        //   apps.slice(0, 4).map((a) => ({
-        //     applicant: a.applicant?.fullName || '',
-        //     vacancy: a.vacancy?.title || '',
-        //     status: a.status,
-        //     time: this.timeAgo(a.createdAt || ''),
-        //   })),
-        // );
-      },
+      error: (error) => {},
     });
+  }
+
+  private loadInterviewerDashboard() {
+    // Load real interviewer stats from backend
+    this.dashboardService.interviewerOverview().subscribe({
+      next: (res) => {
+        this.interviewerStats.set(res.data);
+      },
+      error: () => {},
+    });
+
+    // Load upcoming interviews for the interviewer
+    this.interviewService
+      .getAll({ status: InterviewStatus.SCHEDULED })
+      .subscribe({
+        next: (res) => {
+          this.upcomingInterviews.set(res.data.items);
+        },
+      });
+  }
+
+  // Pagination controls
+  prevInterviewPage() {
+    if (this.interviewPage() > 1) {
+      this.interviewPage.update((p) => p - 1);
+    }
+  }
+  nextInterviewPage() {
+    if (this.interviewPage() < this.interviewTotalPages()) {
+      this.interviewPage.update((p) => p + 1);
+    }
+  }
+  prevApplicationPage() {
+    if (this.applicationPage() > 1) {
+      this.applicationPage.update((p) => p - 1);
+    }
+  }
+  nextApplicationPage() {
+    if (this.applicationPage() < this.applicationTotalPages()) {
+      this.applicationPage.update((p) => p + 1);
+    }
   }
 
   getStatusClass(status: string): string {

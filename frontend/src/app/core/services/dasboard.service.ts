@@ -15,6 +15,12 @@ export interface OverviewDto {
   applicantsHiredLastMonth: number;
 }
 
+export interface InterviewerOverviewDto {
+  upcomingInterviews: number;
+  passedVotes: number;
+  failedVotes: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private readonly base = `${environment.apiUrl}/dashboard`;
@@ -24,6 +30,12 @@ export class DashboardService {
   activityOverview(): Observable<ApiResponse<OverviewDto>> {
     return this.http.get<ApiResponse<OverviewDto>>(
       `${this.base}/activity-overview`,
+    );
+  }
+
+  interviewerOverview(): Observable<ApiResponse<InterviewerOverviewDto>> {
+    return this.http.get<ApiResponse<InterviewerOverviewDto>>(
+      `${this.base}/interviewer-overview`,
     );
   }
 }
