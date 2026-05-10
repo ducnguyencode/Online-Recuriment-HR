@@ -5,7 +5,7 @@ import { Vacancy } from 'src/entities/vacancy.entity';
 import { Between, MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { OverviewDto } from 'src/dto/dashboard/overview.dto';
 import { Application } from 'src/entities/application.entity';
-import { ApplicationStatus } from 'src/common/enum';
+import { ApplicationStatus, InterviewStatus } from 'src/common/enum';
 import { Interview } from 'src/entities/interview.entity';
 import { InterviewerPanel } from 'src/entities/interviewer-panel.entity';
 import { Employee } from 'src/entities/employee.entity';
@@ -49,7 +49,10 @@ export class DashboardService {
     });
 
     const interviewToday = await this.interviewTable.count({
-      where: { startTime: Between(today.start, today.end) },
+      where: {
+        startTime: Between(today.start, today.end),
+        status: InterviewStatus.SCHEDULED,
+      },
     });
 
     const applicationsThisMonth = await this.applicationTable.count({
