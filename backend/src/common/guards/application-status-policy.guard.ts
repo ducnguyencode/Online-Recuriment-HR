@@ -17,26 +17,21 @@ import { ApplicationStatusAccessOptions } from '../decorator/application-status-
 const APPLICATION_STATUS_TRANSITIONS_BY_ROLE: Partial<
   Record<UserRole, Partial<Record<ApplicationStatus, ApplicationStatus[]>>>
 > = {
-  [UserRole.SUPER_ADMIN]: {},
+  [UserRole.SUPER_ADMIN]: {
+    [ApplicationStatus.PENDING_REVIEW]: [
+      ApplicationStatus.SELECTED,
+      ApplicationStatus.REJECTED,
+    ],
+  },
 
   [UserRole.HR]: {
     [ApplicationStatus.PENDING]: [
       ApplicationStatus.INTERVIEW_SCHEDULED,
       ApplicationStatus.NOT_REQUIRED,
     ],
-    [ApplicationStatus.INTERVIEW_SCHEDULED]: [
-      ApplicationStatus.SELECTED,
-      ApplicationStatus.REJECTED,
-      ApplicationStatus.NOT_REQUIRED,
-    ],
   },
 
-  [UserRole.INTERVIEWER]: {
-    [ApplicationStatus.INTERVIEW_SCHEDULED]: [
-      ApplicationStatus.SELECTED,
-      ApplicationStatus.REJECTED,
-    ],
-  },
+  [UserRole.INTERVIEWER]: {},
 };
 
 @Injectable()
@@ -61,11 +56,6 @@ export class ApplicationStatusPolicyGuard implements CanActivate {
       ) || {};
 
     const { allowSameStatus = false } = config;
-
-    //Super Admin
-    if (user.role == UserRole.SUPER_ADMIN) {
-      return true;
-    }
 
     const entity = await this.applicationTable.findOne({ where: { id } });
 

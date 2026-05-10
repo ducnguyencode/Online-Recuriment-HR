@@ -42,11 +42,34 @@ export class ApplicantService {
       .leftJoin('applicant.user', 'user')
       .where('user.role = :role', { role: UserRole.APPLICANT });
 
+    // Vietnamese uppercase diacritics that PostgreSQL LOWER() cannot handle
+    const vnUpper = 'ĐẮẰẲẴẶẤẦẨẪẬẾỀỂỄỆỐỒỔỖỘỚỜỞỠỢỨỪỬỮỰỸỲỶỴ';
+    const vnLower = 'đắằẳẵặấầẩẫậếềểễệốồổỗộớờởỡợứừửữựỹỳỷỵ';
+    const vnLowerSql = (col: string) =>
+      `translate(LOWER(${col}), '${vnUpper}', '${vnLower}')`;
+
     if (search) {
+      // Detect if search contains Vietnamese diacritics
+      const hasVnDiacritics =
+        /[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/i.test(
+          search,
+        );
+
       baseQb.andWhere(
         new Brackets((qb) => {
-          qb.where('user.fullName ILIKE :search').orWhere(
-            'user.email ILIKE :search',
+          if (hasVnDiacritics) {
+            // Precise: user typed diacritics → match exact Vietnamese
+            qb.where(
+              `${vnLowerSql('user.fullName')} ILIKE ${vnLowerSql(':search')}`,
+            );
+          } else {
+            // Fuzzy: no diacritics → use unaccent to match both "Duc" and "Đức"
+            qb.where(
+              `unaccent(LOWER(user.fullName)) ILIKE unaccent(LOWER(:search))`,
+            );
+          }
+          qb.orWhere('user.email ILIKE :search').orWhere(
+            'user.phone ILIKE :search',
           );
         }),
         { search: `%${search}%` },
@@ -108,7 +131,7 @@ export class ApplicantService {
     };
   }
 
-  async changeStatus(id: number, status: ApplicantStatus) {
+  async changeStatus(id: number, status: ApplicantStatus, role?: UserRole) {
     const applicant = await this.applicantsTable.findOne({
       where: { id },
       relations: ['user'],
@@ -119,10 +142,11 @@ export class ApplicantService {
     }
     if (
       applicant.status == ApplicantStatus.HIRED &&
-      status != ApplicantStatus.HIRED
+      status != ApplicantStatus.HIRED &&
+      role !== UserRole.SUPER_ADMIN
     ) {
       throw new BadRequestException(
-        'Applicant already hired, cannot change status',
+        'Applicant already hired. Only Super Admin can change this status.',
       );
     }
 
@@ -143,6 +167,32 @@ export class ApplicantService {
     }
 
     return this.applicantsTable.save(applicant);
+  }
+
+  async updateByHR(
+    applicantId: number,
+    data: { fullName?: string; phone?: string },
+  ) {
+    const applicant = await this.applicantsTable.findOne({
+      where: { id: applicantId },
+      relations: ['user'],
+    });
+    if (!applicant) {
+      throw new NotFoundException('Applicant not found');
+    }
+    if (!applicant.user) {
+      throw new NotFoundException('Applicant user account not found');
+    }
+
+    if (data.fullName?.trim()) {
+      applicant.user.fullName = data.fullName.trim();
+    }
+    if (data.phone?.trim()) {
+      applicant.user.phone = data.phone.trim();
+    }
+
+    await this.usersTable.save(applicant.user);
+    return applicant;
   }
 
   async updateAccount(data: ApplicantUpdateDto, safeUser: SafeUserDto) {

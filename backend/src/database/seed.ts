@@ -1,5 +1,10 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserRole, VacancyStatus, ApplicationStatus } from 'src/common/enum';
+import {
+	ApplicationStatus,
+	ApplicantStatus,
+	UserRole,
+	VacancyStatus,
+} from 'src/common/enum';
 import { Department } from 'src/entities/department.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -312,6 +317,21 @@ export class Seed {
 		const allVacancies = await this.vacancyTable.find({
 			order: { id: 'ASC' },
 		});
+		const currentSelectedCounts = await this.applicationTable
+			.createQueryBuilder('application')
+			.select('application.vacancyId', 'vacancyId')
+			.addSelect('COUNT(*)', 'count')
+			.where('application.status = :status', {
+				status: ApplicationStatus.SELECTED,
+			})
+			.groupBy('application.vacancyId')
+			.getRawMany<{ vacancyId: number; count: string }>();
+		const selectedByVacancy = new Map(
+			currentSelectedCounts.map((item) => [
+				Number(item.vacancyId),
+				Number(item.count),
+			]),
+		);
 
 		const applicantList = allUsers.filter((u) => u.applicant != null);
 		const statuses: ApplicationStatus[] = [
@@ -322,9 +342,10 @@ export class Seed {
 			ApplicationStatus.PENDING,
 			ApplicationStatus.INTERVIEW_SCHEDULED,
 			ApplicationStatus.INTERVIEW_SCHEDULED,
+			ApplicationStatus.PENDING_REVIEW,
 			ApplicationStatus.SELECTED,
 			ApplicationStatus.REJECTED,
-			ApplicationStatus.ACCEPTED,
+			ApplicationStatus.NOT_REQUIRED,
 		];
 
 		let created = 0;
@@ -346,10 +367,19 @@ export class Seed {
 				});
 
 				if (!exists) {
+					let status = this.pickRandom(statuses);
+					if (status === ApplicationStatus.SELECTED) {
+						const selectedCount = selectedByVacancy.get(vacancy.id) ?? 0;
+						if (selectedCount >= vacancy.numberOfOpenings) {
+							status = ApplicationStatus.PENDING_REVIEW;
+						} else {
+							selectedByVacancy.set(vacancy.id, selectedCount + 1);
+						}
+					}
 					const app = this.applicationTable.create({
 						applicantId: user.applicant!.id,
 						vacancyId: vacancy.id,
-						status: this.pickRandom(statuses),
+						status,
 						hrNotes: '',
 					});
 					await this.applicationTable.save(app);
@@ -365,7 +395,71 @@ export class Seed {
 			);
 		`);
 
+		await this.syncApplicationDerivedState();
+
 		console.log(`✅ Applications: ${created} created`);
+	}
+
+	private async syncApplicationDerivedState() {
+		const vacancyCounts = await this.applicationTable
+			.createQueryBuilder('application')
+			.select('application.vacancyId', 'vacancyId')
+			.addSelect('COUNT(*)', 'count')
+			.where('application.status = :status', {
+				status: ApplicationStatus.SELECTED,
+			})
+			.groupBy('application.vacancyId')
+			.getRawMany<{ vacancyId: number; count: string }>();
+		const countsByVacancy = new Map(
+			vacancyCounts.map((item) => [
+				Number(item.vacancyId),
+				Number(item.count),
+			]),
+		);
+
+		const vacancies = await this.vacancyTable.find();
+		for (const vacancy of vacancies) {
+			vacancy.filledCount = countsByVacancy.get(vacancy.id) ?? 0;
+			if (vacancy.filledCount >= vacancy.numberOfOpenings) {
+				vacancy.status = VacancyStatus.CLOSED;
+			}
+			await this.vacancyTable.save(vacancy);
+		}
+
+		const activeApplications = await this.applicationTable
+			.createQueryBuilder('application')
+			.select('DISTINCT application.applicantId', 'applicantId')
+			.getRawMany<{ applicantId: number }>();
+		const activeApplicantIds = activeApplications.map((item) =>
+			Number(item.applicantId),
+		);
+		if (activeApplicantIds.length) {
+			await this.applicationTable.manager
+				.createQueryBuilder()
+				.update(Applicant)
+				.set({ status: ApplicantStatus.IN_PROCESS })
+				.where('id IN (:...ids)', { ids: activeApplicantIds })
+				.execute();
+		}
+
+		const selectedApplications = await this.applicationTable
+			.createQueryBuilder('application')
+			.select('DISTINCT application.applicantId', 'applicantId')
+			.where('application.status = :status', {
+				status: ApplicationStatus.SELECTED,
+			})
+			.getRawMany<{ applicantId: number }>();
+		const selectedApplicantIds = selectedApplications.map((item) =>
+			Number(item.applicantId),
+		);
+		if (selectedApplicantIds.length) {
+			await this.applicationTable.manager
+				.createQueryBuilder()
+				.update(Applicant)
+				.set({ status: ApplicantStatus.HIRED })
+				.where('id IN (:...ids)', { ids: selectedApplicantIds })
+				.execute();
+		}
 	}
 
 	async runSeed() {

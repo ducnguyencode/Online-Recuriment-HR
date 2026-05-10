@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -45,7 +45,11 @@ import { EmployeeService } from '../../core/services/employee.service';
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Email</label>
-              <input class="form-input" [(ngModel)]="detailForm.email" />
+              <input
+                class="form-input readonly-input"
+                [ngModel]="detailForm.email"
+                disabled
+              />
             </div>
             <div class="form-group">
               <label class="form-label">Role</label>
@@ -60,16 +64,16 @@ import { EmployeeService } from '../../core/services/employee.service';
             <div class="form-group">
               <label class="form-label">Employee ID</label>
               <input
-                class="form-input"
-                [ngModel]="auth.currentUser()?.employeeId || '—'"
+                class="form-input readonly-input"
+                [ngModel]="employeeDisplayId()"
                 disabled
               />
             </div>
             <div class="form-group">
               <label class="form-label">Applicant ID</label>
               <input
-                class="form-input"
-                [ngModel]="auth.currentUser()?.applicantId || '—'"
+                class="form-input readonly-input"
+                [ngModel]="applicantDisplayId()"
                 disabled
               />
             </div>
@@ -193,6 +197,11 @@ import { EmployeeService } from '../../core/services/employee.service';
         color: var(--shell-danger);
         font-size: 12px;
       }
+      .readonly-input:disabled {
+        background: var(--shell-surface-soft);
+        color: var(--shell-text);
+        cursor: not-allowed;
+      }
       @media (max-width: 900px) {
         .profile-grid {
           grid-template-columns: 1fr;
@@ -201,7 +210,7 @@ import { EmployeeService } from '../../core/services/employee.service';
     `,
   ],
 })
-export class ProfileComponent {
+export class ProfileComponent implements OnInit {
   detailMessage = signal('');
   passwordMessage = signal('');
   passwordError = signal('');
@@ -227,6 +236,20 @@ export class ProfileComponent {
     };
   }
 
+  ngOnInit() {
+    this.auth.refreshMe()?.subscribe({
+      next: () => this.syncDetailForm(),
+      error: () => {},
+    });
+  }
+
+  private syncDetailForm() {
+    this.detailForm = {
+      fullName: this.auth.currentUser()?.fullName ?? '',
+      email: this.auth.currentUser()?.email ?? '',
+    };
+  }
+
   initials() {
     return (
       this.auth
@@ -243,7 +266,6 @@ export class ProfileComponent {
     this.employeeService
       .updateAccount({
         fullName: this.detailForm.fullName,
-        email: this.detailForm.email,
       })
       .subscribe({
         next: (res) => {
@@ -255,6 +277,24 @@ export class ProfileComponent {
         },
       });
     setTimeout(() => this.detailMessage.set(''), 2500);
+  }
+
+  employeeDisplayId(): string {
+    const user = this.auth.currentUser() as any;
+    return user?.employeeCode ?? this.formatCode('E', user?.employeeId);
+  }
+
+  applicantDisplayId(): string {
+    const user = this.auth.currentUser() as any;
+    return user?.applicantCode ?? this.formatCode('A', user?.applicantId);
+  }
+
+  private formatCode(prefix: string, value: unknown): string {
+    if (value === null || value === undefined || value === '') return '—';
+    const text = String(value);
+    if (text.startsWith(prefix)) return text;
+    if (!/^\d+$/.test(text)) return text;
+    return `${prefix}${text.padStart(4, '0')}`;
   }
 
   changePassword() {

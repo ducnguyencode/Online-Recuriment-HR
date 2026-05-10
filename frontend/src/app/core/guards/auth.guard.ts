@@ -70,7 +70,7 @@ export const authApplicantGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  // Cho phép nếu đã đăng nhập và đúng là Ứng viên
+  // Allow access only for signed-in applicant users.
   if (auth.isLoggedIn() && auth.isApplicant()) {
     return true;
   }

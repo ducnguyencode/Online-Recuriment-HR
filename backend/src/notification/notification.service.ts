@@ -11,6 +11,22 @@ export class NotificationsService {
     private readonly notifRepo: Repository<InAppNotification>,
   ) {}
 
+  private normalizeNotification<T extends InAppNotification>(item: T): T {
+    const submittedCvMatch = item.message?.match(
+      new RegExp(
+        '^\\u1EE8ng vi\\u00EAn (.+) v\\u1EEBa n\\u1ED9p CV v\\u00E0o v\\u1ECB tr\\u00ED (.+)\\.$',
+      ),
+    );
+    if (submittedCvMatch) {
+      return {
+        ...item,
+        message: `${submittedCvMatch[1]} submitted a CV for ${submittedCvMatch[2]}.`,
+      };
+    }
+
+    return item;
+  }
+
   // Save new notification to DB
   async create(data: any) {
     const newNotif = this.notifRepo.create({
@@ -35,7 +51,7 @@ export class NotificationsService {
       .skip((page - 1) * limit)
       .take(limit);
 
-    // Nếu Frontend có truyền isRead (true/false) thì lọc thêm
+    // Apply read/unread filtering when requested by the frontend.
     if (isRead !== undefined) {
       const isReadBool = isRead === 'true';
       query.andWhere('notif.isRead = :isRead', { isRead: isReadBool });
@@ -43,9 +59,8 @@ export class NotificationsService {
 
     const [items, total] = await query.getManyAndCount();
 
-    // Trả về format PaginatedResponse mà Frontend mong đợi
     return {
-      items,
+      items: items.map((item) => this.normalizeNotification(item)),
       total,
       page,
       limit,

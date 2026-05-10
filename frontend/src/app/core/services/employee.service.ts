@@ -64,7 +64,7 @@ export class EmployeeService {
     return this.getAll({ departmentId, role: 'Interviewer' });
   }
 
-  updateAccount(dto: { email: string; fullName: string }) {
+  updateAccount(dto: { email?: string; fullName: string }) {
     return this.http.put<UpdateAccountResponse>(
       `${this.base}/update-account`,
       dto,

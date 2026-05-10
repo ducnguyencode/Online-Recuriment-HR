@@ -33,6 +33,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   showMyActions = signal(true);
   currentPage = signal(1);
   readonly pageSize = 10;
+  activeTab = signal<'auth' | 'activity'>('activity');
   actionFilter = '';
   fromDate = '';
   toDate = '';
@@ -126,6 +127,11 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     this.currentPage.set(1);
   }
 
+  switchTab(tab: 'auth' | 'activity'): void {
+    this.activeTab.set(tab);
+    this.currentPage.set(1);
+  }
+
   private visibleLogs(): AuditLogItem[] {
     if (!this.isSuperAdmin || this.showMyActions()) {
       return this.logs();
@@ -143,15 +149,27 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     );
   }
 
+  private activityLogs(): AuditLogItem[] {
+    return this.visibleLogs().filter(
+      (item) => !AuditLogComponent.AUTH_ACTION_PATTERN.test(item.action),
+    );
+  }
+
+  private currentTabLogs(): AuditLogItem[] {
+    return this.activeTab() === 'auth'
+      ? this.authTimelineLogs()
+      : this.activityLogs();
+  }
+
   pagedLogs(): AuditLogItem[] {
     const page = this.currentPage();
     const start = (page - 1) * this.pageSize;
     const end = start + this.pageSize;
-    return this.authTimelineLogs().slice(start, end);
+    return this.currentTabLogs().slice(start, end);
   }
 
   totalPages(): number {
-    const total = this.authTimelineLogs().length;
+    const total = this.currentTabLogs().length;
     return total > 0 ? Math.ceil(total / this.pageSize) : 1;
   }
 
@@ -173,7 +191,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   }
 
   visibleLogsCount(): number {
-    return this.authTimelineLogs().length;
+    return this.currentTabLogs().length;
   }
 
   onPageChange(page: number): void {
@@ -195,17 +213,46 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   formatDetails(item: AuditLogItem): string {
     const payload = item.payload ?? {};
     const base = this.buildActionDetail(item.action, payload);
-    const ip = this.readTextField(payload, 'ipAddress');
-    const userAgent = this.readTextField(payload, 'userAgent');
-    const device = this.summarizeUserAgent(userAgent);
-    const context =
-      [
-        ip ? `IP: ${ip} (${this.classifyIp(ip)})` : '',
-        device ? `Device: ${device}` : '',
-      ]
-        .filter(Boolean)
-        .join(' | ') || '';
-    return [base, context].filter(Boolean).join(' | ') || '—';
+
+    // Only show IP/Device in Auth Timeline tab
+    if (this.activeTab() === 'auth') {
+      const ip = this.readTextField(payload, 'ipAddress');
+      const userAgent = this.readTextField(payload, 'userAgent');
+      const device = this.summarizeUserAgent(userAgent);
+      const context =
+        [
+          ip ? `IP: ${ip} (${this.classifyIp(ip)})` : '',
+          device ? `Device: ${device}` : '',
+        ]
+          .filter(Boolean)
+          .join(' | ') || '';
+      return [base, context].filter(Boolean).join(' | ') || '—';
+    }
+
+    return base || '—';
+  }
+
+  formatResource(item: AuditLogItem): string {
+    const action = item.action;
+    // Extract resource type from action (e.g., VACANCIES_CREATE → Vacancy)
+    const match = action.match(/^([A-Z_]+?)_(CREATE|UPDATE|PATCH|DELETE)$/i);
+    if (match) {
+      const resource = match[1]
+        .replace(/_/g, ' ')
+        .replace(/S$/i, '')
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+      const targetId = item.targetId;
+      return targetId ? `${resource} #${targetId}` : resource;
+    }
+
+    // For staff/role actions
+    if (action.startsWith('STAFF_') || action === 'ROLE_CHANGED') {
+      const targetId = item.targetId;
+      return targetId ? `User #${targetId}` : 'Staff';
+    }
+
+    return item.targetId ? `#${item.targetId}` : '—';
   }
 
   viewSession(item: AuditLogItem) {
@@ -328,6 +375,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     action: string,
     payload: Record<string, unknown>,
   ): string {
+    // --- Staff actions ---
     if (action === 'STAFF_UPDATE') {
       return this.describeStaffUpdate(payload);
     }
@@ -361,7 +409,72 @@ export class AuditLogComponent implements OnInit, OnDestroy {
         .filter(Boolean)
         .join(' | ');
     }
+
+    // --- Vacancy actions (route: 'vacancy') ---
+    if (action.startsWith('VACANCY_')) {
+      const verb = action.includes('CREATE') ? 'Created' : action.includes('DELETE') ? 'Deleted' : 'Updated';
+      return this.describeVacancyAction(payload, verb);
+    }
+
+    // --- Interview actions (route: 'interviews') ---
+    if (action.startsWith('INTERVIEWS_')) {
+      const verb = action.includes('CREATE') ? 'Scheduled' : 'Updated';
+      return this.describeInterviewAction(payload, verb);
+    }
+
+    // --- Application actions (route: 'application') ---
+    if (action.startsWith('APPLICATION_')) {
+      const verb = action.includes('CREATE') ? 'Created' : 'Updated';
+      return this.describeApplicationAction(payload, verb);
+    }
+
+    // --- Department actions (route: 'department') ---
+    if (action.startsWith('DEPARTMENT_')) {
+      const verb = action.includes('CREATE') ? 'Created' : action.includes('DELETE') ? 'Deleted' : 'Updated';
+      return this.describeDepartmentAction(payload, verb);
+    }
+
     return this.describeGenericPayload(payload);
+  }
+
+  private describeVacancyAction(payload: Record<string, unknown>, verb: string): string {
+    const body = this.readObjectField(payload, 'body') ?? payload;
+    const title = this.readTextField(body, 'title');
+    const status = this.readTextField(body, 'status');
+    const parts: string[] = [verb + ' vacancy'];
+    if (title) parts.push(`"${title}"`);
+    if (status) parts.push(`Status: ${status}`);
+    return parts.join(' · ');
+  }
+
+  private describeInterviewAction(payload: Record<string, unknown>, verb: string): string {
+    const body = this.readObjectField(payload, 'body') ?? payload;
+    const title = this.readTextField(body, 'title');
+    const vote = this.readTextField(body, 'vote');
+    const feedback = this.readTextField(body, 'feedback');
+    const status = this.readTextField(body, 'status');
+    const parts: string[] = [verb + ' interview'];
+    if (title) parts.push(`"${title}"`);
+    if (vote) parts.push(`Vote: ${vote}`);
+    if (feedback) parts.push(`Feedback: ${feedback.substring(0, 60)}${feedback.length > 60 ? '…' : ''}`);
+    if (status) parts.push(`Status: ${status}`);
+    return parts.join(' · ');
+  }
+
+  private describeApplicationAction(payload: Record<string, unknown>, verb: string): string {
+    const body = this.readObjectField(payload, 'body') ?? payload;
+    const status = this.readTextField(body, 'status');
+    const parts: string[] = [verb + ' application'];
+    if (status) parts.push(`Status → ${status}`);
+    return parts.join(' · ');
+  }
+
+  private describeDepartmentAction(payload: Record<string, unknown>, verb: string): string {
+    const body = this.readObjectField(payload, 'body') ?? payload;
+    const name = this.readTextField(body, 'name');
+    const parts: string[] = [verb + ' department'];
+    if (name) parts.push(`"${name}"`);
+    return parts.join(' · ');
   }
 
   private describeStaffCreate(payload: Record<string, unknown>): string {
@@ -402,15 +515,19 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   }
 
   private describeGenericPayload(payload: Record<string, unknown>): string {
-    const text = Object.entries(payload)
-      .filter(
-        ([key]) =>
-          key !== 'ipAddress' &&
-          key !== 'userAgent' &&
-          key !== 'actorFullName',
-      )
+    // Hide technical fields from interceptor — only show business data
+    const hiddenKeys = new Set([
+      'ipAddress', 'userAgent', 'actorFullName',
+      'method', 'path', 'params', 'query', 'body',
+    ]);
+
+    // Try to extract meaningful data from nested body
+    const body = this.readObjectField(payload, 'body');
+    const source = body ?? payload;
+    const text = Object.entries(source)
+      .filter(([key]) => !hiddenKeys.has(key))
       .map(([key, value]) => `${this.humanizeFieldName(key)}: ${this.formatUnknown(value)}`);
-    return text.join(' | ');
+    return text.length ? text.join(' · ') : '';
   }
 
   private readObjectField(

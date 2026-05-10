@@ -19,11 +19,11 @@ export class FavoriteJobService {
 
     constructor(private http: HttpClient) {}
 
-    /** HR: view all applicants who saved a vacancy but have not applied */
+    /** HR/Superadmin: view all applicants who saved a vacancy */
     getAll(vacancyId?: string, page = 1, limit = 10): Observable<ApiResponse<PaginatedResponse<FavoriteJob>>> {
         let params = new HttpParams().set('page', page.toString()).set('limit', limit.toString());
         if (vacancyId) params = params.set('vacancyId', vacancyId);
-        return this.http.get<ApiResponse<PaginatedResponse<FavoriteJob>>>(this.base, { params });
+        return this.http.get<ApiResponse<PaginatedResponse<FavoriteJob>>>(`${this.base}/admin`, { params });
     }
 
     /** Applicant: toggle save/unsave a vacancy */
