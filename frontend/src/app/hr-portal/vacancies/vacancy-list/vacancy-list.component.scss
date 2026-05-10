@@ -386,18 +386,44 @@
   color: var(--shell-text);
   min-height: 300px;
 
-  p { margin: 0 0 10px; }
-  h3 { margin: 14px 0 6px; font-size: 15px; font-weight: 600; color: var(--shell-text-strong); }
-  ul, ol { margin: 0 0 10px; padding-left: 22px; }
-  li { margin-bottom: 5px; }
-  strong, b { font-weight: 700; }
-  em, i { font-style: italic; }
-  u { text-decoration: underline; }
-
   &:empty::before {
     content: 'Enter the job description here...';
     color: var(--shell-text-soft);
   }
+}
+
+// Pierce Angular view encapsulation so dynamically inserted elements
+// (created via document.execCommand) get visible styling — Tailwind preflight
+// strips defaults from h1-h6, ul, ol, li.
+:host ::ng-deep .editor-content {
+  p { margin: 0 0 10px; }
+  h1 { margin: 18px 0 8px; font-size: 20px; font-weight: 700; color: var(--shell-text-strong); }
+  h2 { margin: 16px 0 7px; font-size: 17px; font-weight: 700; color: var(--shell-text-strong); }
+  h3 { margin: 14px 0 6px; font-size: 15px; font-weight: 600; color: var(--shell-text-strong); }
+  h4 { margin: 12px 0 6px; font-size: 14px; font-weight: 600; color: var(--shell-text-strong); }
+  ul { margin: 0 0 10px; padding-left: 22px; list-style: disc; }
+  ol { margin: 0 0 10px; padding-left: 22px; list-style: decimal; }
+  li { margin-bottom: 5px; display: list-item; }
+  blockquote { margin: 10px 0; padding: 8px 14px; border-left: 3px solid var(--shell-border); color: var(--shell-text-soft); }
+  strong, b { font-weight: 700; }
+  em, i { font-style: italic; }
+  u { text-decoration: underline; }
+}
+
+// Same fix for the rendered description in detail dialog
+:host ::ng-deep .description-html {
+  p { margin: 0 0 10px; }
+  h1 { margin: 18px 0 8px; font-size: 20px; font-weight: 700; color: var(--shell-text-strong); }
+  h2 { margin: 16px 0 7px; font-size: 17px; font-weight: 700; color: var(--shell-text-strong); }
+  h3 { margin: 14px 0 6px; font-size: 15px; font-weight: 600; color: var(--shell-text-strong); }
+  h4 { margin: 12px 0 6px; font-size: 14px; font-weight: 600; color: var(--shell-text-strong); }
+  ul { margin: 0 0 10px; padding-left: 22px; list-style: disc; }
+  ol { margin: 0 0 10px; padding-left: 22px; list-style: decimal; }
+  li { margin-bottom: 5px; display: list-item; }
+  blockquote { margin: 10px 0; padding: 8px 14px; border-left: 3px solid var(--shell-border); color: var(--shell-text-soft); }
+  strong, b { font-weight: 700; }
+  em, i { font-style: italic; }
+  u { text-decoration: underline; }
 }
 
 @keyframes slideInUp {

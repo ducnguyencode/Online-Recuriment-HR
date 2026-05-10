@@ -1,4 +1,12 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnInit,
+  ViewChild,
+  computed,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +18,6 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ApplicantService } from '../../core/services/applicant.service';
 import { ApplicationService } from '../../core/services/application.service';
 import { VacancyService } from '../../core/services/vacancy.service';
-import { UserAccount, UserRole } from '../../core/models';
 
 interface MenuMatch {
   label: string;
@@ -88,7 +95,7 @@ const MENU_INDEX: MenuMatch[] = [
                 (keydown.enter)="performHeaderSearch()"
                 (keydown.escape)="closeSearchResults()"
               />
-              <span class="search-kbd">/</span>
+              <span class="search-kbd" [title]="'Press ' + searchShortcutLabel + ' to focus search'">{{ searchShortcutLabel }}</span>
             </div>
 
             @if (showSearchResults()) {
@@ -260,7 +267,6 @@ const MENU_INDEX: MenuMatch[] = [
                       <span class="user-dropdown-email">{{ authService.currentUser()?.email }}</span>
                       <span class="user-dropdown-role">
                         {{ authService.currentUser()?.role }}
-                        <span class="dev-tag">DEV</span>
                       </span>
                     </div>
                   </div>
@@ -278,35 +284,6 @@ const MENU_INDEX: MenuMatch[] = [
                     </svg>
                     Profile
                   </a>
-
-                  <button class="user-dropdown-item" type="button" (click)="toggleRoleSubmenu()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                      <circle cx="9" cy="7" r="4"/>
-                      <path d="M22 11h-6"/>
-                      <path d="M19 8v6"/>
-                    </svg>
-                    Switch Role (DEV)
-                  </button>
-
-                  @if (showRoleSubmenu()) {
-                    <div class="user-dropdown-roles">
-                      @for (r of devRoles; track r.role) {
-                        <button
-                          class="user-dropdown-role-item"
-                          type="button"
-                          [class.active]="authService.currentUser()?.role === r.role"
-                          (click)="switchRole(r.role)"
-                        >
-                          <span class="role-dot">{{ r.label.charAt(0) }}</span>
-                          <span class="role-info">
-                            <span class="role-label">{{ r.label }}</span>
-                            <span class="role-email">{{ r.email }}</span>
-                          </span>
-                        </button>
-                      }
-                    </div>
-                  }
 
                   <div class="user-dropdown-divider"></div>
 
@@ -504,15 +481,16 @@ const MENU_INDEX: MenuMatch[] = [
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 22px;
+        min-width: 38px;
         height: 22px;
-        padding: 0 6px;
+        padding: 0 8px;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
         background: #f8fafc;
-        color: #94a3b8;
+        color: #64748b;
         font-size: 11px;
         font-weight: 600;
+        letter-spacing: 0.02em;
       }
 
       .header-right {
@@ -670,19 +648,6 @@ const MENU_INDEX: MenuMatch[] = [
         color: #475569;
       }
 
-      .dev-tag {
-        display: inline-flex;
-        align-items: center;
-        height: 14px;
-        padding: 0 5px;
-        border-radius: 4px;
-        background: #fef9c3;
-        color: #ca8a04;
-        font-size: 9px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-      }
-
       .user-dropdown-divider {
         height: 1px;
         background: #e2e8f0;
@@ -726,66 +691,6 @@ const MENU_INDEX: MenuMatch[] = [
         color: #dc2626;
       }
 
-      .user-dropdown-roles {
-        margin: 4px 0 4px;
-        padding: 4px;
-        background: #f8fafc;
-        border-radius: 10px;
-      }
-
-      .user-dropdown-role-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-        padding: 8px;
-        border: none;
-        background: transparent;
-        border-radius: 8px;
-        cursor: pointer;
-        text-align: left;
-        transition: background 0.15s ease;
-      }
-
-      .user-dropdown-role-item:hover {
-        background: #ffffff;
-      }
-
-      .user-dropdown-role-item.active {
-        background: #eff6ff;
-      }
-
-      .role-dot {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        background: #eff6ff;
-        color: #3b82f6;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: 700;
-        flex-shrink: 0;
-      }
-
-      .role-info {
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
-        min-width: 0;
-      }
-
-      .role-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: #0f172a;
-      }
-
-      .role-email {
-        font-size: 10px;
-        color: #94a3b8;
-      }
 
       .header-user-copy {
         display: flex;
@@ -959,9 +864,10 @@ const MENU_INDEX: MenuMatch[] = [
   ],
 })
 export class HrLayoutComponent implements OnInit {
+  @ViewChild('searchInput') private searchInputEl?: ElementRef<HTMLInputElement>;
+
   showNotifDropdown = signal(false);
   showUserDropdown = signal(false);
-  showRoleSubmenu = signal(false);
   headerSearchQuery = '';
 
   showSearchResults = signal(false);
@@ -978,13 +884,10 @@ export class HrLayoutComponent implements OnInit {
     this.applicationMatches().length,
   );
 
-  private searchInput$ = new Subject<string>();
+  readonly isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform);
+  readonly searchShortcutLabel = this.isMac ? '⌘K' : 'Ctrl+K';
 
-  readonly devRoles: { role: UserAccount['role']; label: string; email: string }[] = [
-    { role: UserRole.SUPER_ADMIN, label: UserRole.SUPER_ADMIN, email: 'admin@abc.com' },
-    { role: UserRole.HR, label: UserRole.HR, email: 'an.nguyen@abc.com' },
-    { role: UserRole.INTERVIEWER, label: UserRole.INTERVIEWER, email: 'cuong.le@abc.com' },
-  ];
+  private searchInput$ = new Subject<string>();
 
   readonly avatarUrl = computed(() => {
     const seed = this.authService.currentUser()?.fullName || 'guest';
@@ -1127,25 +1030,27 @@ export class HrLayoutComponent implements OnInit {
 
   toggleUserDropdown() {
     this.showUserDropdown.update((v) => !v);
-    if (!this.showUserDropdown()) {
-      this.showRoleSubmenu.set(false);
-    }
-  }
-
-  toggleRoleSubmenu() {
-    this.showRoleSubmenu.update((v) => !v);
-  }
-
-  switchRole(role: UserAccount['role']) {
-    this.authService.mockLoginAsRole(role);
-    this.showRoleSubmenu.set(false);
-    this.showUserDropdown.set(false);
-    this.router.navigate(['/hr-portal']);
   }
 
   logout() {
     this.showUserDropdown.set(false);
     this.authService.logout('/hr/login');
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onGlobalKeydown(event: KeyboardEvent) {
+    const isShortcut =
+      (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
+    if (!isShortcut) return;
+    event.preventDefault();
+    this.focusSearch();
+  }
+
+  private focusSearch() {
+    const input = this.searchInputEl?.nativeElement;
+    if (!input) return;
+    input.focus();
+    input.select();
   }
 
   onNotificationClick(notif: any) {
