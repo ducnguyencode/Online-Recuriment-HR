@@ -450,7 +450,7 @@ export class VacancyListComponent implements OnInit {
   private loadSelectedApplicants(vacancyId: string) {
     this.selectedApplicantsLoading.set(true);
     this.applicationService
-      .getAll({ vacancyId, status: 'Selected', page: 1, limit: 50 })
+      .getAll({ vacancyId, status: ApplicationStatus.SELECTED, page: 1, limit: 50 })
       .subscribe({
         next: (res) => {
           const items = ((res.data as any)?.items ?? []) as Application[];

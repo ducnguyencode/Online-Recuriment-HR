@@ -261,7 +261,6 @@ export class ApplicantListComponent implements OnInit {
   getApplicationStatusClass(status: string): string {
     const map: Record<string, string> = {
       Pending: 'badge-neutral',
-      Screening: 'badge-warning',
       'Interview Scheduled': 'badge-info',
       Selected: 'badge-success',
       Rejected: 'badge-danger',

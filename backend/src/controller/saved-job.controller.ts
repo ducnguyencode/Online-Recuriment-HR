@@ -4,10 +4,14 @@ import {
     HttpStatus,
     Param,
     Post,
+    Query,
     Req,
     UseGuards,
 } from '@nestjs/common';
+import { Roles } from 'src/common/decorator/decorator';
+import { UserRole } from 'src/common/enum';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import { ApiResponse } from 'src/helper/api-response';
 import { SavedJobService } from 'src/services/saved-job.service';
 
@@ -23,6 +27,26 @@ export class SavedJobController {
         return {
             statusCode: HttpStatus.OK,
             message: 'Saved jobs retrieved',
+            data,
+        };
+    }
+
+    @Get('admin')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.HR)
+    async findAllForAdmin(
+        @Query('vacancyId') vacancyId?: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ): Promise<ApiResponse<any>> {
+        const data = await this.savedJobService.findAllForAdmin({
+            vacancyId: vacancyId ? Number(vacancyId) : undefined,
+            page: page ? Math.max(1, Number(page)) : 1,
+            limit: limit ? Math.max(1, Number(limit)) : 10,
+        });
+        return {
+            statusCode: HttpStatus.OK,
+            message: 'Favorite jobs retrieved',
             data,
         };
     }

@@ -3,10 +3,12 @@
     <div>
       <h1 class="page-title">Interviews</h1>
       <p class="page-subtitle">
-        Track and manage all scheduled interview sessions
+        {{ auth.isInterviewer() ? "Track your assigned interview sessions" : "Track and manage all scheduled interview sessions" }}
       </p>
     </div>
+    @if (!auth.isInterviewer()) {
     <a class="btn-primary schedule-link" routerLink="/hr-portal/applications">Schedule From Applications</a>
+    }
   </div>
 
   <div class="filter-bar">
@@ -22,12 +24,14 @@
         <option value="Cancelled">Cancelled</option>
         <option value="Postponed">Postponed</option>
       </select>
+      @if (!auth.isInterviewer()) {
       <select class="form-select" [(ngModel)]="filterInterviewer" (change)="onFilterChange()" style="width: 180px">
         <option value="">All Interviewers</option>
         @for (iv of interviewerList; track iv.id) {
           <option [value]="iv.id">{{ iv.name }}</option>
         }
       </select>
+      }
       <button class="btn-secondary" (click)="clearFilters()">Reset</button>
     </div>
   </div>
@@ -359,12 +363,12 @@
           <label class="vote-choice" [class.selected-pass]="resultData.vote === 'Pass'">
             <input type="radio" name="vote" value="Pass" [(ngModel)]="resultData.vote" />
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            Pass — Recommend
+            Pass
           </label>
           <label class="vote-choice" [class.selected-fail]="resultData.vote === 'Fail'">
             <input type="radio" name="vote" value="Fail" [(ngModel)]="resultData.vote" />
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            Fail — Not Recommend
+            Fail
           </label>
         </div>
       </div>

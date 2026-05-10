@@ -115,7 +115,8 @@ export class AuthService {
         console.error('Failed to write auth logs', logError);
       }
 
-      return signToken(user, this.jwtService);
+      const profileUser = (await this.userService.findById(user.id)) ?? user;
+      return signToken(profileUser, this.jwtService);
     } catch (error) {
       const existingUser = await this.userService.findByEmail(normalizedEmail);
       try {

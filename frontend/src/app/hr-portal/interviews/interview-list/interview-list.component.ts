@@ -68,7 +68,7 @@ export class InterviewListComponent implements OnInit {
   itemToCancel = signal<Interview | null>(null);
 
   constructor(
-    private auth: AuthService,
+    protected auth: AuthService,
     private interviewService: InterviewService,
     private employeeService: EmployeeService,
     private mockData: MockDataService,
@@ -76,11 +76,31 @@ export class InterviewListComponent implements OnInit {
   ) { }
 
   ngOnInit() {
+    const refresh = this.auth.refreshMe();
+    if (refresh) {
+      refresh.subscribe({
+        next: () => this.initializePage(),
+        error: () => this.initializePage(),
+      });
+      return;
+    }
+    this.initializePage();
+  }
+
+  private initializePage() {
     this.loadInterviewers();
     this.loadData();
   }
 
   loadInterviewers() {
+    if (this.auth.isInterviewer()) {
+      const current = this.auth.currentUser();
+      this.interviewerList = current?.employeeId
+        ? [{ id: String(current.employeeId), name: current.fullName }]
+        : [];
+      return;
+    }
+
     this.employeeService.getAll({ role: 'Interviewer', limit: 200 }).subscribe({
       next: (res) => {
         const items: any[] = (res.data as any)?.items ?? [];
@@ -95,6 +115,7 @@ export class InterviewListComponent implements OnInit {
 
   loadData() {
     this.loading.set(true);
+    const currentEmployeeId = this.currentEmployeeId();
 
     const params: Record<string, any> = {
       ...(this.filterStatus ? { status: this.filterStatus } : {}),
@@ -107,35 +128,62 @@ export class InterviewListComponent implements OnInit {
     };
 
     if (this.auth.isInterviewer()) {
-      const myEmployeeId = this.auth.currentUser()?.employeeId;
-      if (myEmployeeId) {
-        params['employeeId'] = myEmployeeId;
+      if (currentEmployeeId) {
+        params['employeeId'] = currentEmployeeId;
       }
     }
     this.interviewService.getAll(params).subscribe({
       next: (res) => {
         const items: any[] = (res.data as any)?.items ?? [];
         const total = (res.data as any)?.totalItems ?? items.length;
-        const pages = (res.data as any)?.totalPages ?? Math.max(1, Math.ceil(total / this.pageSize));
-        const mapped: Interview[] = items.map(item => this.mapInterviewData(item));
+        let mapped: Interview[] = items.map(item => this.mapInterviewData(item));
+        if (this.auth.isInterviewer() && currentEmployeeId) {
+          mapped = this.filterForCurrentInterviewer(mapped);
+        }
+        const visibleTotal = this.auth.isInterviewer() ? mapped.length : total;
+        const pages =
+          this.auth.isInterviewer()
+            ? Math.max(1, Math.ceil(visibleTotal / this.pageSize))
+            : (res.data as any)?.totalPages ?? Math.max(1, Math.ceil(total / this.pageSize));
         this.interviews.set(mapped);
-        this.totalItems.set(total);
+        this.totalItems.set(visibleTotal);
         this.totalPages.set(pages);
         this.loading.set(false);
       },
       error: () => {
         const raw = this.mockData.getInterviews() as any[];
         const mapped: Interview[] = raw.map((r) => this.mapMockInterview(r));
-        const filtered = mapped.filter((i) => {
+        let filtered = mapped.filter((i) => {
           if (this.filterStatus && i.status !== this.filterStatus) return false;
           if (this.filterStartDate && i.interviewDate < this.filterStartDate) return false;
           if (this.filterEndDate && i.interviewDate > this.filterEndDate) return false;
           return true;
         });
+        if (this.auth.isInterviewer()) {
+          filtered = this.filterForCurrentInterviewer(filtered);
+        }
         this.interviews.set(filtered);
+        this.totalItems.set(filtered.length);
+        this.totalPages.set(Math.max(1, Math.ceil(filtered.length / this.pageSize)));
         this.loading.set(false);
       },
     });
+  }
+
+  private currentEmployeeId(): string {
+    const employeeId = this.auth.currentUser()?.employeeId;
+    return employeeId ? String(employeeId) : '';
+  }
+
+  private filterForCurrentInterviewer(items: Interview[]): Interview[] {
+    const employeeId = this.currentEmployeeId();
+    if (!employeeId) return [];
+    return items.filter((item) => this.isMyInterview(item, employeeId));
+  }
+
+  private isMyInterview(item: Interview, employeeId: string): boolean {
+    const panel = item.panel ?? item.panels ?? [];
+    return panel.some((p) => String(p.employeeId) === employeeId);
   }
 
   private mapInterviewData(r: any): Interview {

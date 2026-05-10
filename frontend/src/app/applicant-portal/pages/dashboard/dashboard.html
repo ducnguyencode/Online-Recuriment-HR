@@ -7,22 +7,45 @@
   </div>
 
   <!-- HỆ THỐNG TAB MỚI -->
-  <div class="flex gap-6 border-b border-slate-200 mb-8">
-    <button (click)="activeTab.set('APPLIED')" class="pb-3 text-sm font-semibold transition-all border-b-2"
+  <div class="flex gap-6 border-b border-slate-200 mb-6">
+    <button (click)="setActiveTab('APPLIED')" class="pb-3 text-sm font-semibold transition-all border-b-2"
       [class.border-slate-900]="activeTab() === 'APPLIED'" [class.text-slate-900]="activeTab() === 'APPLIED'"
       [class.border-transparent]="activeTab() !== 'APPLIED'" [class.text-slate-500]="activeTab() !== 'APPLIED'">
       Submitted Applications ({{ appTotalItems() }})
     </button>
-    <button (click)="activeTab.set('SAVED')" class="pb-3 text-sm font-semibold transition-all border-b-2"
+    <button (click)="setActiveTab('SAVED')" class="pb-3 text-sm font-semibold transition-all border-b-2"
       [class.border-slate-900]="activeTab() === 'SAVED'" [class.text-slate-900]="activeTab() === 'SAVED'"
       [class.border-transparent]="activeTab() !== 'SAVED'" [class.text-slate-500]="activeTab() !== 'SAVED'">
       Saved Jobs ({{ savedJobs().length }})
     </button>
-    <button (click)="activeTab.set('INTERVIEWS')" class="pb-3 text-sm font-semibold transition-all border-b-2"
+    <button (click)="setActiveTab('INTERVIEWS')" class="pb-3 text-sm font-semibold transition-all border-b-2"
       [class.border-slate-900]="activeTab() === 'INTERVIEWS'" [class.text-slate-900]="activeTab() === 'INTERVIEWS'"
       [class.border-transparent]="activeTab() !== 'INTERVIEWS'" [class.text-slate-500]="activeTab() !== 'INTERVIEWS'">
       Interviews ({{ interviews().length }})
     </button>
+  </div>
+
+  <!-- SEARCH BAR (per tab) -->
+  <div class="mb-5 relative">
+    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+    </svg>
+    <input
+      type="text"
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+      [placeholder]="searchPlaceholder()"
+      class="w-full pl-11 pr-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm text-slate-700 placeholder-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all" />
+    @if (searchQuery()) {
+      <button
+        (click)="searchQuery.set('')"
+        class="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+        title="Clear">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    }
   </div>
 
   <div class="bg-white border border-slate-200 rounded-[24px] overflow-hidden shadow-sm p-3">
@@ -30,8 +53,10 @@
     @if (activeTab() === 'APPLIED') {
     @if (applications().length === 0) {
     <div class="p-8 text-center text-slate-500 text-sm font-normal">You haven't submitted any applications yet.</div>
+    } @else if (filteredApplications().length === 0) {
+    <div class="p-8 text-center text-slate-500 text-sm font-normal">No applications match "{{ searchQuery() }}".</div>
     }
-    @for (app of applications(); track app.id) {
+    @for (app of filteredApplications(); track app.id) {
     <div class="rounded-2xl mb-2 transition-all"
       [class.bg-slate-50]="expandedAppId() === app.id"
       [class.border]="expandedAppId() === app.id"
@@ -125,8 +150,10 @@
     @if (interviews().length === 0) {
     <div class="p-8 text-center text-slate-500 text-sm font-normal">You have no scheduled interviews at the moment.
     </div>
+    } @else if (filteredInterviews().length === 0) {
+    <div class="p-8 text-center text-slate-500 text-sm font-normal">No interviews match "{{ searchQuery() }}".</div>
     }
-    @for (interview of interviews(); track interview.id) {
+    @for (interview of filteredInterviews(); track interview.id) {
     <div
       class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 rounded-2xl border border-slate-100 mb-3 hover:border-blue-200 transition-colors gap-4 bg-white">
       <div class="flex-1">
@@ -192,8 +219,10 @@
     @if (savedJobs().length === 0) {
     <div class="p-8 text-center text-slate-500 text-sm font-normal">No saved jobs yet. Go to Careers to find
       opportunities!</div>
+    } @else if (filteredSavedJobs().length === 0) {
+    <div class="p-8 text-center text-slate-500 text-sm font-normal">No saved jobs match "{{ searchQuery() }}".</div>
     }
-    @for (job of savedJobs(); track job.id) {
+    @for (job of filteredSavedJobs(); track job.id) {
     <div
       class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl border border-slate-100 mb-3 hover:border-blue-200 transition-colors gap-4">
       <div>

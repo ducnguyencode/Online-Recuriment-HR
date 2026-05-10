@@ -73,7 +73,7 @@ export class InterviewController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
   async updateStatus(
     @Param('id') id: string,
     @Body() data: InterviewUpdateStatusDto,
@@ -90,9 +90,23 @@ export class InterviewController {
   @Get()
   @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN, UserRole.APPLICANT)
   async findAll(@Query() query: any, @CurrentUser() user: AuthUser) {
-    // If applicant, force filter to only their own interviews
-    if (user.roles?.includes(UserRole.APPLICANT)) {
-      query = { ...query, applicantUserId: user.userId };
+    const currentUser = user as any;
+    if (currentUser.role === UserRole.INTERVIEWER) {
+      const employeeId =
+        await this.interviewService.resolveEmployeeIdForUser(currentUser);
+      if (!employeeId) {
+        throw new ForbiddenException(
+          'Your interviewer account is not linked to an employee profile.',
+        );
+      }
+      query = {
+        ...query,
+        employeeId,
+      };
+    }
+
+    if (currentUser.role === UserRole.APPLICANT) {
+      query = { ...query, applicantUserId: currentUser.id };
     }
     const data = await this.interviewService.findAll(query);
     return {
@@ -105,11 +119,21 @@ export class InterviewController {
   @Get(':id')
   @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN, UserRole.APPLICANT)
   async findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    const currentUser = user as any;
     const data = await this.interviewService.findOne(id);
-    // If applicant, ensure they can only access their own interview
-    if (user.roles?.includes(UserRole.APPLICANT)) {
+    if (currentUser.role === UserRole.INTERVIEWER) {
+      const employeeId =
+        await this.interviewService.resolveEmployeeIdForUser(currentUser);
+      if (!employeeId) {
+        throw new ForbiddenException(
+          'Your interviewer account is not linked to an employee profile.',
+        );
+      }
+      await this.interviewService.ensureInterviewerCanAccess(id, employeeId);
+    }
+    if (currentUser.role === UserRole.APPLICANT) {
       const applicantUserId = data.application?.applicant?.user?.id;
-      if (String(applicantUserId) !== String(user.userId)) {
+      if (String(applicantUserId) !== String(currentUser.id)) {
         throw new ForbiddenException('You do not have permission to access this interview');
       }
     }
@@ -120,6 +144,7 @@ export class InterviewController {
   }
 
   @Patch(':id/result')
+  @Roles(UserRole.INTERVIEWER)
   async submitResult(
     @Param('id') id: string,
     @Body() data: SubmitResultDto,
@@ -127,8 +152,7 @@ export class InterviewController {
   ) {
     const result = await this.interviewService.submitResult(
       id,
-      user.userId,
-      user.employeeId,
+      await this.interviewService.resolveEmployeeIdForUser(user),
       data.vote,
       data.feedback,
     );

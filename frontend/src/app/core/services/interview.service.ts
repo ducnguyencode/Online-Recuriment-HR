@@ -55,7 +55,7 @@ export class InterviewService {
     if (filters.vacancyId) params = params.set('vacancyId', filters.vacancyId);
     if (filters.search) params = params.set('search', filters.search);
     if (filters.page) params = params.set('page', filters.page.toString());
-    if (filters.limit) params = params.set('limit', filters.limit.toString());
+    if (filters.limit != null) params = params.set('limit', filters.limit.toString());
     if (filters.employeeId) params = params.set('employeeId', filters.employeeId);
     return this.http.get<ApiResponse<PaginatedResponse<Interview>>>(this.base, { params });
   }

@@ -1,51 +1,77 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService } from '../../core/services/mock-data.service';
+import {
+  DashboardService,
+  RecruitmentReportDto,
+} from '../../core/services/dasboard.service';
+
+interface PipelineRow {
+  label: string;
+  status: string;
+  count: number;
+  color: string;
+}
+
+const PIPELINE_COLORS: Record<string, string> = {
+  Pending: '#94A3B8',
+  Interviewing: '#3B82F6',
+  'Pending Review': '#F59E0B',
+  Selected: '#22C55E',
+  Rejected: '#EF4444',
+};
 
 @Component({
   selector: 'app-reports',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './reports.component.html',
-  styleUrl: './reports.component.scss'
+  styleUrl: './reports.component.scss',
 })
-export class ReportsComponent {
-  stats: any;
+export class ReportsComponent implements OnInit {
+  loading = signal(false);
+  totals = signal({
+    totalApplications: 0,
+    openVacancies: 0,
+    hiringRate: 0,
+    applicantsInProcess: 0,
+  });
+  pipelineData = signal<PipelineRow[]>([]);
+  departmentData = signal<RecruitmentReportDto['departments']>([]);
 
-  pipelineData = [
-    { label: 'Pending', count: 0, color: '#94A3B8' },
-    { label: 'Screening', count: 0, color: '#F59E0B' },
-    { label: 'Interviewing', count: 0, color: '#3B82F6' },
-    { label: 'Selected', count: 0, color: '#22C55E' },
-    { label: 'Rejected', count: 0, color: '#EF4444' },
-  ];
+  readonly maxPipeline = computed(() =>
+    Math.max(...this.pipelineData().map((p) => p.count), 1),
+  );
+  readonly maxDeptApps = computed(() =>
+    Math.max(
+      ...this.departmentData().map((d) => Math.max(d.applications, d.vacancies)),
+      1,
+    ),
+  );
 
-  departmentData: { name: string; vacancies: number; applications: number }[] = [];
+  constructor(private dashboardService: DashboardService) {}
 
-  constructor(private mockData: MockDataService) {
-    this.stats = this.mockData.getDashboardStats();
-
-    const apps = this.mockData.getApplications();
-    this.pipelineData[0].count = apps.filter(a => a.status === 'Pending').length;
-    this.pipelineData[1].count = apps.filter(a => a.status === 'Screening').length;
-    this.pipelineData[2].count = apps.filter(a => a.status === 'Interview Scheduled').length;
-    this.pipelineData[3].count = apps.filter(a => a.status === 'Selected').length;
-    this.pipelineData[4].count = apps.filter(a => a.status === 'Rejected').length;
-
-    const depts = this.mockData.getDepartments();
-    const vacs = this.mockData.getVacancies();
-    this.departmentData = depts.map(d => ({
-      name: d.name,
-      vacancies: vacs.filter(v => v.departmentId === d.id).length,
-      applications: apps.filter(a => a.vacancy?.departmentId === d.id).length,
-    })).filter(d => d.vacancies > 0 || d.applications > 0);
+  ngOnInit() {
+    this.loadReports();
   }
 
-  get maxPipeline(): number {
-    return Math.max(...this.pipelineData.map(p => p.count), 1);
-  }
-
-  get maxDeptApps(): number {
-    return Math.max(...this.departmentData.map(d => d.applications), 1);
+  private loadReports() {
+    this.loading.set(true);
+    this.dashboardService.recruitmentReports().subscribe({
+      next: (res) => {
+        const data = res.data;
+        this.totals.set(data.totals);
+        this.pipelineData.set(
+          data.pipeline.map((row) => ({
+            ...row,
+            color: PIPELINE_COLORS[row.label] ?? '#94A3B8',
+          })),
+        );
+        this.departmentData.set(data.departments);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+      },
+    });
   }
 }

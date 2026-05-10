@@ -150,6 +150,16 @@
                     >Closing soon</span
                   >
                 }
+                @if ((v.favoritesCount ?? 0) > 0) {
+                  <span
+                    class="badge badge-favorite"
+                    style="font-size: 10px; margin-top: 4px; margin-left: 4px"
+                    [title]="v.favoritesCount + ' applicants saved this vacancy'"
+                  >
+                    <i class="fa-solid fa-star"></i>
+                    {{ v.favoritesCount }} favorites
+                  </span>
+                }
               </td>
               <td>
                 <span class="dept-tag">{{ v.department?.name ?? "—" }}</span>
@@ -311,6 +321,10 @@
                 <line x1="3" x2="21" y1="10" y2="10" />
               </svg>
               {{ v.closingDate | date: "MMM d, y" }}
+            </div>
+            <div class="vc-stat vc-stat-favorite" [title]="(v.favoritesCount ?? 0) + ' applicants saved this vacancy'">
+              <i class="fa-solid fa-star"></i>
+              {{ v.favoritesCount ?? 0 }} favorites
             </div>
           </div>
           <div class="progress-bar" style="margin-top: 12px">

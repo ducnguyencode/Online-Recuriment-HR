@@ -2,6 +2,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -106,10 +107,7 @@ export class InterviewService {
         relations: ['applicant', 'applicant.user'], // Need applicant info for the email queue
       });
 
-      if (
-        !application ||
-        ['Selected', 'Rejected'].includes(application.status)
-      ) {
+      if (!application || application.status !== ApplicationStatus.PENDING) {
         throw new NotFoundException(
           'Application not found or no longer eligible for interview.',
         );
@@ -497,16 +495,22 @@ export class InterviewService {
     qb.orderBy('interview.startTime', 'DESC');
 
     const totalItems = await qb.getCount();
-    const items = await qb
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getMany();
+
+    let items: Interview[];
+    if (Number(limit) === 0) {
+      items = await qb.getMany();
+    } else {
+      items = await qb
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany();
+    }
 
     return {
       items,
       totalItems,
-      totalPages: Math.ceil(totalItems / limit),
-      currentPage: Number(page),
+      totalPages: Number(limit) === 0 ? 1 : Math.ceil(totalItems / limit),
+      currentPage: Number(limit) === 0 ? 1 : Number(page),
     };
   }
 
@@ -527,12 +531,46 @@ export class InterviewService {
     });
 
     if (!interview)
-      throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
+      throw new NotFoundException('Interview not found');
     return interview;
   }
 
+  async resolveEmployeeIdForUser(user: any): Promise<string> {
+    const directEmployeeId = user?.employeeId ?? user?.employee?.id;
+    if (directEmployeeId) return String(directEmployeeId);
+
+    const employee = await this.dataSource.manager.findOne(Employee, {
+      where: { user: { id: Number(user?.id) } },
+    });
+
+    return employee?.id ? String(employee.id) : '';
+  }
+
+  async ensureInterviewerCanAccess(id: string, employeeId: string | number) {
+    const interview = await this.interviewRepo
+      .createQueryBuilder('interview')
+      .innerJoin('interview.panels', 'panel')
+      .where('interview.id = :id', { id })
+      .andWhere('panel.employeeId = :employeeId', {
+        employeeId: String(employeeId),
+      })
+      .getOne();
+
+    if (!interview) {
+      throw new ForbiddenException(
+        'You do not have permission to access this interview.',
+      );
+    }
+  }
+
   // SUBMIT INTERVIEW RESULT (VOTE & FEEDBACK)
-  async submitResult(interviewId: string, userId: number | string, employeeId: string | undefined, vote: 'Pass' | 'Fail', feedback: string) {
+  async submitResult(interviewId: string, employeeId: string | number | undefined, vote: 'Pass' | 'Fail', feedback: string) {
+    if (!employeeId) {
+      throw new ForbiddenException(
+        'Your interviewer account is not linked to an employee profile.',
+      );
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -540,7 +578,7 @@ export class InterviewService {
     try {
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id: interviewId },
-        relations: ['panels', 'panels.employee', 'application', 'panels.employee.user', 'application.applicant', 'application.vacancy',]
+        relations: ['panels', 'panels.employee', 'application', 'panels.employee.user', 'application.applicant', 'application.applicant.user', 'application.vacancy',]
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -552,7 +590,15 @@ export class InterviewService {
         throw new BadRequestException('Cannot submit result before the interview has started.');
       }
 
-      const myPanel = interview.panels[0];
+      const myPanel = interview.panels.find(
+        (panel) => String(panel.employeeId) === String(employeeId),
+      );
+      if (!myPanel) {
+        throw new ForbiddenException(
+          'You do not have permission to submit a result for this interview.',
+        );
+      }
+
       myPanel.vote = vote;
       myPanel.feedback = feedback;
       await queryRunner.manager.save(InterviewerPanel, myPanel);
@@ -570,7 +616,10 @@ export class InterviewService {
 
       this.eventEmitter.emit('interview.result_submitted', {
         interviewId: interview.id,
-        candidateName: interview.application.applicant.fullName,
+        candidateName:
+          interview.application.applicant.user?.fullName ||
+          interview.application.applicant.fullName ||
+          'the candidate',
         interviewerName: myPanel.employee.user.fullName || 'An Interviewer',
         vote: vote,
         targetHrId: interview.application.vacancy?.createdById,

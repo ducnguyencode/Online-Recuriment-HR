@@ -153,17 +153,16 @@
               </button>
               } @else if (app.status === ApplicationStatus.INTERVIEW_SCHEDULED) {
               <a class="btn-primary btn-sm" routerLink="/hr-portal/interviews">Interview</a>
-              }@else if((app.status === ApplicationStatus.PENDING_REVIEW || app.status === ApplicationStatus.SELECTED || app.status===ApplicationStatus.REJECTED) &&
+              }@else if(app.status === ApplicationStatus.PENDING_REVIEW &&
               authService.currentUser()?.role ===
               UserRole.SUPER_ADMIN){
-              <button class="btn-secondary btn-sm" (click)="acceptedApplication(app.id)">
-                Accept
+              <button class="btn-secondary btn-sm" [disabled]="!canSelectApplication(app)"
+                [title]="getSelectDisabledReason(app)" (click)="selectApplication(app.id)">
+                Select
               </button>
-              @if(app.status !==ApplicationStatus.REJECTED){
               <button class="btn-secondary btn-sm" (click)="rejetedApplication(app.id)">
                 Reject
               </button>
-              }
               }
             </div>
             </td>

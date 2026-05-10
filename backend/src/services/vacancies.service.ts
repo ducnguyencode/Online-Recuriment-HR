@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -56,6 +57,9 @@ export class VacanciesService {
     //Order
     qb.orderBy('vacancy.createdAt', 'DESC');
 
+    //Load favorites count per vacancy
+    qb.loadRelationCountAndMap('vacancy.favoritesCount', 'vacancy.savedJobs');
+
     const [vacancies, totalVacancy] = await qb.getManyAndCount();
 
     return {
@@ -81,11 +85,26 @@ export class VacanciesService {
   async update(id: number, data: VacancyUpdateDto) {
     const vacancy = await this.vacanciesTable.manager.transaction(
       async (manager) => {
-        const exist = await this.vacanciesTable.findOneBy({ id });
+        const exist = await manager.findOne(Vacancy, {
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
+        });
         if (!exist) {
           throw new NotFoundException('Vacancy not found');
         }
+
+        if (data.numberOfOpenings < exist.filledCount) {
+          throw new BadRequestException(
+            `You already selected ${exist.filledCount} applicant(s) for this vacancy. Please set openings to ${exist.filledCount} or more.`,
+          );
+        }
+
         Object.assign(exist, data);
+
+        if (exist.filledCount >= exist.numberOfOpenings) {
+          exist.status = VacancyStatus.CLOSED;
+        }
+
         return manager.save(exist);
       },
     );
@@ -98,7 +117,6 @@ export class VacanciesService {
         .andWhere('vacancy.id = :id', { id: vacancy.id })
         .andWhere('app.status NOT IN (:...statuses)', {
           statuses: [
-            ApplicationStatus.ACCEPTED,
             ApplicationStatus.REJECTED,
             ApplicationStatus.SELECTED,
             ApplicationStatus.NOT_REQUIRED,
@@ -120,7 +138,7 @@ export class VacanciesService {
     const vacancy = await this.vacanciesTable.findOneBy({ id });
 
     if (!vacancy) {
-      throw new NotFoundException('Department not found');
+      throw new NotFoundException('Vacancy not found');
     }
 
     if (
@@ -133,11 +151,13 @@ export class VacanciesService {
       closing.setHours(23, 59, 59, 999);
 
       if (closing < now) {
-        throw new ForbiddenException(`Closing date was pass! Cannot re-opened`);
-      }
-      if (vacancy.filledCount === vacancy.numberOfOpenings) {
         throw new ForbiddenException(
-          `Please increase number of openings before proceed`,
+          'This vacancy cannot be reopened because the closing date has passed.',
+        );
+      }
+      if (vacancy.filledCount >= vacancy.numberOfOpenings) {
+        throw new ForbiddenException(
+          'This vacancy already has all openings filled. Increase openings before reopening it.',
         );
       }
       if (
@@ -146,7 +166,7 @@ export class VacanciesService {
         })
       ) {
         throw new ForbiddenException(
-          `Duplicate vacancy detected, cannot re-opened!`,
+          'Another open vacancy with the same title already exists.',
         );
       }
     }

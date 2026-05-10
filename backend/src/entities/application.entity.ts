@@ -49,9 +49,9 @@ export class Application {
   cvId!: number | null;
 
   @Column({
-    type: 'enum',
+    type: 'varchar',
+    length: 32,
     default: ApplicationStatus.PENDING,
-    enum: ApplicationStatus,
   })
   status!: ApplicationStatus;
 

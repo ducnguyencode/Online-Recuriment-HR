@@ -6,22 +6,26 @@
     </div>
   </div>
 
+  @if (loading()) {
+    <div class="loading-state">Loading reports...</div>
+  }
+
   <!-- Summary Cards -->
   <div class="summary-row">
     <div class="summary-card">
-      <div class="summary-value">{{ stats.totalApplications }}</div>
+      <div class="summary-value">{{ totals().totalApplications }}</div>
       <div class="summary-label">Total Applications</div>
     </div>
     <div class="summary-card">
-      <div class="summary-value">{{ stats.openVacancies }}</div>
+      <div class="summary-value">{{ totals().openVacancies }}</div>
       <div class="summary-label">Open Vacancies</div>
     </div>
     <div class="summary-card">
-      <div class="summary-value">{{ stats.hiringRate }}%</div>
+      <div class="summary-value">{{ totals().hiringRate }}%</div>
       <div class="summary-label">Hiring Rate</div>
     </div>
     <div class="summary-card">
-      <div class="summary-value">{{ stats.applicantsInProcess }}</div>
+      <div class="summary-value">{{ totals().applicantsInProcess }}</div>
       <div class="summary-label">In Process</div>
     </div>
   </div>
@@ -34,14 +38,14 @@
         Recruitment Pipeline
       </h3>
       <div class="pipeline-chart">
-        @for (stage of pipelineData; track stage.label) {
+        @for (stage of pipelineData(); track stage.label) {
           <div class="pipeline-row">
             <div class="pipeline-label">
               <div class="pipeline-dot" [style.background]="stage.color"></div>
               {{ stage.label }}
             </div>
             <div class="pipeline-bar-wrapper">
-              <div class="pipeline-bar" [style.width.%]="(stage.count / maxPipeline) * 100" [style.background]="stage.color"></div>
+              <div class="pipeline-bar" [style.width.%]="(stage.count / maxPipeline()) * 100" [style.background]="stage.color"></div>
             </div>
             <div class="pipeline-count">{{ stage.count }}</div>
           </div>
@@ -56,24 +60,26 @@
         Department Breakdown
       </h3>
       <div class="dept-chart">
-        @for (dept of departmentData; track dept.name) {
+        @for (dept of departmentData(); track dept.code) {
           <div class="dept-row">
             <div class="dept-name">{{ dept.name }}</div>
             <div class="dept-bars">
               <div class="dept-bar-group">
-                <div class="dept-bar bar-vacancies" [style.width.%]="(dept.vacancies / maxDeptApps) * 100">
+                <div class="dept-bar bar-vacancies" [style.width.%]="(dept.vacancies / maxDeptApps()) * 100">
                   {{ dept.vacancies }}
                 </div>
                 <span class="bar-label">Vacancies</span>
               </div>
               <div class="dept-bar-group">
-                <div class="dept-bar bar-apps" [style.width.%]="(dept.applications / maxDeptApps) * 100">
+                <div class="dept-bar bar-apps" [style.width.%]="(dept.applications / maxDeptApps()) * 100">
                   {{ dept.applications }}
                 </div>
                 <span class="bar-label">Applicants</span>
               </div>
             </div>
           </div>
+        } @empty {
+          <div class="empty-state-mini">No department data available</div>
         }
       </div>
 

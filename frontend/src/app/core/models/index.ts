@@ -20,7 +20,7 @@ export enum VacancyStatus {
   CLOSED = 'Closed',
 }
 
-/** Per spec: Not in Process → In Process (on first attach) → Hired (on Selected) | Banned (manual) */
+/** Per current flow: Not in Process -> In Process (on first attach) -> Hired (on Selected) | Banned (manual) */
 export enum ApplicantStatus {
   NOT_IN_PROCESS = 'Not In Process',
   IN_PROCESS = 'In Process',
@@ -32,12 +32,10 @@ export enum ApplicantStatus {
 
 export enum ApplicationStatus {
   PENDING = 'Pending',
-  SCREENING = 'Screening',
   INTERVIEW_SCHEDULED = 'Interview Scheduled',
   PENDING_REVIEW = 'Pending Review',
   SELECTED = 'Selected',
   REJECTED = 'Rejected',
-  ACCEPTED = 'Accepted',
   NOT_REQUIRED = 'Not Required',
 }
 
@@ -91,7 +89,11 @@ export interface UserAccount {
   fullName: string;
   role: UserRole;
   employeeId?: string;
+  employeeCode?: string;
+  employee?: Partial<Employee>;
   applicantId?: string;
+  applicantCode?: string;
+  applicant?: Partial<Applicant>;
   avatarUrl?: string;
   isActive: boolean;
   phone?: string;
@@ -115,6 +117,7 @@ export interface Vacancy {
   status: VacancyStatus;
   createdAt: string; // auto, immutable
   updatedAt: string;
+  favoritesCount?: number;
 }
 
 export interface Applicant {

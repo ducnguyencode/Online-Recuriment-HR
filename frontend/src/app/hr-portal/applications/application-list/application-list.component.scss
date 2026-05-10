@@ -208,6 +208,12 @@
     padding: 0 8px;
     font-size: 11px;
   }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    box-shadow: none;
+  }
 }
 
 .applicant-row {

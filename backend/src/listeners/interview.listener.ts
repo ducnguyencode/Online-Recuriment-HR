@@ -102,10 +102,11 @@ export class InterviewListener {
       }
 
       for (const userId of Array.from(targetUserIds)) {
+        const candidateName = payload.candidateName || 'the candidate';
         const savedNotif = await this.notificationsService.create({
           userId: userId,
           title: 'Interview Result Submitted',
-          message: `Interviewer ${payload.interviewerName} has submitted the result (${payload.vote}) for candidate ${payload.candidateName}.`,
+          message: `${payload.interviewerName || 'An interviewer'} submitted an interview result for ${candidateName}: ${payload.vote}.`,
           type: payload.vote === 'Pass' ? 'SUCCESS' : 'WARNING',
           linkUrl: `/hr-portal/interviews`,
         });
@@ -134,10 +135,12 @@ export class InterviewListener {
       }
 
       for (const userId of Array.from(targetUserIds)) {
+        const candidateName = payload.candidateName || 'An applicant';
+        const vacancyTitle = payload.vacancyTitle || 'the selected vacancy';
         const savedNotif = await this.notificationsService.create({
           userId: userId,
           title: 'New Application Received',
-          message: `Ứng viên ${payload.candidateName} vừa nộp CV vào vị trí ${payload.vacancyTitle}.`,
+          message: `${candidateName} submitted a CV for ${vacancyTitle}.`,
           type: 'INFO',
           linkUrl: `/hr-portal/applications`,
         });

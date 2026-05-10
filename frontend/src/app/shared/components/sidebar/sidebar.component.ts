@@ -2,7 +2,6 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { UserAccount, UserRole } from '../../../core/models';
 
 interface NavItem {
   label: string;
@@ -23,7 +22,6 @@ interface NavItem {
 })
 export class SidebarComponent {
   collapsed = signal(false);
-  showRoleMenu = signal(false);
 
   menuItems: NavItem[] = [
     { label: 'Dashboard', icon: 'layout-dashboard', route: '/hr-portal' },
@@ -37,6 +35,7 @@ export class SidebarComponent {
       route: '/hr-portal/reports',
       hrOnly: true,
     },
+    { label: 'Favorite Jobs', icon: 'star', route: '/hr-portal/favorite-jobs', hrOnly: true },
   ];
 
   systemItems: NavItem[] = [
@@ -47,24 +46,6 @@ export class SidebarComponent {
     { label: 'Profile', icon: 'settings', route: '/hr-portal/profile' },
     { label: 'Help', icon: 'circle-help', route: '/hr-portal/help' },
   ];
-
-  readonly devRoles: {
-    role: UserAccount['role'];
-    label: string;
-    email: string;
-  }[] = [
-      {
-        role: UserRole.SUPER_ADMIN,
-        label: UserRole.SUPER_ADMIN,
-        email: 'admin@abc.com',
-      },
-      { role: UserRole.HR, label: UserRole.HR, email: 'an.nguyen@abc.com' },
-      {
-        role: UserRole.INTERVIEWER,
-        label: UserRole.INTERVIEWER,
-        email: 'cuong.le@abc.com',
-      },
-    ];
 
   constructor(
     public auth: AuthService,
@@ -88,19 +69,5 @@ export class SidebarComponent {
 
   toggleCollapse() {
     this.collapsed.update((v) => !v);
-  }
-
-  toggleRoleMenu() {
-    this.showRoleMenu.update((v) => !v);
-  }
-
-  switchRole(role: UserAccount['role']) {
-    this.auth.mockLoginAsRole(role);
-    this.showRoleMenu.set(false);
-    this.router.navigate(['/hr-portal']);
-  }
-
-  logout() {
-    this.auth.logout('/hr/login');
   }
 }

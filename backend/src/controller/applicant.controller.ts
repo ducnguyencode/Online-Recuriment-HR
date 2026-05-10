@@ -76,15 +76,31 @@ export class ApplicantController {
     };
   }
 
+  @Put(':id')
+  @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
+  async updateApplicant(
+    @Param('id') id: string,
+    @Body() body: { fullName?: string; phone?: string },
+  ): Promise<ApiResponse<any>> {
+    const data = await this.applicantServie.updateByHR(Number(id), body);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Applicant updated successfully',
+      data,
+    };
+  }
+
   @Patch(':id/status')
   @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
   async changeStatus(
     @Param('id') id: string,
     @Body() applicantStatusUpdateDto: ApplicantStatusUpdateDto,
+    @CurrentUser() user: SafeUserDto,
   ) {
     const data = await this.applicantServie.changeStatus(
       Number(id),
       applicantStatusUpdateDto.status,
+      user.role as UserRole,
     );
     return {
       statusCode: HttpStatus.OK,

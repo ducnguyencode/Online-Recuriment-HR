@@ -101,7 +101,7 @@ export class LoginComponent implements OnInit {
         //   return;
         // }
 
-        // Nếu là Ứng viên thì vô thẳng như cũ
+        // Applicant users can continue directly.
         this.toast.success('Login successful.');
         this.auth.handleLoginSuccess(res, this.selectedRole);
       },
@@ -156,7 +156,7 @@ export class LoginComponent implements OnInit {
   submit2FA() {
     this.formError = '';
     if (this.twoFactorCode.length !== 6) {
-       this.formError = 'Mã xác thực phải gồm 6 chữ số.';
+       this.formError = 'The verification code must be 6 digits.';
        return;
     }
 

@@ -1,5 +1,6 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ApplicationService } from '../../../core/services/application.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -13,7 +14,7 @@ import { FavoriteJobService } from '../../../core/services/favorite-job.service'
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './dashboard.html',
 })
 export class DashboardComponent implements OnInit {
@@ -22,6 +23,57 @@ export class DashboardComponent implements OnInit {
   activeTab = signal<'APPLIED' | 'SAVED' | 'INTERVIEWS'>('APPLIED');
 
   interviews = signal<any[]>([]);
+
+  searchQuery = signal('');
+
+  readonly filteredApplications = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return this.applications();
+    return this.applications().filter((app) => {
+      const fields = [
+        app.vacancy?.title,
+        app.vacancy?.code,
+        app.status,
+        app.cv?.fileName,
+        app.code,
+      ];
+      return fields.some((f) => String(f ?? '').toLowerCase().includes(q));
+    });
+  });
+
+  readonly filteredSavedJobs = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return this.savedJobs();
+    return this.savedJobs().filter((job) => {
+      const fields = [job.title, job.department?.name, job.code];
+      return fields.some((f) => String(f ?? '').toLowerCase().includes(q));
+    });
+  });
+
+  readonly filteredInterviews = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return this.interviews();
+    return this.interviews().filter((interview) => {
+      const fields = [
+        interview.title,
+        interview.application?.vacancy?.title,
+        interview.status,
+        interview.platform,
+      ];
+      return fields.some((f) => String(f ?? '').toLowerCase().includes(q));
+    });
+  });
+
+  readonly searchPlaceholder = computed(() => {
+    switch (this.activeTab()) {
+      case 'APPLIED':
+        return 'Search by vacancy title, code or status...';
+      case 'SAVED':
+        return 'Search saved jobs by title or department...';
+      case 'INTERVIEWS':
+        return 'Search interviews by title or position...';
+    }
+  });
 
   // Pagination for applications
   appCurrentPage = signal(1);
@@ -120,11 +172,9 @@ export class DashboardComponent implements OnInit {
   getStatusClass(status: ApplicationStatus): string {
     const map: any = {
       [ApplicationStatus.PENDING]: 'bg-slate-50 text-slate-500 border-slate-200',
-      [ApplicationStatus.SCREENING]: 'bg-amber-50 text-amber-600 border-amber-100',
       [ApplicationStatus.INTERVIEW_SCHEDULED]: 'bg-blue-50 text-blue-600 border-blue-100',
       [ApplicationStatus.PENDING_REVIEW]: 'bg-amber-50 text-amber-600 border-amber-100',
       [ApplicationStatus.SELECTED]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-      [ApplicationStatus.ACCEPTED]: 'bg-green-50 text-green-700 border-green-200',
       [ApplicationStatus.REJECTED]: 'bg-red-50 text-red-600 border-red-100',
     };
     return map[status] ?? 'bg-slate-50 text-slate-500 border-slate-200';
@@ -132,6 +182,11 @@ export class DashboardComponent implements OnInit {
 
   toggleAppDetail(appId: number) {
     this.expandedAppId.set(this.expandedAppId() === appId ? null : appId);
+  }
+
+  setActiveTab(tab: 'APPLIED' | 'SAVED' | 'INTERVIEWS') {
+    this.activeTab.set(tab);
+    this.searchQuery.set('');
   }
 
   fetchUserCvs() {

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ApiResponse } from '../models';
+import { ApiResponse, Interview } from '../models';
 
 export interface OverviewDto {
   vacanciesThisMonth: number;
@@ -19,6 +19,30 @@ export interface InterviewerOverviewDto {
   upcomingInterviews: number;
   passedVotes: number;
   failedVotes: number;
+  upcomingInterviewItems?: Interview[];
+}
+
+export interface SystemOverviewDto {
+  users: number;
+  vacancies: number;
+  applications: number;
+  interviews: number;
+}
+
+export interface RecruitmentReportDto {
+  totals: {
+    totalApplications: number;
+    openVacancies: number;
+    hiringRate: number;
+    applicantsInProcess: number;
+  };
+  pipeline: { label: string; status: string; count: number }[];
+  departments: {
+    name: string;
+    code: string;
+    vacancies: number;
+    applications: number;
+  }[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +60,18 @@ export class DashboardService {
   interviewerOverview(): Observable<ApiResponse<InterviewerOverviewDto>> {
     return this.http.get<ApiResponse<InterviewerOverviewDto>>(
       `${this.base}/interviewer-overview`,
+    );
+  }
+
+  systemOverview(): Observable<ApiResponse<SystemOverviewDto>> {
+    return this.http.get<ApiResponse<SystemOverviewDto>>(
+      `${this.base}/system-overview`,
+    );
+  }
+
+  recruitmentReports(): Observable<ApiResponse<RecruitmentReportDto>> {
+    return this.http.get<ApiResponse<RecruitmentReportDto>>(
+      `${this.base}/recruitment-reports`,
     );
   }
 }
