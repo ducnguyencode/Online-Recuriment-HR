@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { Application } from './application.entity';
+import { SavedJob } from './saved-job.entity';
 
 @Entity('vacancies')
 export class Vacancy {
@@ -32,6 +33,11 @@ export class Vacancy {
 
   @OneToMany(() => Application, (a) => a.vacancy)
   applications: Application[];
+
+  @OneToMany(() => SavedJob, (sj) => sj.vacancy)
+  savedJobs: SavedJob[];
+
+  favoritesCount?: number;
 
   @Column({ nullable: true })
   departmentId!: number;

@@ -3,24 +3,35 @@
     <div>
       <h1 class="page-title">Interviews</h1>
       <p class="page-subtitle">
-        Track and manage all scheduled interview sessions
+        {{ auth.isInterviewer() ? "Track your assigned interview sessions" : "Track and manage all scheduled interview sessions" }}
       </p>
     </div>
+    @if (!auth.isInterviewer()) {
     <a class="btn-primary schedule-link" routerLink="/hr-portal/applications">Schedule From Applications</a>
+    }
   </div>
 
   <div class="filter-bar">
-    <input class="form-input filter-search" [(ngModel)]="searchTerm"
+    <input class="form-input filter-search" style="flex:1;min-width:180px" [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()"
       placeholder="Search by applicant ID, vacancy ID, name, title..." />
     <div class="header-filters">
-      <input class="form-input" type="date" [(ngModel)]="filterDate" (change)="loadData()" style="width: 170px" />
-      <select class="form-select" [(ngModel)]="filterStatus" (change)="loadData()" style="width: 180px">
+      <input class="form-input" type="date" [(ngModel)]="filterStartDate" (change)="onFilterChange()" style="width: 150px" placeholder="From" title="From date" />
+      <input class="form-input" type="date" [(ngModel)]="filterEndDate" (change)="onFilterChange()" style="width: 150px" placeholder="To" title="To date" />
+      <select class="form-select" [(ngModel)]="filterStatus" (change)="onFilterChange()" style="width: 155px">
         <option value="">All Statuses</option>
         <option value="Scheduled">Scheduled</option>
         <option value="Completed">Completed</option>
         <option value="Cancelled">Cancelled</option>
         <option value="Postponed">Postponed</option>
       </select>
+      @if (!auth.isInterviewer()) {
+      <select class="form-select" [(ngModel)]="filterInterviewer" (change)="onFilterChange()" style="width: 180px">
+        <option value="">All Interviewers</option>
+        @for (iv of interviewerList; track iv.id) {
+          <option [value]="iv.id">{{ iv.name }}</option>
+        }
+      </select>
+      }
       <button class="btn-secondary" (click)="clearFilters()">Reset</button>
     </div>
   </div>
@@ -83,7 +94,7 @@
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            {{ item.panel.length }} interviewer(s)
+            <span [title]="getInterviewerNames(item.panel)">{{ getInterviewerNames(item.panel) }}</span>
           </div>
           @if (item.googleMeetLink) {
           <div class="tc-detail-item">
@@ -98,7 +109,16 @@
         <!-- Panel vote summary -->
         @if (item.panel.length > 0) {
         <div class="tc-vote-summary">
-          {{ getPanelVoteSummary(item.panel) }}
+          @for (p of item.panel; track p.employeeId) {
+            <span class="vote-chip" [class.vote-chip-pass]="p.vote === 'Pass'" [class.vote-chip-fail]="p.vote === 'Fail'" [class.vote-chip-pending]="p.vote === 'Pending' || !p.vote">
+              @if (p.vote === 'Pass') {
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              } @else if (p.vote === 'Fail') {
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              }
+              {{ p.vote || 'Pending' }}
+            </span>
+          }
         </div>
         }
 
@@ -134,6 +154,42 @@
     </div>
     }
   </div>
+
+  <!-- Pagination -->
+  @if (totalPages() > 1) {
+  <div class="flex justify-center items-center gap-1.5 mt-10 pb-4">
+    <button (click)="onPageChange(currentPage() - 1)" [disabled]="currentPage() === 1"
+            class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    @for (page of getPageNumbers(); track page) {
+      <button (click)="onPageChange(page)"
+              class="w-9 h-9 flex items-center justify-center rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              [class.bg-slate-900]="currentPage() === page"
+              [class.text-white]="currentPage() === page"
+              [class.shadow-md]="currentPage() === page"
+              [class.bg-white]="currentPage() !== page"
+              [class.border]="currentPage() !== page"
+              [class.border-slate-200]="currentPage() !== page"
+              [class.text-slate-600]="currentPage() !== page"
+              [class.hover:bg-slate-50]="currentPage() !== page">
+        {{ page }}
+      </button>
+    }
+    <button (click)="onPageChange(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+            class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+  </div>
+  }
+
+  <div class="text-center text-xs text-slate-400 pb-4" style="margin-top: -8px">
+    {{ totalItems() }} interview(s) total
+  </div>
 </div>
 
 <!-- ====== DETAIL DIALOG ====== -->
@@ -151,141 +207,83 @@
       </button>
     </div>
     <div class="modal-body">
-      <!-- Applicant info -->
-      <div class="detail-top">
-        <div class="detail-avatar-lg">
-          {{ getInitials(getApplicantName(selectedInterview()!)) }}
+      <div class="detail-section-card mb-4">
+        <div class="section-card-header text-blue-700 font-bold flex items-center gap-2 border-b pb-2 mb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          Candidate Information
         </div>
-        <div>
-          <h3 class="detail-name">
-            {{ getApplicantName(selectedInterview()!) }}
-          </h3>
-          <p class="detail-email">
-            {{ selectedInterview()!.application?.applicant?.email }}
-          </p>
-          <span class="badge" [ngClass]="getStatusClass(selectedInterview()!.status)" style="margin-top: 4px">
-            {{ selectedInterview()!.status }}
-          </span>
-        </div>
-      </div>
-
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Application ID</span>
-          <span class="detail-value">{{
-            applicationDisplayId(selectedInterview()!.applicationId)
-            }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Applicant ID</span>
-          <span class="detail-value">{{
-            applicantDisplayId(selectedInterview()!.application?.applicantId)
-            }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Position</span>
-          <span class="detail-value">{{
-            getVacancyTitle(selectedInterview()!)
-            }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Vacancy ID</span>
-          <span class="detail-value">{{
-            vacancyDisplayId(selectedInterview()!.application?.vacancyId)
-            }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Date</span>
-          <span class="detail-value">{{
-            selectedInterview()!.interviewDate | date: "dd/MM/yyyy (EEEE)"
-            }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Time</span>
-          <span class="detail-value">{{ selectedInterview()!.startTime }} –
-            {{ selectedInterview()!.endTime }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Platform</span>
-          <span class="detail-value">{{ getPlatformIcon(selectedInterview()!.platform) }}
-            {{ selectedInterview()!.platform }}</span>
-        </div>
-      </div>
-
-      @if (selectedInterview()!.meetLink) {
-      <div class="meet-link-box">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-        </svg>
-        <a [href]="selectedInterview()!.meetLink" target="_blank">{{
-          selectedInterview()!.meetLink
-          }}</a>
-      </div>
-      }
-
-      <!-- Interview Panel -->
-      <div class="cv-section" style="margin-top: 20px">
-        <h4 class="section-title">Interview Panel</h4>
-        <div class="panel-detail-list">
-          @for (
-          member of selectedInterview()!.panel;
-          track member.employeeId
-          ) {
-          <div class="panel-detail-item">
-            <div class="interviewer-avatar">
-              {{
-              getInitials(member.fullName ?? member.employee?.fullName)
-              }}
-            </div>
-            <div class="panel-detail-info">
-              <span class="panel-name">{{
-                member.fullName ??
-                member.employee?.fullName ??
-                member.employeeId
-                }}</span>
-              <span class="panel-role">{{
-                member.role ?? "Interviewer"
-                }}</span>
-            </div>
-            <span class="vote-tag" [ngClass]="getVoteClass(member.vote)">
-              @if (member.vote === "Pass") {
-              ✅ Pass
-              } @else if (member.vote === "Fail") {
-              ❌ Fail
-              } @else {
-              ⏳ Pending
-              }
-            </span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="detail-item">
+            <span class="detail-label">Full Name</span>
+            <span class="detail-value font-bold text-lg text-slate-900">{{
+              $any(selectedInterview()!.application)?.applicant?.fullName }}</span>
           </div>
-          @if (member.feedback) {
-          <p class="panel-feedback">"{{ member.feedback }}"</p>
-          }
-          }
+          <div class="detail-item">
+            <span class="detail-label">Email Address</span>
+            <span class="detail-value text-blue-600 underline">{{
+              $any(selectedInterview()!.application)?.applicant?.email }}</span>
+          </div>
+          <div class="detail-item col-span-2" *ngIf="$any(selectedInterview()!.application)?.applicant?.cvUrl">
+            <span class="detail-label">Resume / CV</span>
+            <a *ngIf="$any(selectedInterview()!.application)?.applicant?.cvUrl"
+              [href]="'http://localhost:3000/uploads/' + $any(selectedInterview()!.application)?.applicant?.cvUrl"
+              target="_blank"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+              </svg>
+              View Candidate's CV
+            </a>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="modal-footer">
-      @if (selectedInterview()!.status === "Scheduled") {
-      @if (canReschedule()) {
-      <button class="btn-secondary" (click)="
-                openPostponeDialog(selectedInterview()!, $event); closeDetail()
-              ">
-        Reschedule
-      </button>
-      }
-      @if (canSubmitResult()) {
-      <button class="btn-primary" [disabled]="isBeforeStartTime(selectedInterview()!)"
-        [class.opacity-50]="isBeforeStartTime(selectedInterview()!)"
-        [class.cursor-not-allowed]="isBeforeStartTime(selectedInterview()!)"
-        [title]="isBeforeStartTime(selectedInterview()!) ? 'Cannot submit before interview starts' : ''"
-        (click)="openResultDialog(selectedInterview()!, $event); closeDetail()">
-        Submit Result
-      </button>
-      }
-      }
-      <button class="btn-secondary" (click)="closeDetail()">Close</button>
+
+      <div class="detail-section-card mb-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+        <div class="section-card-header text-slate-900 font-bold flex items-center gap-2 border-b pb-2 mb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+            </path>
+          </svg>
+          Vacancy & Role Requirements
+        </div>
+        <div class="grid grid-cols-1 gap-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="detail-item">
+              <span class="detail-label">Position Title</span>
+              <span class="detail-value font-bold">{{ $any(selectedInterview()!.application)?.vacancy?.title }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Department</span>
+              <span class="detail-value text-slate-600">{{
+                $any(selectedInterview()!.application)?.vacancy?.departmentName }}</span>
+            </div>
+          </div>
+
+          <div class="detail-item border-t pt-3">
+            <span class="detail-label">Job Description</span>
+            <div class="text-sm text-slate-600 line-clamp-3 overflow-hidden">{{
+              $any(selectedInterview()!.application)?.vacancy?.description }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 flex justify-between items-center">
+        <div>
+          <span class="block text-[10px] font-bold text-blue-500 uppercase tracking-widest">Meeting Schedule</span>
+          <div class="font-bold text-blue-900">{{ selectedInterview()!.startTime }} - {{ selectedInterview()!.endTime }}
+          </div>
+        </div>
+        <a *ngIf="selectedInterview()!.meetLink" [href]="selectedInterview()!.meetLink" target="_blank"
+          class="px-5 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm shadow-md hover:bg-blue-700 transition-all">
+          Join Interview
+        </a>
+      </div>
     </div>
   </div>
 </div>
@@ -309,17 +307,17 @@
       @if (postponeError) {
       <div class="form-error-banner">{{ postponeError }}</div>
       }
-      <div class="form-row">
+      <div class="form-row" style="display:flex;gap:12px;align-items:flex-end">
         <div class="form-group" style="flex: 1">
-          <label class="form-label">Interview Date <span class="required">*</span></label>
+          <label class="form-label">Date <span class="required">*</span></label>
           <input type="date" class="form-input" [(ngModel)]="postponeData.interviewDate" />
         </div>
-        <div class="form-group" style="width: 130px">
-          <label class="form-label">Start Time <span class="required">*</span></label>
-          <input type="time" class="form-input" [(ngModel)]="postponeData.startTime" />
+        <div class="form-group" style="width: 120px">
+          <label class="form-label">Start <span class="required">*</span></label>
+          <input type="time" class="form-input" [(ngModel)]="postponeData.startTime" (ngModelChange)="onPostponeStartTimeChange($event)" />
         </div>
-        <div class="form-group" style="width: 130px">
-          <label class="form-label">End Time <span class="required">*</span></label>
+        <div class="form-group" style="width: 120px">
+          <label class="form-label">End <span class="required">*</span></label>
           <input type="time" class="form-input" [(ngModel)]="postponeData.endTime" />
         </div>
       </div>
@@ -364,11 +362,13 @@
         <div class="vote-choice-row">
           <label class="vote-choice" [class.selected-pass]="resultData.vote === 'Pass'">
             <input type="radio" name="vote" value="Pass" [(ngModel)]="resultData.vote" />
-            ✅ Pass — Recommend
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Pass
           </label>
           <label class="vote-choice" [class.selected-fail]="resultData.vote === 'Fail'">
             <input type="radio" name="vote" value="Fail" [(ngModel)]="resultData.vote" />
-            ❌ Fail — Not Recommend
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            Fail
           </label>
         </div>
       </div>

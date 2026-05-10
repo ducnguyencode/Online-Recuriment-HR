@@ -8,6 +8,7 @@ import {
   Get,
   Query,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InterviewService } from '../services/interview.service';
 import { InterviewCreateDto } from '../dto/interview-create.dto';
@@ -72,7 +73,7 @@ export class InterviewController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
   async updateStatus(
     @Param('id') id: string,
     @Body() data: InterviewUpdateStatusDto,
@@ -87,8 +88,26 @@ export class InterviewController {
   }
 
   @Get()
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
-  async findAll(@Query() query: any) {
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN, UserRole.APPLICANT)
+  async findAll(@Query() query: any, @CurrentUser() user: AuthUser) {
+    const currentUser = user as any;
+    if (currentUser.role === UserRole.INTERVIEWER) {
+      const employeeId =
+        await this.interviewService.resolveEmployeeIdForUser(currentUser);
+      if (!employeeId) {
+        throw new ForbiddenException(
+          'Your interviewer account is not linked to an employee profile.',
+        );
+      }
+      query = {
+        ...query,
+        employeeId,
+      };
+    }
+
+    if (currentUser.role === UserRole.APPLICANT) {
+      query = { ...query, applicantUserId: currentUser.id };
+    }
     const data = await this.interviewService.findAll(query);
     return {
       statusCode: HttpStatus.OK,
@@ -98,9 +117,26 @@ export class InterviewController {
   }
 
   @Get(':id')
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
-  async findOne(@Param('id') id: string) {
+  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN, UserRole.APPLICANT)
+  async findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    const currentUser = user as any;
     const data = await this.interviewService.findOne(id);
+    if (currentUser.role === UserRole.INTERVIEWER) {
+      const employeeId =
+        await this.interviewService.resolveEmployeeIdForUser(currentUser);
+      if (!employeeId) {
+        throw new ForbiddenException(
+          'Your interviewer account is not linked to an employee profile.',
+        );
+      }
+      await this.interviewService.ensureInterviewerCanAccess(id, employeeId);
+    }
+    if (currentUser.role === UserRole.APPLICANT) {
+      const applicantUserId = data.application?.applicant?.user?.id;
+      if (String(applicantUserId) !== String(currentUser.id)) {
+        throw new ForbiddenException('You do not have permission to access this interview');
+      }
+    }
     return {
       statusCode: HttpStatus.OK,
       data,
@@ -108,6 +144,7 @@ export class InterviewController {
   }
 
   @Patch(':id/result')
+  @Roles(UserRole.INTERVIEWER)
   async submitResult(
     @Param('id') id: string,
     @Body() data: SubmitResultDto,
@@ -115,8 +152,7 @@ export class InterviewController {
   ) {
     const result = await this.interviewService.submitResult(
       id,
-      user.userId,
-      user.employeeId,
+      await this.interviewService.resolveEmployeeIdForUser(user),
       data.vote,
       data.feedback,
     );

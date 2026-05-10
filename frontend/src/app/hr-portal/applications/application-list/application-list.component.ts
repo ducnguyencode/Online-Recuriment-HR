@@ -21,6 +21,7 @@ import {
   Employee,
   UserRole,
   Vacancy,
+  VacancyStatus,
   canAttachToVacancy,
   canAttachVacancyToApplicant,
 } from '../../../core/models';
@@ -183,12 +184,12 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
 
   loadApplications() {
     this.loading.set(true);
+    const dateRange = this.getApplicationDateRange();
     this.applicationService
       .getAll({
         status: this.filterStatus || undefined,
         vacancyId: this.selectedVacancyId || undefined,
-        startDate: this.filterStartDate || undefined,
-        endDate: this.filterEndDate || undefined,
+        ...dateRange,
         search: this.useBackendSearch() ? this.searchQuery : undefined,
         page: this.currentPage(),
         limit: this.pageSize,
@@ -217,6 +218,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
               : {}),
           });
           raw = this.applyLocalSearch(raw);
+          raw = this.applyLocalDateFilter(raw);
           const start = (this.currentPage() - 1) * this.pageSize;
           const items = raw.map((a) => ({
             ...a,
@@ -237,6 +239,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   visibleApplications(): Application[] {
     const query = this.searchQuery.trim().toLowerCase();
     if (!query) return this.applications();
+    // If backend search was used, don't double-filter locally
+    if (this.useBackendSearch()) return this.applications();
     return this.applications().filter((app) => {
       const values = [
         app.code,
@@ -248,7 +252,9 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
         app.applicant?.code,
         app.vacancy?.code,
         app.applicant?.fullName,
+        (app.applicant as any)?.user?.fullName,
         app.applicant?.email,
+        (app.applicant as any)?.user?.email,
         app.vacancy?.title,
       ];
       return values.some((value) =>
@@ -485,10 +491,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   }
 
   canSchedule(app: Application): boolean {
-    return (
-      app.status === ApplicationStatus.PENDING ||
-      app.status === ApplicationStatus.SCREENING
-    );
+    return app.status === ApplicationStatus.PENDING;
   }
 
   openInterviewDialog(app: Application, event: Event) {
@@ -619,8 +622,11 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       this.interviewError = 'Date, start time and end time are required.';
       return;
     }
-    if (new Date(date) <= new Date()) {
-      this.interviewError = 'Interview date must be in the future.';
+
+    const startDateTime = new Date(`${date}T${startTime}:00`);
+    const bufferTime = new Date(Date.now() + 60 * 60 * 1000); // now + 1 hour
+    if (startDateTime <= bufferTime) {
+      this.interviewError = 'Start time must be at least 1 hour from now.';
       return;
     }
     if (startTime >= endTime) {
@@ -673,13 +679,21 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   getStatusClass(status: ApplicationStatus): string {
     const map: Record<string, string> = {
       [ApplicationStatus.PENDING]: 'badge-neutral',
-      [ApplicationStatus.SCREENING]: 'badge-warning',
       [ApplicationStatus.INTERVIEW_SCHEDULED]: 'badge-info',
+      [ApplicationStatus.PENDING_REVIEW]: 'badge-warning',
       [ApplicationStatus.SELECTED]: 'badge-success',
       [ApplicationStatus.REJECTED]: 'badge-danger',
       [ApplicationStatus.NOT_REQUIRED]: 'badge-neutral',
     };
     return map[status] ?? 'badge-neutral';
+  }
+
+  shortenStatus(status: string): string {
+    const shortMap: Record<string, string> = {
+      'Interview Scheduled': 'Scheduled',
+      'Pending Review': 'In Review',
+    };
+    return shortMap[status] ?? status;
   }
 
   getScoreClass(score: number | undefined): string {
@@ -705,6 +719,22 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
 
   displayApplicationScore(app: Application) {
     return app.aiPreview?.matchScore ?? app.aiMatchScore;
+  }
+
+  canSelectApplication(app: Application): boolean {
+    const vacancy = app.vacancy;
+    if (!vacancy) return true;
+    if (vacancy.status !== VacancyStatus.OPENED) return false;
+    return (
+      Number(vacancy.filledCount ?? 0) <
+      Number(vacancy.numberOfOpenings ?? 0)
+    );
+  }
+
+  getSelectDisabledReason(app: Application): string {
+    return this.canSelectApplication(app)
+      ? 'Select applicant'
+      : 'This vacancy is closed or has no remaining openings.';
   }
 
   private getMockInterviewers(): Employee[] {
@@ -820,16 +850,48 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     });
   }
 
-  acceptedApplication(applicationId: string) {
+  private getApplicationDateRange(): {
+    startDate?: string;
+    endDate?: string;
+  } {
+    if (this.filterStartDate && this.filterEndDate) {
+      return {
+        startDate: this.filterStartDate,
+        endDate: this.filterEndDate,
+      };
+    }
+
+    const singleDate = this.filterStartDate || this.filterEndDate;
+    if (!singleDate) return {};
+
+    return {
+      startDate: singleDate,
+      endDate: singleDate,
+    };
+  }
+
+  private applyLocalDateFilter(applications: Application[]): Application[] {
+    const { startDate, endDate } = this.getApplicationDateRange();
+    if (!startDate || !endDate) return applications;
+
+    const start = new Date(`${startDate}T00:00:00`).getTime();
+    const end = new Date(`${endDate}T23:59:59.999`).getTime();
+    return applications.filter((app) => {
+      const date = new Date(app.createdAt ?? app.updatedAt ?? '').getTime();
+      return Number.isFinite(date) && date >= start && date <= end;
+    });
+  }
+
+  selectApplication(applicationId: string) {
     this.confirmService.show(
-      'Are you sure to accept this applicant',
-      'Accept Applicant',
+      'Are you sure you want to select this applicant?',
+      'Select Applicant',
       'info',
       true,
       true,
       () => {
         this.applicationService
-          .changeStatus(applicationId, ApplicationStatus.ACCEPTED)
+          .changeStatus(applicationId, ApplicationStatus.SELECTED)
           .subscribe({
             next: (res) => {
               this.loadApplications();

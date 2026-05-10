@@ -20,7 +20,7 @@ export class VacancyUpdateDto {
   description!: string;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   numberOfOpenings!: number;
 
   @IsOptional()

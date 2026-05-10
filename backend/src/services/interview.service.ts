@@ -2,6 +2,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -86,11 +87,11 @@ export class InterviewService {
   async create(data: InterviewCreateDto, userId: number) {
     const start = new Date(data.startTime);
     const end = new Date(data.endTime);
-    const now = new Date();
+    const bufferTime = new Date(Date.now() + 60 * 60 * 1000); // now + 1 hour
 
     // 1. Basic time validation
-    if (start <= now)
-      throw new BadRequestException('Start time must be in the future.');
+    if (start <= bufferTime)
+      throw new BadRequestException('Start time must be at least 1 hour from now.');
     if (end <= start)
       throw new BadRequestException('End time must be after start time.');
 
@@ -106,10 +107,7 @@ export class InterviewService {
         relations: ['applicant', 'applicant.user'], // Need applicant info for the email queue
       });
 
-      if (
-        !application ||
-        ['Selected', 'Rejected'].includes(application.status)
-      ) {
+      if (!application || application.status !== ApplicationStatus.PENDING) {
         throw new NotFoundException(
           'Application not found or no longer eligible for interview.',
         );
@@ -159,6 +157,10 @@ export class InterviewService {
       newInterview.status = InterviewStatus.SCHEDULED;
 
       const savedInterview = await queryRunner.manager.save(newInterview);
+
+      // Update application status to INTERVIEW_SCHEDULED
+      application.status = ApplicationStatus.INTERVIEW_SCHEDULED;
+      await queryRunner.manager.save(application);
 
       // 7. Save Interviewer Panel Records
       const panelRecord = queryRunner.manager.create(InterviewerPanel, {
@@ -247,10 +249,10 @@ export class InterviewService {
   ) {
     const start = new Date(startTime);
     const end = new Date(endTime);
-    const now = new Date();
+    const bufferTime = new Date(Date.now() + 60 * 60 * 1000); // now + 1 hour
 
-    if (start <= now)
-      throw new BadRequestException('Start time must be in the future.');
+    if (start <= bufferTime)
+      throw new BadRequestException('Start time must be at least 1 hour from now.');
     if (end <= start)
       throw new BadRequestException('End time must be after start time.');
 
@@ -446,40 +448,69 @@ export class InterviewService {
   }
 
   async findAll(query: any) {
-    const { status, search, page = 1, limit = 10, employeeId, applicantId } = query;
+    const { status, search, page = 1, limit = 10, employeeId, applicantId, applicantUserId, startDate, endDate } = query;
 
-    const whereCondition: any = {};
-    if (status) whereCondition.status = status;
+    const qb = this.interviewRepo.createQueryBuilder('interview')
+      .leftJoinAndSelect('interview.application', 'application')
+      .leftJoinAndSelect('application.applicant', 'applicant')
+      .leftJoinAndSelect('applicant.user', 'applicantUser')
+      .leftJoinAndSelect('application.vacancy', 'vacancy')
+      .leftJoinAndSelect('vacancy.department', 'department')
+      .leftJoinAndSelect('application.cv', 'cv')
+      .leftJoinAndSelect('interview.panels', 'panels')
+      .leftJoinAndSelect('panels.employee', 'panelEmployee')
+      .leftJoinAndSelect('panelEmployee.user', 'panelUser');
+
+    if (status) {
+      qb.andWhere('interview.status = :status', { status });
+    }
+
+    if (startDate) {
+      qb.andWhere('DATE(interview.startTime) >= :startDate', { startDate });
+    }
+
+    if (endDate) {
+      qb.andWhere('DATE(interview.startTime) <= :endDate', { endDate });
+    }
+
+    if (search) {
+      qb.andWhere(
+        '(interview.title ILIKE :search OR applicantUser.fullName ILIKE :search OR applicantUser.email ILIKE :search OR vacancy.title ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
 
     if (employeeId) {
-      whereCondition.panels = { employeeId: employeeId };
+      qb.andWhere('panels.employeeId = :employeeId', { employeeId });
     }
 
     if (applicantId) {
-      whereCondition.application = { applicantId: applicantId };
+      qb.andWhere('application.applicantId = :applicantId', { applicantId: Number(applicantId) || applicantId });
     }
 
-    const [items, totalItems] = await this.interviewRepo.findAndCount({
-      where: whereCondition,
-      relations: [
-        'application',
-        'application.applicant',
-        'application.applicant.user',
-        'application.vacancy',
-        'panels',
-        'panels.employee',
-        'panels.employee.user',
-      ],
-      order: { startTime: 'DESC' },
-      take: limit,
-      skip: (page - 1) * limit,
-    });
+    if (applicantUserId) {
+      qb.andWhere('applicantUser.id = :applicantUserId', { applicantUserId: Number(applicantUserId) || applicantUserId });
+    }
+
+    qb.orderBy('interview.startTime', 'DESC');
+
+    const totalItems = await qb.getCount();
+
+    let items: Interview[];
+    if (Number(limit) === 0) {
+      items = await qb.getMany();
+    } else {
+      items = await qb
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany();
+    }
 
     return {
       items,
       totalItems,
-      totalPages: Math.ceil(totalItems / limit),
-      currentPage: Number(page),
+      totalPages: Number(limit) === 0 ? 1 : Math.ceil(totalItems / limit),
+      currentPage: Number(limit) === 0 ? 1 : Number(page),
     };
   }
 
@@ -488,9 +519,11 @@ export class InterviewService {
       where: { id },
       relations: [
         'application',
+        'application.cv',
         'application.applicant',
         'application.applicant.user',
         'application.vacancy',
+        'application.vacancy.department',
         'panels',
         'panels.employee',
         'panels.employee.user',
@@ -498,12 +531,46 @@ export class InterviewService {
     });
 
     if (!interview)
-      throw new NotFoundException('Không tìm thấy buổi phỏng vấn');
+      throw new NotFoundException('Interview not found');
     return interview;
   }
 
+  async resolveEmployeeIdForUser(user: any): Promise<string> {
+    const directEmployeeId = user?.employeeId ?? user?.employee?.id;
+    if (directEmployeeId) return String(directEmployeeId);
+
+    const employee = await this.dataSource.manager.findOne(Employee, {
+      where: { user: { id: Number(user?.id) } },
+    });
+
+    return employee?.id ? String(employee.id) : '';
+  }
+
+  async ensureInterviewerCanAccess(id: string, employeeId: string | number) {
+    const interview = await this.interviewRepo
+      .createQueryBuilder('interview')
+      .innerJoin('interview.panels', 'panel')
+      .where('interview.id = :id', { id })
+      .andWhere('panel.employeeId = :employeeId', {
+        employeeId: String(employeeId),
+      })
+      .getOne();
+
+    if (!interview) {
+      throw new ForbiddenException(
+        'You do not have permission to access this interview.',
+      );
+    }
+  }
+
   // SUBMIT INTERVIEW RESULT (VOTE & FEEDBACK)
-  async submitResult(interviewId: string, userId: number | string, employeeId: string | undefined, vote: 'Pass' | 'Fail', feedback: string) {
+  async submitResult(interviewId: string, employeeId: string | number | undefined, vote: 'Pass' | 'Fail', feedback: string) {
+    if (!employeeId) {
+      throw new ForbiddenException(
+        'Your interviewer account is not linked to an employee profile.',
+      );
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -511,7 +578,7 @@ export class InterviewService {
     try {
       const interview = await queryRunner.manager.findOne(Interview, {
         where: { id: interviewId },
-        relations: ['panels', 'panels.employee', 'application', 'panels.employee.user', 'application.applicant', 'application.vacancy',]
+        relations: ['panels', 'panels.employee', 'application', 'panels.employee.user', 'application.applicant', 'application.applicant.user', 'application.vacancy',]
       });
 
       if (!interview) throw new NotFoundException('Interview not found.');
@@ -523,7 +590,15 @@ export class InterviewService {
         throw new BadRequestException('Cannot submit result before the interview has started.');
       }
 
-      const myPanel = interview.panels[0];
+      const myPanel = interview.panels.find(
+        (panel) => String(panel.employeeId) === String(employeeId),
+      );
+      if (!myPanel) {
+        throw new ForbiddenException(
+          'You do not have permission to submit a result for this interview.',
+        );
+      }
+
       myPanel.vote = vote;
       myPanel.feedback = feedback;
       await queryRunner.manager.save(InterviewerPanel, myPanel);
@@ -532,25 +607,8 @@ export class InterviewService {
       await queryRunner.manager.save(Interview, interview);
 
       if (interview.application) {
-        if (vote === 'Pass') {
-          interview.application.status = ApplicationStatus.SELECTED;
-          await queryRunner.manager.save(Application, interview.application);
-        } else {
-          interview.application.status = ApplicationStatus.REJECTED;
-          await queryRunner.manager.save(Application, interview.application);
-          const activeApplicationsCount = await queryRunner.manager.count(Application, {
-            where: {
-              applicant: { id: interview.application.applicant.id },
-              id: Not(interview.application.id),
-              status: Not(In([ApplicationStatus.REJECTED, ApplicationStatus.SELECTED]))
-            }
-          });
-
-          if (activeApplicationsCount === 0) {
-            interview.application.applicant.status = ApplicantStatus.NOT_IN_PROCESS;
-            await queryRunner.manager.save(interview.application.applicant);
-          }
-        }
+        // Both Pass and Fail → Pending Review. Super Admin makes the final decision.
+        interview.application.status = ApplicationStatus.PENDING_REVIEW;
         await queryRunner.manager.save(Application, interview.application);
       }
 
@@ -558,7 +616,10 @@ export class InterviewService {
 
       this.eventEmitter.emit('interview.result_submitted', {
         interviewId: interview.id,
-        candidateName: interview.application.applicant.fullName,
+        candidateName:
+          interview.application.applicant.user?.fullName ||
+          interview.application.applicant.fullName ||
+          'the candidate',
         interviewerName: myPanel.employee.user.fullName || 'An Interviewer',
         vote: vote,
         targetHrId: interview.application.vacancy?.createdById,

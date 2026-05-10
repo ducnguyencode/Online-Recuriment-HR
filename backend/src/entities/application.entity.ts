@@ -5,6 +5,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -48,9 +49,9 @@ export class Application {
   cvId!: number | null;
 
   @Column({
-    type: 'enum',
+    type: 'varchar',
+    length: 32,
     default: ApplicationStatus.PENDING,
-    enum: ApplicationStatus,
   })
   status!: ApplicationStatus;
 
@@ -65,4 +66,7 @@ export class Application {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
+
+  @OneToMany('Interview', 'application')
+  interviews!: any[];
 }

@@ -15,10 +15,10 @@ export class ToastService {
 
     show(message: string, type: ToastType = 'info') {
         const id = this.counter++;
-        // Thêm thông báo mới vào danh sách
+        // Add the new notification to the list.
         this.toasts.update(currentToasts => [...currentToasts, { id, message, type }]);
 
-        // Tự động tắt sau 3.5 giây
+        // Auto-dismiss after 3.5 seconds.
         setTimeout(() => this.remove(id), 3500);
     }
 

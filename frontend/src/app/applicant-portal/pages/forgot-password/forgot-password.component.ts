@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,7 +13,7 @@ import { ToastService } from '../../../core/services/toast.service';
   templateUrl: './forgot-password.component.html',
   styleUrls: ['./forgot-password.component.scss']
 })
-export class ForgotPasswordComponent implements OnDestroy {
+export class ForgotPasswordComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -29,12 +29,32 @@ export class ForgotPasswordComponent implements OnDestroy {
   isLoading = false;
   isSent = false;
   isResetDone = false;
+  isVerifyingToken = false;
+  isTokenInvalid = false;
+  tokenErrorMessage = '';
   errorMessage = '';
   successMessage = '';
   private resetRedirectTimer: ReturnType<typeof setTimeout> | null = null;
   showPassword = false;
   showConfirmPassword = false;
   currentYear = new Date().getFullYear();
+
+  ngOnInit() {
+    if (this.isResetMode) {
+      this.isVerifyingToken = true;
+      this.auth.verifyResetToken(this.token).subscribe({
+        next: () => {
+          this.isVerifyingToken = false;
+        },
+        error: (err) => {
+          this.isVerifyingToken = false;
+          this.isTokenInvalid = true;
+          this.tokenErrorMessage =
+            err?.error?.message ?? 'Invalid or expired reset token.';
+        },
+      });
+    }
+  }
 
   get isResetMode() {
     return !!this.token;
@@ -73,8 +93,9 @@ export class ForgotPasswordComponent implements OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
 
-    if (!this.newPassword || this.newPassword.length < 6) {
-      this.errorMessage = 'Password must have at least 6 characters.';
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!this.newPassword || !passwordRegex.test(this.newPassword)) {
+      this.errorMessage = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special symbol.';
       return;
     }
     if (this.newPassword !== this.confirmPassword) {

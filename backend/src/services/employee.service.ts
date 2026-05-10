@@ -138,29 +138,25 @@ export class EmployeeService {
   }
 
   async updateAccount(data: EmployeeUpdateDto, safeUser: SafeUserDto) {
-    if (data.email == safeUser.email && data.fullName == safeUser.fullName) {
-      return null;
+    const requestedEmail = data.email?.trim().toLowerCase();
+    if (requestedEmail && requestedEmail !== safeUser.email) {
+      throw new BadRequestException('Email cannot be changed.');
+    }
+
+    const nextFullName = data.fullName.trim();
+    if (nextFullName == safeUser.fullName) {
+      const existing = await this.userService.findById(safeUser.id);
+      return signToken(existing!, this.jwtService);
     }
     const user = await this.employeeTable.manager.transaction(
       async (manager) => {
         const currentUser = await manager
           .createQueryBuilder(User, 'user')
           .setLock('pessimistic_write')
-          .where('user.email = :email', { email: safeUser.email })
+          .where('user.id = :id', { id: safeUser.id })
           .getOneOrFail();
 
-        const exising = await manager
-          .createQueryBuilder(User, 'user')
-          .setLock('pessimistic_write')
-          .where('user.email = :email', { email: data.email })
-          .getOne();
-
-        if (exising && exising.id != currentUser.id) {
-          throw new ConflictException('Email already exist');
-        }
-
-        currentUser.email = data.email;
-        currentUser.fullName = data.fullName;
+        currentUser.fullName = nextFullName;
 
         try {
           return await manager.save(currentUser);
@@ -172,7 +168,8 @@ export class EmployeeService {
         }
       },
     );
-    return signToken(user, this.jwtService);
+    const profileUser = (await this.userService.findById(user.id)) ?? user;
+    return signToken(profileUser, this.jwtService);
   }
 
   async changePassword(data: EmployeeChangePasswordDto, safeUser: SafeUserDto) {

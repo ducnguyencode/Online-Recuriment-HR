@@ -24,7 +24,8 @@ export interface InterviewRescheduleDto {
 
 export interface InterviewFilters {
   status?: string;
-  date?: string;
+  startDate?: string;
+  endDate?: string;
   applicantId?: string;
   vacancyId?: string;
   search?: string;
@@ -48,12 +49,13 @@ export class InterviewService {
   getAll(filters: InterviewFilters = {}): Observable<ApiResponse<PaginatedResponse<Interview>>> {
     let params = new HttpParams();
     if (filters.status) params = params.set('status', filters.status);
-    if (filters.date) params = params.set('date', filters.date);
+    if (filters.startDate) params = params.set('startDate', filters.startDate);
+    if (filters.endDate) params = params.set('endDate', filters.endDate);
     if (filters.applicantId) params = params.set('applicantId', filters.applicantId);
     if (filters.vacancyId) params = params.set('vacancyId', filters.vacancyId);
     if (filters.search) params = params.set('search', filters.search);
     if (filters.page) params = params.set('page', filters.page.toString());
-    if (filters.limit) params = params.set('limit', filters.limit.toString());
+    if (filters.limit != null) params = params.set('limit', filters.limit.toString());
     if (filters.employeeId) params = params.set('employeeId', filters.employeeId);
     return this.http.get<ApiResponse<PaginatedResponse<Interview>>>(this.base, { params });
   }

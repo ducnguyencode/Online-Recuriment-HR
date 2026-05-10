@@ -352,7 +352,7 @@ export class MockDataService {
       applicantId: 'appl-2',
       vacancyId: '2',
       cvId: 'cv-2',
-      status: ApplicationStatus.SCREENING,
+      status: ApplicationStatus.PENDING,
       // aiMatchScore: 82,
       createdAt: this.pastDate(7),
       updatedAt: this.pastDate(7),
@@ -385,7 +385,7 @@ export class MockDataService {
       applicantId: 'appl-5',
       vacancyId: '2',
       cvId: 'cv-4',
-      status: ApplicationStatus.SCREENING,
+      status: ApplicationStatus.PENDING,
       // aiMatchScore: 52,
       createdAt: this.pastDate(6),
       updatedAt: this.pastDate(4),
@@ -438,7 +438,7 @@ export class MockDataService {
       applicantId: 'appl-2',
       vacancyId: '1',
       cvId: 'cv-2',
-      status: ApplicationStatus.SCREENING,
+      status: ApplicationStatus.PENDING,
       // aiMatchScore: 68,
       createdAt: this.pastDate(2),
       updatedAt: this.pastDate(2),
@@ -1107,9 +1107,11 @@ export class MockDataService {
     const totalApplications = this.applications.length;
     const inProcess = this.applications.filter(
       (a) =>
-        ![ApplicationStatus.SELECTED, ApplicationStatus.REJECTED].includes(
-          a.status,
-        ),
+        ![
+          ApplicationStatus.SELECTED,
+          ApplicationStatus.REJECTED,
+          ApplicationStatus.NOT_REQUIRED,
+        ].includes(a.status),
     ).length;
     const selected = this.applications.filter(
       (a) => a.status === ApplicationStatus.SELECTED,

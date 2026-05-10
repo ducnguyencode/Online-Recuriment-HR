@@ -1,5 +1,6 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ApplicationService } from '../../../core/services/application.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -13,7 +14,7 @@ import { FavoriteJobService } from '../../../core/services/favorite-job.service'
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './dashboard.html',
 })
 export class DashboardComponent implements OnInit {
@@ -23,12 +24,70 @@ export class DashboardComponent implements OnInit {
 
   interviews = signal<any[]>([]);
 
+  searchQuery = signal('');
+
+  readonly filteredApplications = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return this.applications();
+    return this.applications().filter((app) => {
+      const fields = [
+        app.vacancy?.title,
+        app.vacancy?.code,
+        app.status,
+        app.cv?.fileName,
+        app.code,
+      ];
+      return fields.some((f) => String(f ?? '').toLowerCase().includes(q));
+    });
+  });
+
+  readonly filteredSavedJobs = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return this.savedJobs();
+    return this.savedJobs().filter((job) => {
+      const fields = [job.title, job.department?.name, job.code];
+      return fields.some((f) => String(f ?? '').toLowerCase().includes(q));
+    });
+  });
+
+  readonly filteredInterviews = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return this.interviews();
+    return this.interviews().filter((interview) => {
+      const fields = [
+        interview.title,
+        interview.application?.vacancy?.title,
+        interview.status,
+        interview.platform,
+      ];
+      return fields.some((f) => String(f ?? '').toLowerCase().includes(q));
+    });
+  });
+
+  readonly searchPlaceholder = computed(() => {
+    switch (this.activeTab()) {
+      case 'APPLIED':
+        return 'Search by vacancy title, code or status...';
+      case 'SAVED':
+        return 'Search saved jobs by title or department...';
+      case 'INTERVIEWS':
+        return 'Search interviews by title or position...';
+    }
+  });
+
+  // Pagination for applications
+  appCurrentPage = signal(1);
+  appTotalPages = signal(1);
+  appTotalItems = signal(0);
+  readonly appPageSize = 10;
+
   isApplyModalOpen = false;
   selectedJobTitle = '';
   applyForm = { applicantId: '', vacancyId: '' };
   myCvs = signal<any[]>([]);
   selectedCvId = signal<string | null>(null);
   loading = signal(false);
+  expandedAppId = signal<number | null>(null);
 
   private applicationService = inject(ApplicationService);
   private authService = inject(AuthService);
@@ -37,24 +96,12 @@ export class DashboardComponent implements OnInit {
   private interviewService = inject(InterviewService);
   private favoriteJobService = inject(FavoriteJobService);
 
-  // NGONINIT GỐC (CHỈ THÊM 2 DÒNG GỌI HÀM MỚI BÊN DƯỚI)
   ngOnInit(): void {
-    const applicantId = this.authService.currentUser()?.applicantId;
-    // Đoạn code gốc của team:
-    this.applicationService
-      .getAll({
-        applicantId: this.authService.currentUser()?.applicantId,
-      })
-      .subscribe({
-        next: (res) => {
-          this.applications.set((res.data as any)?.items) ?? [];
-        },
-      });
-
-    // Đoạn code mới thêm vào:
+    this.fetchApplications();
     this.loadSavedJobs();
     this.fetchUserCvs();
 
+    const applicantId = this.authService.currentUser()?.applicantId;
     if (applicantId) {
       this.interviewService.getAll({ applicantId: applicantId }).subscribe({
         next: (res) => {
@@ -67,13 +114,40 @@ export class DashboardComponent implements OnInit {
   fetchApplications() {
     const userId = this.authService.currentUser()?.applicantId;
     if (userId) {
-      this.applicationService.getAll({ applicantId: userId }).subscribe({
+      this.applicationService.getAll({
+        applicantId: userId,
+        page: this.appCurrentPage(),
+        limit: this.appPageSize,
+      }).subscribe({
         next: (res: any) => {
-          const items = res.data?.items ?? res.data ?? [];
+          const data = res.data;
+          const items = data?.items ?? data ?? [];
           this.applications.set(items);
+          this.appTotalItems.set(data?.totalItems ?? data?.total ?? items.length);
+          this.appTotalPages.set(data?.totalPages ?? Math.max(1, Math.ceil(this.appTotalItems() / this.appPageSize)));
         }
       });
     }
+  }
+
+  onAppPageChange(page: number) {
+    if (page < 1 || page > this.appTotalPages()) return;
+    this.appCurrentPage.set(page);
+    this.fetchApplications();
+  }
+
+  getAppPageNumbers(): number[] {
+    const total = this.appTotalPages();
+    const current = this.appCurrentPage();
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, current - Math.floor(maxVisible / 2));
+    let end = Math.min(total, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
   }
 
   loadSavedJobs() {
@@ -97,11 +171,22 @@ export class DashboardComponent implements OnInit {
 
   getStatusClass(status: ApplicationStatus): string {
     const map: any = {
-      [ApplicationStatus.PENDING]: 'bg-blue-50 text-blue-600 border-blue-100',
-      [ApplicationStatus.SCREENING]: 'bg-amber-50 text-amber-600 border-amber-100',
+      [ApplicationStatus.PENDING]: 'bg-slate-50 text-slate-500 border-slate-200',
+      [ApplicationStatus.INTERVIEW_SCHEDULED]: 'bg-blue-50 text-blue-600 border-blue-100',
+      [ApplicationStatus.PENDING_REVIEW]: 'bg-amber-50 text-amber-600 border-amber-100',
       [ApplicationStatus.SELECTED]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+      [ApplicationStatus.REJECTED]: 'bg-red-50 text-red-600 border-red-100',
     };
     return map[status] ?? 'bg-slate-50 text-slate-500 border-slate-200';
+  }
+
+  toggleAppDetail(appId: number) {
+    this.expandedAppId.set(this.expandedAppId() === appId ? null : appId);
+  }
+
+  setActiveTab(tab: 'APPLIED' | 'SAVED' | 'INTERVIEWS') {
+    this.activeTab.set(tab);
+    this.searchQuery.set('');
   }
 
   fetchUserCvs() {
@@ -132,10 +217,10 @@ export class DashboardComponent implements OnInit {
       return;
     }
     this.loading.set(true);
-    const dto: CreateApplicationDto = {
-      applicantId: this.authService.currentUser()?.applicantId ?? '',
-      vacancyId: this.applyForm.vacancyId,
-      cvId: this.selectedCvId()!,
+    const dto: any = {
+      applicantId: Number(this.authService.currentUser()?.applicantId),
+      vacancyId: Number(this.applyForm.vacancyId),
+      cvId: Number(this.selectedCvId()),
     };
     this.applicationService.create(dto).subscribe({
       next: () => {
@@ -143,9 +228,10 @@ export class DashboardComponent implements OnInit {
         this.closeApplyModal();
         this.loading.set(false);
         this.fetchApplications();
+        this.loadSavedJobs();
       },
-      error: () => {
-        this.toast.error('Failed to submit application');
+      error: (err) => {
+        this.toast.error(err?.error?.message || 'Failed to submit application');
         this.loading.set(false);
       },
     });

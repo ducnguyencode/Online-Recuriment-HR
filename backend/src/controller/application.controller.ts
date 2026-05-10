@@ -16,14 +16,16 @@ import {
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { ApplicationStatusAccess } from 'src/common/decorator/application-status-access.decorator';
-import { Roles } from 'src/common/decorator/decorator';
-import { ApplicationStatus, UserRole } from 'src/common/enum';
+import { CurrentUser, Roles } from 'src/common/decorator/decorator';
+import { ApplicantStatus, ApplicationStatus, UserRole } from 'src/common/enum';
 import { ApplicationStatusPolicyGuard } from 'src/common/guards/application-status-policy.guard';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { ApplicationCreateDto } from 'src/dto/application/application.create.dto';
 import { ApplicationFindDto } from 'src/dto/application/application.find.dto';
+import { Applicant } from 'src/entities/applicant.entity';
 import { Application } from 'src/entities/application.entity';
+import { User } from 'src/entities/user.entity';
 import { ApiResponse } from 'src/helper/api-response';
 import { FindResponseDto } from 'src/helper/find.response.dto';
 import { ApplicationService } from 'src/services/application.service';
@@ -42,6 +44,13 @@ export class ApplicationController {
     private applicationService: ApplicationService,
   ) {}
 
+  private async checkApplicantNotHiredOrBanned(applicantId: number) {
+    const applicant = await this.applicationService.getApplicantById(applicantId);
+    if (applicant && [ApplicantStatus.BANNED, ApplicantStatus.HIRED].includes(applicant.status)) {
+      throw new BadRequestException(`Applicant is already ${applicant.status}. Cannot apply.`);
+    }
+  }
+
   @Post('create')
   @Roles(UserRole.APPLICANT, UserRole.HR, UserRole.SUPER_ADMIN)
   async create(@Body() applicationCreateDto: ApplicationCreateDto) {
@@ -55,6 +64,7 @@ export class ApplicationController {
 
   @Post('applicant-create')
   async applicantCreate(@Body() applicationCreateDto: ApplicationCreateDto) {
+    await this.checkApplicantNotHiredOrBanned(applicationCreateDto.applicantId);
     await this.applicationService.checkDuplicate(
       applicationCreateDto.applicantId,
       applicationCreateDto.vacancyId,
@@ -97,7 +107,12 @@ export class ApplicationController {
   )
   async findAll(
     @Query() query: ApplicationFindDto,
+    @CurrentUser() user: User,
   ): Promise<ApiResponse<FindResponseDto<Application>>> {
+    // Applicants can only view their own applications
+    if (user.role === UserRole.APPLICANT) {
+      query.applicantId = user.applicantId;
+    }
     const data = await this.applicationService.findAll(query);
     return {
       statusCode: HttpStatus.OK,
@@ -118,9 +133,8 @@ export class ApplicationController {
 
   @UseGuards(JwtAuthGuard, ApplicationStatusPolicyGuard, RolesGuard)
   @ApplicationStatusAccess({ allowSameStatus: false })
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.HR, UserRole.SUPER_ADMIN)
   @Patch('change-status')
-  @Roles(UserRole.HR, UserRole.INTERVIEWER, UserRole.SUPER_ADMIN)
   async changeStatus(
     @Query('id') id: number,
     @Query('status') status: ApplicationStatus,

@@ -56,16 +56,23 @@ export class RegisterComponent implements OnInit {
     if (this.isRegistered) return;
 
     // Frontend validation
-    if (!this.form.fullName.trim() || !this.form.email.trim() || !this.form.password) {
+    if (!this.form.fullName.trim() || !this.form.email.trim() || !this.form.phone.trim() || !this.form.password) {
       this.errorMessage = 'Please fill in all required fields.';
+      return;
+    }
+    // Vietnamese phone: 10 digits, starts with 0
+    const phoneRegex = /^0[0-9]{9}$/;
+    if (!phoneRegex.test(this.form.phone.trim())) {
+      this.errorMessage = 'Phone number must be 10 digits starting with 0 (e.g. 0981902222).';
       return;
     }
     if (this.form.password !== this.form.confirmPassword) {
       this.errorMessage = 'Passwords do not match.';
       return;
     }
-    if (this.form.password.length < 6) {
-      this.errorMessage = 'Password must be at least 6 characters.';
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!passwordRegex.test(this.form.password)) {
+      this.errorMessage = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special symbol.';
       return;
     }
 
@@ -78,6 +85,7 @@ export class RegisterComponent implements OnInit {
       .register({
         fullName: this.form.fullName.trim(),
         email: this.form.email.trim().toLowerCase(),
+        phone: this.form.phone.trim(),
         password: this.form.password,
       })
       .subscribe({

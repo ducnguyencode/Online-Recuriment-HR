@@ -55,10 +55,34 @@ export class UserService {
   }
 
   async findById(id: number) {
-    return await this.userTable.findOne({
+    const user = await this.userTable.findOne({
       where: { id },
       relations: ['applicant', 'employee'],
     });
+    if (!user) return null;
+
+    if (!user.employee) {
+      const employee = await this.userTable.manager.findOne(Employee, {
+        where: { user: { id } },
+        relations: ['department'],
+      });
+      if (employee) {
+        user.employee = employee;
+        user.employeeId = employee.id;
+      }
+    }
+
+    if (!user.applicant) {
+      const applicant = await this.userTable.manager.findOne(Applicant, {
+        where: { user: { id } },
+      });
+      if (applicant) {
+        user.applicant = applicant;
+        user.applicantId = applicant.id;
+      }
+    }
+
+    return user;
   }
 
   async save(user: User) {

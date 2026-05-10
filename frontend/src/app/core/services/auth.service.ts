@@ -20,7 +20,7 @@ export class AuthService {
     {
       id: 'uuid-sa-01',
       email: 'admin@abc.com',
-      fullName: 'Quản Lý Hệ Thống',
+      fullName: 'System Administrator',
       role: UserRole.SUPER_ADMIN,
       employeeId: 'emp-uuid-admin',
       isActive: true,
@@ -114,6 +114,12 @@ export class AuthService {
     );
   }
 
+  verifyResetToken(token: string) {
+    return this.http.get<ApiResponse<{ valid: boolean; message: string }>>(
+      `${environment.apiUrl}/auth/verify-reset-token?token=${encodeURIComponent(token)}`,
+    );
+  }
+
   resetPassword(token: string, newPassword: string) {
     return this.http.post<ApiResponse<{ message: string }>>(
       `${environment.apiUrl}/auth/reset-password`,
@@ -123,9 +129,10 @@ export class AuthService {
 
   handleLoginSuccess(response: LoginResponse, userRoleLogin: UserRoleLogin) {
     const { access_token, user } = response.data;
+    const normalizedUser = this.normalizeUser(user);
     localStorage.setItem(this.TOKEN_KEY, access_token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    this.currentUser.set(user);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(normalizedUser));
+    this.currentUser.set(normalizedUser);
 
     if (userRoleLogin == UserRoleLogin.HR) {
       this.router.navigate(['/hr-portal']);
@@ -146,9 +153,10 @@ export class AuthService {
 
   handleUpdateAccountSuccess(response: UpdateAccountResponse) {
     const { access_token, user } = response.data;
+    const normalizedUser = this.normalizeUser(user);
     localStorage.setItem(this.TOKEN_KEY, access_token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    this.currentUser.set(user);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(normalizedUser));
+    this.currentUser.set(normalizedUser);
   }
 
   logout(redirectTo: string = '/login') {
@@ -181,7 +189,7 @@ export class AuthService {
   updateCurrentUser(patch: Partial<UserAccount>) {
     const current = this.currentUser();
     if (!current) return;
-    const next = { ...current, ...patch };
+    const next = this.normalizeUser({ ...current, ...patch });
     localStorage.setItem(this.USER_KEY, JSON.stringify(next));
     this.currentUser.set(next);
   }
@@ -210,7 +218,7 @@ export class AuthService {
     const stored = localStorage.getItem(this.USER_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        return this.normalizeUser(JSON.parse(stored));
       } catch {
         return null;
       }
@@ -241,9 +249,26 @@ export class AuthService {
       .get<ApiResponse<UserAccount>>(`${environment.apiUrl}/auth/me`)
       .pipe(
         tap((res) => {
-          localStorage.setItem(this.USER_KEY, JSON.stringify(res.data));
-          this.currentUser.set(res.data);
+          const normalizedUser = this.normalizeUser(res.data);
+          localStorage.setItem(this.USER_KEY, JSON.stringify(normalizedUser));
+          this.currentUser.set(normalizedUser);
         }),
       );
+  }
+
+  private normalizeUser(user: UserAccount): UserAccount {
+    const raw = user as any;
+    const employeeId =
+      raw.employeeId ?? raw.employee?.id ?? raw.employee?.employeeId;
+    const applicantId =
+      raw.applicantId ?? raw.applicant?.id ?? raw.applicant?.applicantId;
+
+    return {
+      ...user,
+      employeeId: employeeId != null ? String(employeeId) : undefined,
+      employeeCode: raw.employeeCode ?? raw.employee?.code,
+      applicantId: applicantId != null ? String(applicantId) : undefined,
+      applicantCode: raw.applicantCode ?? raw.applicant?.code,
+    };
   }
 }

@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Application } from 'src/entities/application.entity';
@@ -28,7 +29,7 @@ import { SendMailService } from './bullmq/send-mail-worker/send-mail.service';
 import { AiPreviewStatus } from 'src/dto/ai.response.dto';
 
 @Injectable()
-export class ApplicationService {
+export class ApplicationService implements OnModuleInit {
   constructor(
     @InjectRepository(Application)
     private applicationsTable: Repository<Application>,
@@ -39,6 +40,19 @@ export class ApplicationService {
     private aiPreviewService: AiPreviewService,
     private sendMailService: SendMailService,
   ) {}
+
+  async onModuleInit() {
+    await this.normalizeLegacyFinalStatus();
+  }
+
+  private async normalizeLegacyFinalStatus() {
+    await this.applicationsTable
+      .createQueryBuilder()
+      .update(Application)
+      .set({ status: ApplicationStatus.SELECTED })
+      .where('status = :legacyStatus', { legacyStatus: 'Accepted' })
+      .execute();
+  }
 
   async findAll(
     request: ApplicationFindDto,
@@ -59,12 +73,16 @@ export class ApplicationService {
     qb.leftJoinAndSelect('application.vacancy', 'vacancy')
       .leftJoinAndSelect('application.applicant', 'applicant')
       .leftJoinAndSelect('applicant.user', 'user')
-      .leftJoinAndSelect('application.cv', 'cv');
+      .leftJoinAndSelect('application.cv', 'cv')
+      .leftJoinAndSelect('application.interviews', 'interview')
+      .leftJoinAndSelect('interview.panels', 'panel')
+      .leftJoinAndSelect('panel.employee', 'panelEmployee')
+      .leftJoinAndSelect('panelEmployee.user', 'panelUser');
 
     //Filter
     if (search) {
       qb.andWhere(
-        '(application.vacancy.title ILIKE :search OR user.fullName ILIKE :search)',
+        '(vacancy.title ILIKE :search OR user.fullName ILIKE :search OR user.email ILIKE :search OR application.code ILIKE :search OR applicant.code ILIKE :search OR vacancy.code ILIKE :search)',
         { search: `%${search}%` },
       );
     }
@@ -193,7 +211,7 @@ export class ApplicationService {
     });
 
     try {
-      // Phát sự kiện để Hàng đợi (Email Queue) bắt lấy và gửi mail ngầm
+      // Emit an event so the background email queue can notify HR.
       this.eventEmitter.emit('application.submitted', {
         applicationId: fullApplication!.id,
         candidateEmail: fullApplication!.applicant.user.email,
@@ -209,55 +227,72 @@ export class ApplicationService {
   }
 
   async changeStatus(id: number, status: ApplicationStatus) {
-    let application = await this.applicationsTable.findOne({
-      where: { id },
-      relations: ['applicant', 'vacancy', 'cv'],
-    });
-    if (!application) {
-      throw new NotFoundException('Application not found');
-    }
-    if (status === ApplicationStatus.ACCEPTED) {
-      if (application.vacancy.status == VacancyStatus.SUSPENDED) {
-        throw new ForbiddenException(
-          `Vacancy already ${application.vacancy.status}`,
-        );
-      }
-      const vacancy = await this.vacancyTable.findOne({
-        where: { id: application.vacancyId },
+    let applicationId = id;
+    await this.applicationsTable.manager.transaction(async (manager) => {
+      const application = await manager.findOne(Application, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
       });
-      if (!vacancy) {
-        throw new NotFoundException('Vacancy not found');
+      if (!application) {
+        throw new NotFoundException('Application not found');
       }
-      if (vacancy.filledCount == vacancy.numberOfOpenings) {
-        throw new ForbiddenException(
-          `There is no more slot in this vacancy (${vacancy.title})`,
-        );
-      }
-      vacancy.filledCount++;
-      if (vacancy.filledCount == vacancy.numberOfOpenings) {
-        vacancy.status = VacancyStatus.CLOSED;
-      }
-      await this.vacancyTable.save(vacancy);
-    }
-    application.status = status;
-    application = await this.applicationsTable.save(application);
 
-    application = await this.applicationsTable.findOne({
-      where: { id: application.id },
+      if (
+        status === ApplicationStatus.SELECTED &&
+        application.status !== ApplicationStatus.SELECTED
+      ) {
+        const vacancy = await manager.findOne(Vacancy, {
+          where: { id: application.vacancyId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!vacancy) {
+          throw new NotFoundException('Vacancy not found');
+        }
+        if (vacancy.status !== VacancyStatus.OPENED) {
+          throw new ForbiddenException(`Vacancy already ${vacancy.status}`);
+        }
+        if (vacancy.filledCount >= vacancy.numberOfOpenings) {
+          throw new ForbiddenException(
+            `This vacancy has no remaining openings.`,
+          );
+        }
+
+        vacancy.filledCount++;
+        if (vacancy.filledCount >= vacancy.numberOfOpenings) {
+          vacancy.status = VacancyStatus.CLOSED;
+        }
+        await manager.save(Vacancy, vacancy);
+
+        await manager.update(Applicant, application.applicantId, {
+          status: ApplicantStatus.HIRED,
+        });
+      }
+
+      application.status = status;
+      const saved = await manager.save(Application, application);
+      applicationId = saved.id;
+    });
+
+    const application = await this.applicationsTable.findOne({
+      where: { id: applicationId },
       relations: ['applicant.user', 'vacancy', 'vacancy.department'],
     });
     if (!application) {
       throw new NotFoundException('Application not found');
     }
-    if (application.status === ApplicationStatus.ACCEPTED) {
+    if (application.status === ApplicationStatus.SELECTED) {
       await this.sendMailService.addToQueue(
         application.applicant.user.email,
         `${application.applicant.user.fullName}`,
         'Congratulation',
         {
           position: application.vacancy.title,
-          company: 'HR RECURIMENT',
-          startDate: new Date().toISOString(),
+          company: 'HR RECRUITMENT',
+          startDate: new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          }),
           department: application.vacancy.department?.name,
         },
       );
@@ -270,6 +305,12 @@ export class ApplicationService {
     const application = await this.findById(id);
     application.aiPreview.status = status;
     await this.applicationsTable.save(application);
+  }
+
+  async getApplicantById(applicantId: number): Promise<Applicant | null> {
+    return this.applicationsTable.manager.findOne(Applicant, {
+      where: { id: applicantId },
+    });
   }
 
   async checkDuplicate(applicantId: number, vacancyId: number) {

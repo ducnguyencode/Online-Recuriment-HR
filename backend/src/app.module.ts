@@ -78,11 +78,17 @@ import { ApplicationApplyProcessor } from './services/bullmq/application-apply-w
 import { LoginHistory } from './entities/login-history.entity';
 import { LoginHistoryService } from './services/login-history.service';
 import { LoginHistoryController } from './controller/login-history.controller';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
     }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
@@ -208,4 +214,4 @@ import { LoginHistoryController } from './controller/login-history.controller';
     LoginHistoryService,
   ],
 })
-export class AppModule {}
+export class AppModule { }

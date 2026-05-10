@@ -55,6 +55,7 @@
           <th>Vacancy</th>
           <th>Attached Date</th>
           <th>Status</th>
+          <th>Vote</th>
           <th>AI Score</th>
           <th>Actions</th>
         </tr>
@@ -93,9 +94,31 @@
           </td>
           <td>{{ app.createdAt | date: "dd/MM/yyyy HH:mm" }}</td>
           <td>
-            <span class="badge" [ngClass]="getStatusClass(app.status)">{{
-              app.status
-              }}</span>
+            <span class="badge" [ngClass]="getStatusClass(app.status)">{{ shortenStatus(app.status) }}</span>
+          </td>
+          <td>
+            @if (app.interviews?.length) {
+              @for (interview of app.interviews; track interview.id) {
+                @for (panel of interview.panels || []; track panel.employeeId) {
+                  <div class="vote-info" [title]="(panel.employee?.user?.fullName || 'Interviewer') + ': ' + panel.vote">
+                    <span class="vote-interviewer">{{ panel.employee?.user?.fullName || 'Interviewer' }}</span>
+                    @if (panel.vote === 'Pass') {
+                      <span class="vote-badge vote-pass">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      </span>
+                    } @else if (panel.vote === 'Fail') {
+                      <span class="vote-badge vote-fail">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      </span>
+                    } @else {
+                      <span class="vote-badge vote-pending">—</span>
+                    }
+                  </div>
+                }
+              }
+            } @else {
+              <span class="muted">—</span>
+            }
           </td>
           <td>
             @if (app.aiPreview?.status === AiPreviewStatus.COMPLETE) {
@@ -115,7 +138,8 @@
             <span class="ai-badge score-low">Error</span>
             }
           </td>
-          <td class="cell-actions" (click)="$event.stopPropagation()">
+          <td (click)="$event.stopPropagation()">
+            <div class="cell-actions">
               <button [class]="
                       (app.cv ? 'btn-primary' : 'btn-secondary') +
                       ' ' +
@@ -128,24 +152,24 @@
                 Schedule
               </button>
               } @else if (app.status === ApplicationStatus.INTERVIEW_SCHEDULED) {
-              <a class="btn-primary btn-sm" routerLink="/hr-portal/interviews">Open Interview</a>
-              }@else if((app.status === ApplicationStatus.SELECTED || app.status===ApplicationStatus.REJECTED) &&
+              <a class="btn-primary btn-sm" routerLink="/hr-portal/interviews">Interview</a>
+              }@else if(app.status === ApplicationStatus.PENDING_REVIEW &&
               authService.currentUser()?.role ===
               UserRole.SUPER_ADMIN){
-              <button class="btn-secondary btn-sm" (click)="acceptedApplication(app.id)">
-                Accept
+              <button class="btn-secondary btn-sm" [disabled]="!canSelectApplication(app)"
+                [title]="getSelectDisabledReason(app)" (click)="selectApplication(app.id)">
+                Select
               </button>
-              @if(app.status !==ApplicationStatus.REJECTED){
               <button class="btn-secondary btn-sm" (click)="rejetedApplication(app.id)">
                 Reject
               </button>
               }
-              }
+            </div>
             </td>
         </tr>
         } @empty {
         <tr>
-          <td colspan="7" class="empty-state">
+          <td colspan="8" class="empty-state">
             <div class="empty-icon">📄</div>
             <p>No application records found</p>
           </td>
@@ -289,6 +313,53 @@
             }}</span>
         </div>
       </div>
+
+      <!-- Interview Vote Section -->
+      @if (selectedApplication()!.interviews?.length) {
+      <div class="cv-sections" style="margin-top: 16px;">
+        <div class="cv-section">
+          <h4 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline; vertical-align: -2px; margin-right: 6px;">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Interview Votes
+          </h4>
+          @for (interview of selectedApplication()!.interviews; track interview.id) {
+            @for (panel of interview.panels || []; track panel.employeeId) {
+            <div class="vote-detail-row">
+              <div class="vote-detail-left">
+                <span class="vote-detail-name">{{ panel.employee?.user?.fullName || 'Interviewer' }}</span>
+                @if (panel.vote === 'Pass') {
+                  <span class="vote-badge vote-pass" style="width: auto; height: auto; border-radius: 12px; padding: 2px 10px; font-size: 11px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Pass
+                  </span>
+                } @else if (panel.vote === 'Fail') {
+                  <span class="vote-badge vote-fail" style="width: auto; height: auto; border-radius: 12px; padding: 2px 10px; font-size: 11px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    Fail
+                  </span>
+                } @else {
+                  <span class="vote-badge vote-pending" style="width: auto; height: auto; border-radius: 12px; padding: 2px 10px; font-size: 11px;">Pending</span>
+                }
+              </div>
+              @if (panel.feedback) {
+              <div class="vote-detail-feedback">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>"{{ panel.feedback }}"</span>
+              </div>
+              }
+            </div>
+            }
+          }
+        </div>
+      </div>
+      }
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" (click)="closeCVDetail()">Close</button>

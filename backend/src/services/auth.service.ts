@@ -115,7 +115,8 @@ export class AuthService {
         console.error('Failed to write auth logs', logError);
       }
 
-      return signToken(user, this.jwtService);
+      const profileUser = (await this.userService.findById(user.id)) ?? user;
+      return signToken(profileUser, this.jwtService);
     } catch (error) {
       const existingUser = await this.userService.findByEmail(normalizedEmail);
       try {
@@ -221,6 +222,40 @@ export class AuthService {
     return {
       message: 'If your account exists, a verification link has been sent.',
     };
+  }
+
+  async verifyResetToken(token: string) {
+    if (!token?.trim()) {
+      throw new BadRequestException('Invalid reset token.');
+    }
+
+    const user = await this.userService.findByResetToken(token);
+    if (!user) {
+      throw new BadRequestException('Invalid reset token.');
+    }
+    if (
+      !user.resetPasswordTokenExpiresAt ||
+      user.resetPasswordTokenExpiresAt.getTime() < Date.now()
+    ) {
+      throw new BadRequestException('Reset token has expired.');
+    }
+
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.getOrThrow<string>('JWT_EMAIL_SECRET'),
+      });
+      if (payload.type !== TokenType.EMAIL_FORGOT_VERIFY) {
+        throw new BadRequestException('Invalid token type.');
+      }
+    } catch (err) {
+      if (err instanceof TokenExpiredError) {
+        throw new RequestTimeoutException('Reset token has expired.');
+      }
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException('Invalid reset token.');
+    }
+
+    return { valid: true, message: 'Token is valid.' };
   }
 
   async resetPassword(dto: ResetPasswordDto, context?: AuthRequestContext) {
