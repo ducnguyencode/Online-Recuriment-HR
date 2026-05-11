@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,6 +24,8 @@ import { JwtService } from '@nestjs/jwt';
 import { EmployeeChangePasswordDto } from 'src/dto/employee/employee.change-password.dto';
 @Injectable()
 export class EmployeeService {
+  private readonly logger = new Logger(EmployeeService.name);
+
   constructor(
     @InjectRepository(Employee) private employeeTable: Repository<Employee>,
     private userService: UserService,
@@ -130,7 +133,7 @@ export class EmployeeService {
       })
       .then(() => {
         this.userService.sendVerification(mailData.user).catch((err) => {
-          console.error('Send verification failed', err);
+          this.logger.error('Send verification failed', err as Error);
         });
       });
 

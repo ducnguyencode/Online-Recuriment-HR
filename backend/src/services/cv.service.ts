@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +15,8 @@ import { Application } from 'src/entities/application.entity';
 
 @Injectable()
 export class CvService {
+  private readonly logger = new Logger(CvService.name);
+
   constructor(@InjectRepository(CV) private cvsTable: Repository<CV>) {}
 
   findAll(): Promise<CV[]> {
@@ -51,19 +54,24 @@ export class CvService {
       });
       cv = await manager.save(cv);
 
-      // get file name
-      // const fileName = `${cv.code}.pdf`;
-      const fileName = Buffer.from(file.originalname, 'latin1').toString(
+      const rawName = Buffer.from(file.originalname, 'latin1').toString(
         'utf8',
       );
+      const safeOriginalName = this.sanitizeFileName(rawName);
+      const fileName = `${cv.code}-${Date.now()}-${safeOriginalName}`;
       const filePath = `cv/applicant-${cv.applicantId}`;
       const uploadDir = path.join(process.cwd(), `uploads/${filePath}`);
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      // Save file
       const saveFilePath = path.join(uploadDir, fileName);
+      const resolvedSavePath = path.resolve(saveFilePath);
+      const resolvedUploadDir = path.resolve(uploadDir);
+      if (!resolvedSavePath.startsWith(resolvedUploadDir + path.sep)) {
+        throw new BadRequestException('Invalid file name');
+      }
+
       try {
         fs.writeFileSync(saveFilePath, file.buffer, { flag: 'wx' });
       } catch (err: any) {
@@ -74,7 +82,7 @@ export class CvService {
       }
 
       cv.fileUrl = `${filePath}/${fileName}`;
-      cv.fileName = fileName;
+      cv.fileName = safeOriginalName;
       return manager.save(cv);
     });
   }
@@ -112,12 +120,31 @@ export class CvService {
         await fs.promises.unlink(filePath);
       } catch (err: any) {
         if (err.code !== 'ENOENT') {
-          console.error('Fail to delete file:', err);
+          this.logger.error('Fail to delete CV file', err as Error);
         }
       }
     });
 
     return 'Delete success';
+  }
+
+  private sanitizeFileName(name: string): string {
+    const basename = path.basename(name);
+    const cleaned = basename
+      .replace(/\0/g, '')
+      .replace(/[/\\]/g, '_')
+      .replace(/\.\.+/g, '_')
+      .replace(/[^a-zA-Z0-9_\-. ()]/g, '_')
+      .replace(/^[._-]+/, '')
+      .trim();
+
+    if (!cleaned || !cleaned.toLowerCase().endsWith('.pdf')) {
+      throw new BadRequestException('Invalid file name');
+    }
+    if (cleaned.length > 100) {
+      return cleaned.slice(0, 96) + '.pdf';
+    }
+    return cleaned;
   }
 
   private async createSubmittedCvSnapshot(cv: CV, application: Application) {

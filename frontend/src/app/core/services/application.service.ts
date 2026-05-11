@@ -18,6 +18,8 @@ export interface ApplicationFilters {
   endDate?: string;
   page?: number;
   limit?: number;
+  sortBy?: 'createdAt' | 'aiScore';
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 export interface CreateApplicationDto {
@@ -45,6 +47,8 @@ export class ApplicationService {
     if (filters.search) params = params.set('search', filters.search);
     if (filters.page) params = params.set('page', filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
+    if (filters.sortBy) params = params.set('sortBy', filters.sortBy);
+    if (filters.sortOrder) params = params.set('sortOrder', filters.sortOrder);
     return this.http.get<ApiResponse<PaginatedResponse<Application>>>(
       this.base,
       { params },

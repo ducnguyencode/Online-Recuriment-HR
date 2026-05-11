@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
@@ -32,6 +31,8 @@ import fs from 'fs';
 
 @Injectable()
 export class ApplicationService implements OnModuleInit {
+  private readonly logger = new Logger(ApplicationService.name);
+
   constructor(
     @InjectRepository(Application)
     private applicationsTable: Repository<Application>,
@@ -47,13 +48,29 @@ export class ApplicationService implements OnModuleInit {
     await this.normalizeLegacyFinalStatus();
   }
 
+  // One-time data migration for legacy "Accepted" rows.
+  // Cheap COUNT guard ensures the UPDATE only fires when legacy rows exist —
+  // every subsequent boot is a single indexed count.
   private async normalizeLegacyFinalStatus() {
-    await this.applicationsTable
+    const legacyCount = await this.applicationsTable
+      .createQueryBuilder()
+      .where('status = :legacyStatus', { legacyStatus: 'Accepted' })
+      .getCount();
+
+    if (legacyCount === 0) {
+      return;
+    }
+
+    const result = await this.applicationsTable
       .createQueryBuilder()
       .update(Application)
       .set({ status: ApplicationStatus.SELECTED })
       .where('status = :legacyStatus', { legacyStatus: 'Accepted' })
       .execute();
+
+    this.logger.log(
+      `Normalized ${result.affected ?? 0} legacy "Accepted" application(s) to SELECTED`,
+    );
   }
 
   private async createSubmittedCvSnapshot(cv: CV, applicationId: number) {
@@ -66,6 +83,12 @@ export class ApplicationService implements OnModuleInit {
     const snapshotPath = `application-cvs/application-${applicationId}`;
     const uploadDir = path.join(process.cwd(), 'uploads', snapshotPath);
     const targetPath = path.join(uploadDir, safeFileName);
+
+    const resolvedTarget = path.resolve(targetPath);
+    const resolvedUploadDir = path.resolve(uploadDir);
+    if (!resolvedTarget.startsWith(resolvedUploadDir + path.sep)) {
+      throw new BadRequestException('Invalid CV file name');
+    }
 
     try {
       await fs.promises.mkdir(uploadDir, { recursive: true });
@@ -95,6 +118,8 @@ export class ApplicationService implements OnModuleInit {
       status,
       startDate,
       endDate,
+      sortBy,
+      sortOrder,
     } = request;
 
     const qb = this.applicationsTable.createQueryBuilder('application');
@@ -149,7 +174,19 @@ export class ApplicationService implements OnModuleInit {
     qb.skip((page - 1) * limit).take(limit);
 
     //Order
-    qb.orderBy('application.createdAt', 'DESC');
+    const normalizedSortOrder =
+      String(sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    if (sortBy === 'aiScore') {
+      const aiScoreSortSql =
+        "CASE WHEN application.aiPreview ? 'matchScore' AND (application.aiPreview ->> 'matchScore') ~ '^[0-9]+(\\.[0-9]+)?$' THEN (application.aiPreview ->> 'matchScore')::numeric ELSE NULL END";
+
+      qb.addSelect(aiScoreSortSql, 'ai_score_sort')
+        .orderBy('ai_score_sort', normalizedSortOrder, 'NULLS LAST')
+        .addOrderBy('application.createdAt', 'DESC');
+    } else {
+      qb.orderBy('application.createdAt', normalizedSortOrder);
+    }
 
     const [applications, totalApplication] = await qb.getManyAndCount();
 
@@ -263,7 +300,7 @@ export class ApplicationService implements OnModuleInit {
         targetHrId: fullApplication!.vacancy.createdById,
       });
     } catch (err) {
-      console.log(err);
+      this.logger.error('Failed to emit application.submitted event', err as Error);
     }
 
     return fullApplication || application!;
@@ -291,8 +328,13 @@ export class ApplicationService implements OnModuleInit {
         if (!vacancy) {
           throw new NotFoundException('Vacancy not found');
         }
-        if (vacancy.status !== VacancyStatus.OPENED) {
-          throw new ForbiddenException(`Vacancy already ${vacancy.status}`);
+        // Pattern A (soft close): SUSPENDED pauses the entire pipeline.
+        // CLOSED only blocks NEW applications; in-flight candidates can still
+        // be selected as long as openings remain.
+        if (vacancy.status === VacancyStatus.SUSPENDED) {
+          throw new ForbiddenException(
+            'Vacancy is suspended. Resume it before selecting candidates.',
+          );
         }
         if (vacancy.filledCount >= vacancy.numberOfOpenings) {
           throw new ForbiddenException(

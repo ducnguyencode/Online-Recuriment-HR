@@ -4,11 +4,15 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Interview } from './interview.entity';
 import { Employee } from './employee.entity';
 
 @Entity('interviewers_panel')
+@Index('UQ_panel_interview_employee', ['interviewId', 'employeeId'], {
+  unique: true,
+})
 export class InterviewerPanel {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

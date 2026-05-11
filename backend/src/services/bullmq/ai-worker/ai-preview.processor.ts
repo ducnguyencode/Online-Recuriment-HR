@@ -46,6 +46,14 @@ export class AiPreviewProcessor extends WorkerHost {
     if (!job || !job.returnvalue) {
       return;
     }
+    if (!job.returnvalue.result) {
+      // CV missing or AI returned unparseable response → mark FAILED
+      await this.aiPreviewService.updateApplicationOnPreviewError(
+        job.data.applicationId,
+      );
+      this.gateway.emitUpdateApplication(null, job.data.applicationId);
+      return;
+    }
     await this.aiPreviewService.updateApplication(
       job.data.applicationId,
       job.returnvalue.result,
