@@ -106,7 +106,7 @@ import { join } from 'path';
         autoLoadEntities: true,
         synchronize: true,
 
-        dropSchema: true,
+        // dropSchema: true,
       }),
     }),
     TypeOrmModule.forFeature([
