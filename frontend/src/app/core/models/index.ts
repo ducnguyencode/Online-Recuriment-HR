@@ -178,6 +178,9 @@ export interface Application {
   vacancy?: Vacancy;
   cvId?: string;
   cv?: CV;
+  submittedCvOriginalCvId?: string;
+  submittedCvFileName?: string;
+  submittedCvFileUrl?: string;
   status: ApplicationStatus;
   aiPreview?: AiPreview;
   aiMatchScore?: number;

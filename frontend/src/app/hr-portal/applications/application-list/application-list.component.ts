@@ -485,6 +485,18 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.showCVDetail.set(true);
   }
 
+  hasSubmittedCv(app: Application | null | undefined): boolean {
+    return Boolean(app?.submittedCvFileUrl || app?.cv?.fileUrl);
+  }
+
+  getSubmittedCvFileName(app: Application | null | undefined): string {
+    return app?.submittedCvFileName || app?.cv?.fileName || 'CV';
+  }
+
+  private getSubmittedCvFileUrl(app: Application | null | undefined): string {
+    return app?.submittedCvFileUrl || app?.cv?.fileUrl || '';
+  }
+
   closeCVDetail() {
     this.showCVDetail.set(false);
     this.selectedApplication.set(null);
@@ -759,7 +771,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   }
 
   viewSelectedApplicationCV() {
-    const fileUrl = this.selectedApplication()?.cv?.fileUrl;
+    const fileUrl = this.getSubmittedCvFileUrl(this.selectedApplication());
     if (!fileUrl) return;
     const resolvedUrl = fileUrl.startsWith('http')
       ? fileUrl

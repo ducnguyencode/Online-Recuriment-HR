@@ -141,11 +141,10 @@
           <td (click)="$event.stopPropagation()">
             <div class="cell-actions">
               <button [class]="
-                      (app.cv ? 'btn-primary' : 'btn-secondary') +
-                      ' ' +
-                      'btn-primary btn-sm'
-                    " [disabled]="!app.cv" (click)="openCVDetail(app)">
-                {{ app.cv ? "View CV" : "No CV" }}
+                      (hasSubmittedCv(app) ? 'btn-primary' : 'btn-secondary') +
+                      ' btn-sm'
+                    " [disabled]="!hasSubmittedCv(app)" (click)="openCVDetail(app)">
+                {{ hasSubmittedCv(app) ? "View CV" : "No CV" }}
               </button>
               @if (canSchedule(app)) {
               <button class="btn-primary btn-sm" (click)="openInterviewDialog(app, $event)">
@@ -242,6 +241,18 @@
       </button>
     </div>
     <div class="modal-body">
+      @if (hasSubmittedCv(selectedApplication())) {
+      <div class="flex items-center justify-between gap-3 mb-4 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Submitted CV</p>
+          <p class="text-sm font-semibold text-slate-800">{{ getSubmittedCvFileName(selectedApplication()) }}</p>
+        </div>
+        <button class="btn-secondary" (click)="viewSelectedApplicationCV()">
+          View CV
+        </button>
+      </div>
+      }
+
       @if (selectedApplication()!.aiPreview?.matchScore !== undefined) {
       <div class="score-banner" [ngClass]="
               getScoreClass(selectedApplication()!.aiPreview?.matchScore)
@@ -252,9 +263,6 @@
           </div>
           <div class="score-label">AI Match Score</div>
         </div>
-        <button class="btn-secondary" (click)="viewSelectedApplicationCV()">
-          View CV
-        </button>
       </div>
       }
 

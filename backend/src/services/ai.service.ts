@@ -34,7 +34,12 @@ export class AiService {
   }
 
   async reviewCv(application: Application): Promise<AiResponseDto | null> {
-    const fileUrl = `${this.configService.get('BASE_URL')}/uploads/${application.cv?.fileUrl}`;
+    const cvFileUrl = application.submittedCvFileUrl ?? application.cv?.fileUrl;
+    if (!cvFileUrl) {
+      return null;
+    }
+
+    const fileUrl = `${this.configService.get('BASE_URL')}/uploads/${cvFileUrl}`;
     const response = await axios.get(fileUrl, {
       responseType: 'arraybuffer',
     });

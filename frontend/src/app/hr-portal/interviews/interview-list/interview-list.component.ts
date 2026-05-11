@@ -222,7 +222,7 @@ export class InterviewListComponent implements OnInit {
         applicant: {
           fullName: user.fullName || 'N/A',
           email: user.email || 'N/A',
-          cvUrl: app.cv?.fileUrl || ''
+          cvUrl: app.submittedCvFileUrl || app.cv?.fileUrl || ''
         },
         vacancy: {
           title: vacancy.title || 'N/A',

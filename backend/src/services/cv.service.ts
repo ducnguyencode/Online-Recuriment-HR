@@ -10,7 +10,7 @@ import { CvCreateDto } from 'src/dto/cv.create.dto';
 import { CV } from 'src/entities/cv.entity';
 import { Repository } from 'typeorm';
 import fs from 'fs';
-import { AiResponseDto } from 'src/dto/ai.response.dto';
+import { Application } from 'src/entities/application.entity';
 
 @Injectable()
 export class CvService {
@@ -92,13 +92,16 @@ export class CvService {
 
       const filePath = path.join(process.cwd(), 'uploads', existing.fileUrl);
 
-      // reset aiPreview before deleting CV
+      // Preserve immutable copies for submitted applications before removing
+      // the profile CV. HR must still be able to review what was submitted.
       if (existing.applications?.length) {
-        existing.applications.forEach((application) => {
-          application.aiPreview = new AiResponseDto();
-        });
+        for (const application of existing.applications) {
+          if (!application.submittedCvFileUrl) {
+            await this.createSubmittedCvSnapshot(existing, application);
+          }
+        }
 
-        await manager.save(existing.applications);
+        await manager.save(Application, existing.applications);
       }
 
       // delete CV
@@ -115,5 +118,30 @@ export class CvService {
     });
 
     return 'Delete success';
+  }
+
+  private async createSubmittedCvSnapshot(cv: CV, application: Application) {
+    if (!cv.fileUrl) {
+      throw new BadRequestException('CV file not found');
+    }
+
+    const sourcePath = path.join(process.cwd(), 'uploads', cv.fileUrl);
+    const safeFileName = path.basename(cv.fileName || cv.fileUrl);
+    const snapshotPath = `application-cvs/application-${application.id}`;
+    const uploadDir = path.join(process.cwd(), 'uploads', snapshotPath);
+    const targetPath = path.join(uploadDir, safeFileName);
+
+    try {
+      await fs.promises.mkdir(uploadDir, { recursive: true });
+      await fs.promises.copyFile(sourcePath, targetPath);
+    } catch (err) {
+      throw new BadRequestException(
+        'Cannot preserve submitted CV before deletion',
+      );
+    }
+
+    application.submittedCvOriginalCvId = cv.id;
+    application.submittedCvFileName = cv.fileName || safeFileName;
+    application.submittedCvFileUrl = `${snapshotPath}/${safeFileName}`;
   }
 }

@@ -6,7 +6,6 @@ import { ApplicantService } from '../../../core/services/applicant.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { CV } from '../../../core/models';
 import { environment } from '../../../../environments/environment';
-import { ConfirmService } from '../../../core/services/confirm-message.service';
 
 @Component({
   selector: 'app-profile',
@@ -40,7 +39,6 @@ export class ProfileComponent implements OnInit {
     protected authService: AuthService,
     private applicantService: ApplicantService,
     private toast: ToastService,
-    private confirmService: ConfirmService,
   ) {}
   ngOnInit() {
     // Thử load dữ liệu cũ nếu đã lưu
@@ -132,22 +130,13 @@ export class ProfileComponent implements OnInit {
   }
 
   deleteCv(id: string) {
-    this.confirmService.show(
-      'All applications related to this CV will be affect! Are you sure you want to delete this CV.',
-      'Resume deletion',
-      'warning',
-      true,
-      true,
-      () => {
-        this.applicantService.deleteCv(id).subscribe({
-          next: (res) => {
-            this.cvs.update((list) => list.filter((cv) => cv.id !== id));
-            this.toast.success(res.data);
-          },
-          error: (err) => this.toast.error(err.error.message),
-        });
+    this.applicantService.deleteCv(id).subscribe({
+      next: (res) => {
+        this.cvs.update((list) => list.filter((cv) => cv.id !== id));
+        this.toast.success(res.data);
       },
-    );
+      error: (err) => this.toast.error(err.error.message),
+    });
   }
 
   openCV(url: string) {

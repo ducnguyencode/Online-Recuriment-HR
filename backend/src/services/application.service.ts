@@ -27,6 +27,8 @@ import {
 import { AiPreviewService } from './bullmq/ai-worker/ai-preview.service';
 import { SendMailService } from './bullmq/send-mail-worker/send-mail.service';
 import { AiPreviewStatus } from 'src/dto/ai.response.dto';
+import path from 'path';
+import fs from 'fs';
 
 @Injectable()
 export class ApplicationService implements OnModuleInit {
@@ -52,6 +54,33 @@ export class ApplicationService implements OnModuleInit {
       .set({ status: ApplicationStatus.SELECTED })
       .where('status = :legacyStatus', { legacyStatus: 'Accepted' })
       .execute();
+  }
+
+  private async createSubmittedCvSnapshot(cv: CV, applicationId: number) {
+    if (!cv.fileUrl) {
+      throw new BadRequestException('CV file not found');
+    }
+
+    const sourcePath = path.join(process.cwd(), 'uploads', cv.fileUrl);
+    const safeFileName = path.basename(cv.fileName || cv.fileUrl);
+    const snapshotPath = `application-cvs/application-${applicationId}`;
+    const uploadDir = path.join(process.cwd(), 'uploads', snapshotPath);
+    const targetPath = path.join(uploadDir, safeFileName);
+
+    try {
+      await fs.promises.mkdir(uploadDir, { recursive: true });
+      await fs.promises.copyFile(sourcePath, targetPath);
+    } catch (err) {
+      throw new BadRequestException(
+        'Cannot preserve submitted CV for this application',
+      );
+    }
+
+    return {
+      submittedCvOriginalCvId: cv.id,
+      submittedCvFileName: cv.fileName || safeFileName,
+      submittedCvFileUrl: `${snapshotPath}/${safeFileName}`,
+    };
   }
 
   async findAll(
@@ -190,17 +219,31 @@ export class ApplicationService implements OnModuleInit {
 
       application = await manager.save(application);
 
+      if (cv) {
+        const cvSnapshot = await this.createSubmittedCvSnapshot(
+          cv,
+          application.id,
+        );
+        application.submittedCvOriginalCvId =
+          cvSnapshot.submittedCvOriginalCvId;
+        application.submittedCvFileName = cvSnapshot.submittedCvFileName;
+        application.submittedCvFileUrl = cvSnapshot.submittedCvFileUrl;
+      }
+
       //update applicant status
       await this.applicantService.changeStatus(
         applicant.id,
         ApplicantStatus.IN_PROCESS,
       );
 
+      if (application.submittedCvFileUrl || application.cv) {
+        application.aiPreview ??= { status: AiPreviewStatus.IDLE } as any;
+        application.aiPreview.status = AiPreviewStatus.RUNNING;
+      }
+
       application = await manager.save(application);
 
-      if (application.cv) {
-        application.aiPreview.status = AiPreviewStatus.RUNNING;
-        await manager.save(application);
+      if (application.submittedCvFileUrl || application.cv) {
         await this.aiPreviewService.start(application.id);
       }
     });

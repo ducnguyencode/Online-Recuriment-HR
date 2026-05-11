@@ -48,6 +48,15 @@ export class Application {
   @Column({ nullable: true })
   cvId!: number | null;
 
+  @Column('int', { nullable: true })
+  submittedCvOriginalCvId!: number | null;
+
+  @Column('varchar', { nullable: true })
+  submittedCvFileName!: string | null;
+
+  @Column('varchar', { nullable: true })
+  submittedCvFileUrl!: string | null;
+
   @Column({
     type: 'varchar',
     length: 32,

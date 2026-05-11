@@ -21,7 +21,7 @@ export class AiPreviewProcessor extends WorkerHost {
     const application = await this.applicationService.findById(
       job.data.applicationId,
     );
-    if (!application.cv) {
+    if (!application.submittedCvFileUrl && !application.cv) {
       return null;
     }
     await this.applicationService.changeAiPreviewStatus(
