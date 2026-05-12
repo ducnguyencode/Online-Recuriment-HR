@@ -1,4 +1,5 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { SEND_MAIL_QUEUE } from './send-mail.constants';
 import { SendMailService } from './send-mail.service';
@@ -6,12 +7,14 @@ import { SendMailJobData } from './send-mail.type';
 
 @Processor(SEND_MAIL_QUEUE, { concurrency: 5 })
 export class SendMailProcessor extends WorkerHost {
+  private readonly logger = new Logger(SendMailProcessor.name);
+
   constructor(private sendMailService: SendMailService) {
     super();
   }
 
   async process(job: Job<SendMailJobData>) {
-    console.log(job.data);
+    this.logger.debug(`Processing mail job ${job.id} to ${job.data.email}`);
     await this.sendMailService.sendMail(
       job.data.email,
       job.data.name,

@@ -41,12 +41,21 @@ export class Application {
   @Column()
   vacancyId!: number;
 
-  @ManyToOne(() => CV, (c) => c.id, { onDelete: 'SET NULL' })
+  @ManyToOne(() => CV, (c) => c.applications, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'cvId' })
   cv!: CV | null;
 
   @Column({ nullable: true })
   cvId!: number | null;
+
+  @Column('int', { nullable: true })
+  submittedCvOriginalCvId!: number | null;
+
+  @Column('varchar', { nullable: true })
+  submittedCvFileName!: string | null;
+
+  @Column('varchar', { nullable: true })
+  submittedCvFileUrl!: string | null;
 
   @Column({
     type: 'varchar',

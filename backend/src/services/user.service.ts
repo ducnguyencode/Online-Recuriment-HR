@@ -6,6 +6,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -26,6 +27,7 @@ import { Department } from 'src/entities/department.entity';
 export class UserService {
   private static readonly APPLICANT_VERIFY_EXPIRES = '15m';
   private static readonly RESEND_VERIFY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  private readonly logger = new Logger(UserService.name);
 
   constructor(
     @InjectRepository(User) private userTable: Repository<User>,
@@ -148,7 +150,7 @@ export class UserService {
 
     if (!user!.isVerified) {
       this.sendVerification(user!).catch((err) => {
-        console.error('Send verification failed', err);
+        this.logger.error('Send verification failed', err as Error);
       });
     }
 

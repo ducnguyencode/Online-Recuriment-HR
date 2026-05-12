@@ -14,6 +14,11 @@ import { Application } from 'src/entities/application.entity';
 import { Repository } from 'typeorm';
 import { ApplicationStatusAccessOptions } from '../decorator/application-status-access.decorator';
 
+// Full Application status state machine (only manual transitions live here).
+// System-only transitions handled inside InterviewService:
+//   PENDING → INTERVIEW_SCHEDULED   (interview created)
+//   INTERVIEW_SCHEDULED → PENDING   (interview cancelled)
+//   INTERVIEW_SCHEDULED → PENDING_REVIEW (interviewer submits result)
 const APPLICATION_STATUS_TRANSITIONS_BY_ROLE: Partial<
   Record<UserRole, Partial<Record<ApplicationStatus, ApplicationStatus[]>>>
 > = {
@@ -25,10 +30,9 @@ const APPLICATION_STATUS_TRANSITIONS_BY_ROLE: Partial<
   },
 
   [UserRole.HR]: {
-    [ApplicationStatus.PENDING]: [
-      ApplicationStatus.INTERVIEW_SCHEDULED,
-      ApplicationStatus.NOT_REQUIRED,
-    ],
+    [ApplicationStatus.PENDING]: [ApplicationStatus.NOT_REQUIRED],
+    // Allow HR to undo a "Not Required" decision back to PENDING
+    [ApplicationStatus.NOT_REQUIRED]: [ApplicationStatus.PENDING],
   },
 
   [UserRole.INTERVIEWER]: {},

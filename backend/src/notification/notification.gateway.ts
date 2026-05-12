@@ -8,7 +8,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 
@@ -21,13 +21,15 @@ import { JwtService } from '@nestjs/jwt';
 })
 export class NotificationGateway
   implements OnGatewayConnection, OnGatewayDisconnect {
+  private readonly logger = new Logger(NotificationGateway.name);
+
   @WebSocketServer()
   server!: Server;
 
   constructor(private readonly jwtService: JwtService) { }
 
   async handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    this.logger.log(`Client connected: ${client.id}`);
 
     try {
       const token = client.handshake.auth.token;
@@ -38,24 +40,24 @@ export class NotificationGateway
       const userId = String(decoded.sub || decoded.id);
       await client.join(userId);
 
-      console.log(
-        `[Socket] HR ${userId} is connected (Socket ID: ${client.id})`,
+      this.logger.log(
+        `HR ${userId} is connected (Socket ID: ${client.id})`,
       );
     } catch (error: any) {
-      console.log(
-        `[Socket] Connect decline: ${client.id} - Error: ${error.message}`,
+      this.logger.warn(
+        `Connect decline: ${client.id} - Error: ${error.message}`,
       );
       client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`[Socket] Client disconnect: ${client.id}`);
+    this.logger.log(`Client disconnect: ${client.id}`);
   }
 
   @OnEvent('notification.send')
   handleSendNotification(payload: any) {
-    console.log(`[Socket] Sending notification to User: ${payload.userId}`);
+    this.logger.log(`Sending notification to User: ${payload.userId}`);
     const targetRoom = String(payload.userId);
     this.server.to(targetRoom).emit('onNewNotification', payload);
   }

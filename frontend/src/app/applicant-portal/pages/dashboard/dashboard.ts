@@ -34,6 +34,7 @@ export class DashboardComponent implements OnInit {
         app.vacancy?.title,
         app.vacancy?.code,
         app.status,
+        app.submittedCvFileName,
         app.cv?.fileName,
         app.code,
       ];
