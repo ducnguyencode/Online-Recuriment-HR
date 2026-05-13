@@ -16,6 +16,7 @@ import {
   Repository,
   EntityManager,
   Not,
+  Between,
 } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -114,6 +115,29 @@ export class InterviewService {
       if (!application || application.status !== ApplicationStatus.PENDING) {
         throw new NotFoundException(
           'Application not found or no longer eligible for interview.',
+        );
+      }
+
+      const targetDate = new Date(data.startTime);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existingCandidateInterview = await queryRunner.manager.findOne(Interview, {
+        where: {
+          application: {
+            applicant: { id: application.applicant.id }
+          },
+          startTime: Between(startOfDay, endOfDay),
+          status: Not(InterviewStatus.CANCELLED),
+        },
+      });
+
+      if (existingCandidateInterview) {
+        throw new BadRequestException(
+          `This applicant was already have interview on ${targetDate.toLocaleDateString('en-GB')}.`
         );
       }
 
