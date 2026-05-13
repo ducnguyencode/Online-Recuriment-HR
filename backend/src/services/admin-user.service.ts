@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -26,6 +27,8 @@ import { SafeUserDto } from 'src/dto/user/safe.user.dto';
 
 @Injectable()
 export class AdminUserService {
+  private readonly logger = new Logger(AdminUserService.name);
+
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Employee)
@@ -175,7 +178,7 @@ export class AdminUserService {
           },
         });
       } catch (logError) {
-        console.error('Failed to write staff create audit log', logError);
+        this.logger.error('Failed to write staff create audit log', logError as Error);
       }
       return refreshed;
     }
@@ -240,7 +243,7 @@ export class AdminUserService {
         },
       });
     } catch (logError) {
-      console.error('Failed to write staff create audit log', logError);
+      this.logger.error('Failed to write staff create audit log', logError as Error);
     }
     return refreshed;
   }
@@ -321,7 +324,7 @@ export class AdminUserService {
         },
       });
     } catch (logError) {
-      console.error('Failed to write staff update audit log', logError);
+      this.logger.error('Failed to write staff update audit log', logError as Error);
     }
     return refreshed;
   }
@@ -477,7 +480,7 @@ export class AdminUserService {
         },
       });
     } catch (logError) {
-      console.error('Failed to write staff deactivate audit log', logError);
+      this.logger.error('Failed to write staff deactivate audit log', logError as Error);
     }
     return user;
   }
@@ -505,7 +508,7 @@ export class AdminUserService {
         },
       });
     } catch (logError) {
-      console.error('Failed to write staff activate audit log', logError);
+      this.logger.error('Failed to write staff activate audit log', logError as Error);
     }
     return user;
   }
@@ -565,7 +568,7 @@ export class AdminUserService {
           },
         });
       } catch (logError) {
-        console.error('Failed to write resend invite audit log', logError);
+        this.logger.error('Failed to write resend invite audit log', logError as Error);
       }
       return;
     }
@@ -593,7 +596,7 @@ export class AdminUserService {
         },
       });
     } catch (logError) {
-      console.error('Failed to write resend invite audit log', logError);
+      this.logger.error('Failed to write resend invite audit log', logError as Error);
     }
   }
 

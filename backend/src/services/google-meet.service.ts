@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google } from 'googleapis';
 
 @Injectable()
 export class GoogleMeetService {
+  private readonly logger = new Logger(GoogleMeetService.name);
   private oauth2Client;
 
   constructor(private configService: ConfigService) {
@@ -66,7 +71,7 @@ export class GoogleMeetService {
         htmlLink: response.data.htmlLink,
       };
     } catch (error) {
-      console.error('Google Meet create error:', error);
+      this.logger.error('Google Meet create error', error as Error);
       throw new InternalServerErrorException(
         'Cannot create interview on Google Calendar',
       );
@@ -98,7 +103,7 @@ export class GoogleMeetService {
       });
       return true;
     } catch (error) {
-      console.error('Google Meet update error:', error);
+      this.logger.error('Google Meet update error', error as Error);
       throw new InternalServerErrorException(
         'Cannot update interview on Google Calendar',
       );
@@ -118,7 +123,7 @@ export class GoogleMeetService {
       });
       return true;
     } catch (error) {
-      console.error('Google Meet cancel error:', error);
+      this.logger.error('Google Meet cancel error', error as Error);
       throw new InternalServerErrorException(
         'Cannot cancel interview on Google Calendar',
       );

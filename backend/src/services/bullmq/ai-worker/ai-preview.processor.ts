@@ -21,7 +21,7 @@ export class AiPreviewProcessor extends WorkerHost {
     const application = await this.applicationService.findById(
       job.data.applicationId,
     );
-    if (!application.cv) {
+    if (!application.submittedCvFileUrl && !application.cv) {
       return null;
     }
     await this.applicationService.changeAiPreviewStatus(
@@ -44,6 +44,14 @@ export class AiPreviewProcessor extends WorkerHost {
   @OnWorkerEvent('completed')
   async onCompleted(job: Job<AiPreviewJobData> | undefined) {
     if (!job || !job.returnvalue) {
+      return;
+    }
+    if (!job.returnvalue.result) {
+      // CV missing or AI returned unparseable response → mark FAILED
+      await this.aiPreviewService.updateApplicationOnPreviewError(
+        job.data.applicationId,
+      );
+      this.gateway.emitUpdateApplication(null, job.data.applicationId);
       return;
     }
     await this.aiPreviewService.updateApplication(

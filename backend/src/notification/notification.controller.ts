@@ -21,7 +21,6 @@ export class NotificationsController {
     @Query('isRead') isRead?: string,
   ) {
     const userId = req.user?.sub || req.user?.id;
-    console.log('[API GET] UserId requesting:', userId);
     if (!userId) {
       return { statusCode: 401, message: 'User ID not found', data: { items: [], total: 0 } };
     }

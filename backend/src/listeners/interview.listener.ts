@@ -88,7 +88,6 @@ export class InterviewListener {
 
   @OnEvent('interview.result_submitted')
   async handleInterviewResultSubmitted(payload: any) {
-    console.log('[DEBUG] Event Payload:', payload);
     try {
       const targetUserIds = new Set<number | string>();
 

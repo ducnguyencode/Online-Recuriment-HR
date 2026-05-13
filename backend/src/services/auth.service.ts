@@ -4,6 +4,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   RequestTimeoutException,
   UnauthorizedException,
@@ -30,6 +31,8 @@ export interface AuthRequestContext {
 }
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
@@ -112,7 +115,7 @@ export class AuthService {
           context,
         });
       } catch (logError) {
-        console.error('Failed to write auth logs', logError);
+        this.logger.error('Failed to write auth logs', logError as Error);
       }
 
       const profileUser = (await this.userService.findById(user.id)) ?? user;
@@ -129,7 +132,7 @@ export class AuthService {
           context,
         });
       } catch (logError) {
-        console.error('Failed to write login history', logError);
+        this.logger.error('Failed to write login history', logError as Error);
       }
       throw error;
     }
@@ -211,7 +214,7 @@ export class AuthService {
         context,
       });
     } catch (logError) {
-      console.error('Failed to write audit log', logError);
+      this.logger.error('Failed to write audit log', logError as Error);
     }
 
     return { message: 'If your account exists, a reset link has been sent.' };
@@ -310,7 +313,7 @@ export class AuthService {
         context,
       });
     } catch (logError) {
-      console.error('Failed to write audit log', logError);
+      this.logger.error('Failed to write audit log', logError as Error);
     }
 
     return { message: 'Password has been reset successfully.' };
@@ -379,7 +382,7 @@ export class AuthService {
         context,
       });
     } catch (logError) {
-      console.error('Failed to write audit log', logError);
+      this.logger.error('Failed to write audit log', logError as Error);
     }
 
     return { message: 'Password changed successfully.' };
@@ -402,7 +405,7 @@ export class AuthService {
         context,
       });
     } catch (logError) {
-      console.error('Failed to write logout audit log', logError);
+      this.logger.error('Failed to write logout audit log', logError as Error);
     }
 
     return { message: 'Logout success.' };

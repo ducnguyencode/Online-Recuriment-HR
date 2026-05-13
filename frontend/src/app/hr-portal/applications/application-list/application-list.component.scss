@@ -285,6 +285,59 @@
   vertical-align: middle;
 }
 
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 2px 8px;
+  margin: -2px -8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.th-sort:hover {
+  background: var(--shell-surface-soft);
+  color: var(--shell-text);
+}
+
+.th-sort:hover .sort-indicator {
+  color: var(--shell-text);
+  opacity: 1;
+}
+
+.th-sort.active {
+  color: var(--shell-brand);
+}
+
+.sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--shell-text-soft);
+  opacity: 0.6;
+  transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+.sort-indicator svg {
+  display: block;
+}
+
+.th-sort.active .sort-indicator,
+.sort-indicator.is-active {
+  color: var(--shell-brand);
+  opacity: 1;
+}
+
 .cell-actions {
   display: flex;
   align-items: center;

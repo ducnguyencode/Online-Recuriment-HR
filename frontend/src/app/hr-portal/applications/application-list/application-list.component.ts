@@ -57,6 +57,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   selectedVacancyId = '';
   filterStartDate = '';
   filterEndDate = '';
+  sortBy: 'createdAt' | 'aiScore' = 'createdAt';
+  sortOrder: 'ASC' | 'DESC' = 'DESC';
 
   // Pagination
   currentPage = signal(1);
@@ -193,6 +195,8 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
         search: this.useBackendSearch() ? this.searchQuery : undefined,
         page: this.currentPage(),
         limit: this.pageSize,
+        sortBy: this.sortBy,
+        sortOrder: this.sortOrder,
       })
       .subscribe({
         next: (res) => {
@@ -219,6 +223,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
           });
           raw = this.applyLocalSearch(raw);
           raw = this.applyLocalDateFilter(raw);
+          raw = this.applyLocalSort(raw);
           const start = (this.currentPage() - 1) * this.pageSize;
           const items = raw.map((a) => ({
             ...a,
@@ -296,12 +301,34 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
     this.loadApplications();
   }
 
+  toggleAiScoreSort() {
+    if (this.sortBy !== 'aiScore') {
+      this.sortBy = 'aiScore';
+      this.sortOrder = 'DESC';
+    } else if (this.sortOrder === 'DESC') {
+      this.sortOrder = 'ASC';
+    } else {
+      this.sortBy = 'createdAt';
+      this.sortOrder = 'DESC';
+    }
+
+    this.currentPage.set(1);
+    this.loadApplications();
+  }
+
+  getAiScoreSortDirection(): string {
+    if (this.sortBy !== 'aiScore') return '';
+    return this.sortOrder === 'DESC' ? 'High first' : 'Low first';
+  }
+
   clearFilters() {
     this.searchQuery = '';
     this.filterStatus = '';
     this.selectedVacancyId = '';
     this.filterStartDate = '';
     this.filterEndDate = '';
+    this.sortBy = 'createdAt';
+    this.sortOrder = 'DESC';
     this.currentPage.set(1);
     this.loadApplications();
   }
@@ -483,6 +510,18 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   openCVDetail(app: Application) {
     this.selectedApplication.set(app);
     this.showCVDetail.set(true);
+  }
+
+  hasSubmittedCv(app: Application | null | undefined): boolean {
+    return Boolean(app?.submittedCvFileUrl || app?.cv?.fileUrl);
+  }
+
+  getSubmittedCvFileName(app: Application | null | undefined): string {
+    return app?.submittedCvFileName || app?.cv?.fileName || 'CV';
+  }
+
+  private getSubmittedCvFileUrl(app: Application | null | undefined): string {
+    return app?.submittedCvFileUrl || app?.cv?.fileUrl || '';
   }
 
   closeCVDetail() {
@@ -759,7 +798,7 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
   }
 
   viewSelectedApplicationCV() {
-    const fileUrl = this.selectedApplication()?.cv?.fileUrl;
+    const fileUrl = this.getSubmittedCvFileUrl(this.selectedApplication());
     if (!fileUrl) return;
     const resolvedUrl = fileUrl.startsWith('http')
       ? fileUrl
@@ -880,6 +919,37 @@ export class ApplicationListComponent implements OnInit, OnDestroy {
       const date = new Date(app.createdAt ?? app.updatedAt ?? '').getTime();
       return Number.isFinite(date) && date >= start && date <= end;
     });
+  }
+
+  private applyLocalSort(applications: Application[]): Application[] {
+    const sorted = [...applications];
+    if (this.sortBy === 'aiScore') {
+      const direction = this.sortOrder === 'ASC' ? 1 : -1;
+      sorted.sort((a, b) => {
+        const scoreA = this.displayApplicationScore(a);
+        const scoreB = this.displayApplicationScore(b);
+        const aHasScore = typeof scoreA === 'number';
+        const bHasScore = typeof scoreB === 'number';
+
+        if (aHasScore && bHasScore) {
+          return (scoreA - scoreB) * direction;
+        }
+        if (aHasScore) return -1;
+        if (bHasScore) return 1;
+        return (
+          new Date(b.createdAt ?? b.updatedAt ?? '').getTime() -
+          new Date(a.createdAt ?? a.updatedAt ?? '').getTime()
+        );
+      });
+      return sorted;
+    }
+
+    sorted.sort(
+      (a, b) =>
+        new Date(b.createdAt ?? b.updatedAt ?? '').getTime() -
+        new Date(a.createdAt ?? a.updatedAt ?? '').getTime(),
+    );
+    return sorted;
   }
 
   selectApplication(applicationId: string) {

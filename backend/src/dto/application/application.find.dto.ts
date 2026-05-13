@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { ApplicationStatus } from 'src/common/enum';
 
 export class ApplicationFindDto {
@@ -40,4 +48,12 @@ export class ApplicationFindDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  @IsOptional()
+  @IsIn(['createdAt', 'aiScore'])
+  sortBy?: 'createdAt' | 'aiScore';
+
+  @IsOptional()
+  @IsIn(['ASC', 'DESC', 'asc', 'desc'])
+  sortOrder?: 'ASC' | 'DESC' | 'asc' | 'desc';
 }

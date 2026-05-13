@@ -50,4 +50,12 @@ export class DateUtil {
       end: end.utc().toDate(),
     };
   }
+
+  static toLocalDateString(input: Date | string, tz = DEFAULT_TZ): string {
+    return dayjs(input).tz(tz).format('YYYY-MM-DD');
+  }
+
+  static toLocalTimeString(input: Date | string, tz = DEFAULT_TZ): string {
+    return dayjs(input).tz(tz).format('HH:mm:ss');
+  }
 }

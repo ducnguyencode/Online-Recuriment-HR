@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,6 +16,7 @@ import {
   Repository,
   EntityManager,
   Not,
+  Between,
 } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -30,9 +32,12 @@ import { GoogleMeetService } from './google-meet.service';
 import { InterviewCreateDto } from '../dto/interview-create.dto';
 import { ApplicantStatus, ApplicationStatus, InterviewStatus } from 'src/common/enum';
 import { Employee } from 'src/entities/employee.entity';
+import { DateUtil } from 'src/helper/date.util';
 
 @Injectable()
 export class InterviewService {
+  private readonly logger = new Logger(InterviewService.name);
+
   constructor(
     // Inject DataSource to handle Database Transactions
     private dataSource: DataSource,
@@ -56,9 +61,9 @@ export class InterviewService {
     start: Date,
     end: Date,
   ): Promise<void> {
-    const dateStr = start.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-    const startTimeStr = start.toTimeString().split(' ')[0]; // Format: HH:mm:ss
-    const endTimeStr = end.toTimeString().split(' ')[0]; // Format: HH:mm:ss
+    const dateStr = DateUtil.toLocalDateString(start);
+    const startTimeStr = DateUtil.toLocalTimeString(start);
+    const endTimeStr = DateUtil.toLocalTimeString(end);
 
     const existingSlot = await manager.createQueryBuilder(InterviewerAvailability, 'slot')
       .where('slot.employeeId = :empId', { empId })
@@ -110,6 +115,29 @@ export class InterviewService {
       if (!application || application.status !== ApplicationStatus.PENDING) {
         throw new NotFoundException(
           'Application not found or no longer eligible for interview.',
+        );
+      }
+
+      const targetDate = new Date(data.startTime);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existingCandidateInterview = await queryRunner.manager.findOne(Interview, {
+        where: {
+          application: {
+            applicant: { id: application.applicant.id }
+          },
+          startTime: Between(startOfDay, endOfDay),
+          status: Not(InterviewStatus.CANCELLED),
+        },
+      });
+
+      if (existingCandidateInterview) {
+        throw new BadRequestException(
+          `This applicant was already have interview on ${targetDate.toLocaleDateString('en-GB')}.`
         );
       }
 
@@ -227,8 +255,9 @@ export class InterviewService {
       ) {
         // If we suspect a DB failure after Google API success, we should try to delete the orphaned meeting
         // Note: This requires extracting the eventId safely, which might need custom error handling logic.
-        console.error(
-          'Transaction failed. Generating rollback for potential orphaned Google Meet event.',
+        this.logger.error(
+          'Transaction failed. Possible orphaned Google Meet event',
+          err as Error,
         );
       }
 
@@ -277,9 +306,9 @@ export class InterviewService {
       if (!interview) throw new NotFoundException('Interview not found.');
       const panelIds = interview.panels.map((p) => p.employeeId);
       if (panelIds.length > 0) {
-        const oldDateStr = interview.startTime.toISOString().split('T')[0];
-        const oldStartStr = interview.startTime.toTimeString().split(' ')[0];
-        const oldEndStr = interview.endTime.toTimeString().split(' ')[0];
+        const oldDateStr = DateUtil.toLocalDateString(interview.startTime);
+        const oldStartStr = DateUtil.toLocalTimeString(interview.startTime);
+        const oldEndStr = DateUtil.toLocalTimeString(interview.endTime);
 
         await queryRunner.manager.delete(InterviewerAvailability, {
           employeeId: panelIds[0],
@@ -377,8 +406,15 @@ export class InterviewService {
       await queryRunner.manager.save(Interview, interview);
 
       if (status === InterviewStatus.CANCELLED && interview.application) {
-        interview.application.status = ApplicationStatus.PENDING;
-        await queryRunner.manager.save(Application, interview.application);
+        // Only return application to PENDING if it was actually waiting on this
+        // interview's outcome. Already-finalized applications (SELECTED /
+        // REJECTED / NOT_REQUIRED / PENDING_REVIEW) must not be reverted.
+        if (
+          interview.application.status === ApplicationStatus.INTERVIEW_SCHEDULED
+        ) {
+          interview.application.status = ApplicationStatus.PENDING;
+          await queryRunner.manager.save(Application, interview.application);
+        }
         // 1. Delete Google Calendar Event (Fail-safe try-catch)
         if (interview.googleCalendarEventId) {
           try {
@@ -386,9 +422,9 @@ export class InterviewService {
               interview.googleCalendarEventId,
             );
           } catch (error) {
-            console.error(
-              '[Google Meet] Failed to delete event, continuing DB update:',
-              error,
+            this.logger.error(
+              '[Google Meet] Failed to delete event, continuing DB update',
+              error as Error,
             );
           }
         }
@@ -396,9 +432,9 @@ export class InterviewService {
         // 2. Release HR Availability Slots
         const panelIds = interview.panels.map((p) => p.employeeId);
         if (panelIds.length > 0) {
-          const dateStr = interview.startTime.toISOString().split('T')[0];
-          const oldStartStr = interview.startTime.toTimeString().split(' ')[0];
-          const oldEndStr = interview.endTime.toTimeString().split(' ')[0];
+          const dateStr = DateUtil.toLocalDateString(interview.startTime);
+          const oldStartStr = DateUtil.toLocalTimeString(interview.startTime);
+          const oldEndStr = DateUtil.toLocalTimeString(interview.endTime);
 
           await queryRunner.manager.delete(InterviewerAvailability, {
             employeeId: In(panelIds),
@@ -583,6 +619,12 @@ export class InterviewService {
 
       if (!interview) throw new NotFoundException('Interview not found.');
 
+      if (interview.status !== InterviewStatus.SCHEDULED) {
+        throw new BadRequestException(
+          `Cannot submit a result for an interview in status ${interview.status}.`,
+        );
+      }
+
       const now = new Date();
       const interviewStartTime = new Date(interview.startTime);
 
@@ -606,7 +648,10 @@ export class InterviewService {
       interview.status = InterviewStatus.COMPLETED;
       await queryRunner.manager.save(Interview, interview);
 
-      if (interview.application) {
+      if (
+        interview.application &&
+        interview.application.status === ApplicationStatus.INTERVIEW_SCHEDULED
+      ) {
         // Both Pass and Fail → Pending Review. Super Admin makes the final decision.
         interview.application.status = ApplicationStatus.PENDING_REVIEW;
         await queryRunner.manager.save(Application, interview.application);

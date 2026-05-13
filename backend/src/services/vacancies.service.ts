@@ -16,6 +16,12 @@ import { FindResponseDto } from 'src/helper/find.response.dto';
 import { Repository } from 'typeorm';
 import { AiPreviewService } from './bullmq/ai-worker/ai-preview.service';
 
+const VACANCY_STATUS_TRANSITIONS: Record<VacancyStatus, VacancyStatus[]> = {
+  [VacancyStatus.OPENED]: [VacancyStatus.CLOSED, VacancyStatus.SUSPENDED],
+  [VacancyStatus.SUSPENDED]: [VacancyStatus.OPENED, VacancyStatus.CLOSED],
+  [VacancyStatus.CLOSED]: [],
+};
+
 @Injectable()
 export class VacanciesService {
   constructor(
@@ -93,13 +99,20 @@ export class VacanciesService {
           throw new NotFoundException('Vacancy not found');
         }
 
-        if (data.numberOfOpenings < exist.filledCount) {
+        if (
+          data.numberOfOpenings != null &&
+          data.numberOfOpenings < exist.filledCount
+        ) {
           throw new BadRequestException(
             `You already selected ${exist.filledCount} applicant(s) for this vacancy. Please set openings to ${exist.filledCount} or more.`,
           );
         }
 
-        Object.assign(exist, data);
+        const sanitized: Partial<VacancyUpdateDto> = { ...data };
+        if (sanitized.numberOfOpenings == null) {
+          delete sanitized.numberOfOpenings;
+        }
+        Object.assign(exist, sanitized);
 
         if (exist.filledCount >= exist.numberOfOpenings) {
           exist.status = VacancyStatus.CLOSED;
@@ -141,19 +154,27 @@ export class VacanciesService {
       throw new NotFoundException('Vacancy not found');
     }
 
-    if (
-      vacancy.status !== VacancyStatus.OPENED &&
-      status === VacancyStatus.OPENED
-    ) {
+    if (vacancy.status === status) {
+      return vacancy;
+    }
+
+    if (!VACANCY_STATUS_TRANSITIONS[vacancy.status].includes(status)) {
+      throw new ForbiddenException(
+        `Cannot change vacancy status from ${vacancy.status} to ${status}.`,
+      );
+    }
+
+    if (status === VacancyStatus.OPENED) {
       const now = new Date();
 
-      const closing = new Date(vacancy.closingDate);
-      closing.setHours(23, 59, 59, 999);
-
-      if (closing < now) {
-        throw new ForbiddenException(
-          'This vacancy cannot be reopened because the closing date has passed.',
-        );
+      if (vacancy.closingDate) {
+        const closing = new Date(vacancy.closingDate);
+        closing.setHours(23, 59, 59, 999);
+        if (closing < now) {
+          throw new ForbiddenException(
+            'This vacancy cannot be reopened because the closing date has passed.',
+          );
+        }
       }
       if (vacancy.filledCount >= vacancy.numberOfOpenings) {
         throw new ForbiddenException(
